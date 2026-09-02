@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Docs/Tutorials/React.md",
+                "file": "Docs/style-guide.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "React"
+              "title": "style-guide"
             }
           }
         ],
@@ -114,7 +114,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Docs/Tutorials/React.md",
+                "file": "Docs/style-guide.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -133,7 +133,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Docs/Tutorials/React.md",
+                "file": "Docs/style-guide.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -176,7 +176,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Docs/Tutorials/React.md",
+                "file": "Docs/style-guide.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -205,7 +205,48 @@
   },
   "active": "0c34c48393938715",
   "lastOpenFiles": [
-    "Docs/Tutorials/Git & Github.md",
-    "Docs/Tutorials/React.md"
+    "Docs/Tutorials/Installing React.md",
+    "Docs/style-guide.md",
+    "app/src/ParticleField.jsx",
+    "app/src/particleSettings.js",
+    "app/src/cameraOrbit.js",
+    "app/dist/index.html",
+    "app/dist/assets/index-Nk1abRCB.js",
+    "app/dist/assets/index-BO0DvPHZ.css",
+    "app/dist/assets",
+    "app/dist/favicon.svg",
+    "app/dist/icons.svg",
+    "app/dist",
+    "app/src/SidePanel.jsx",
+    "app/src/Scene.jsx",
+    "app/node_modules/three/examples/jsm/libs/draco/README.md",
+    "app/node_modules/three/examples/jsm/libs/basis/README.md",
+    "app/node_modules/three/src/nodes/materialx/DISCLAIMER.md",
+    "app/node_modules/use-sync-external-store/README.md",
+    "app/node_modules/utility-types/SUPPORT.md",
+    "app/node_modules/utility-types/SECURITY.md",
+    "app/node_modules/utility-types/README.md",
+    "app/node_modules/utility-types/CHANGELOG.md",
+    "app/node_modules/fflate/README.md",
+    "app/node_modules/fflate/CHANGELOG.md",
+    "app/node_modules/tunnel-rat/README.md",
+    "app/node_modules/suspend-react/readme.md",
+    "app/node_modules/tunnel-rat/CHANGELOG.md",
+    "app/node_modules/@tweenjs/tween.js/README.md",
+    "app/node_modules/cross-spawn/README.md",
+    "app/node_modules/zustand/README.md",
+    "app/node_modules/base64-js/README.md",
+    "app/node_modules/promise-worker-transferable/README.md",
+    "app/node_modules/@types/webxr/README.md",
+    "app/node_modules/@use-gesture/core/CHANGELOG.md",
+    "app/node_modules/meshoptimizer/README.md",
+    "app/node_modules/meshoptimizer/LICENSE.md",
+    "app/node_modules/react-use-measure/README.md",
+    "app/node_modules/@types/stats.js/README.md",
+    "app/src/assets/vite.svg",
+    "app/src/assets/react.svg",
+    "app/src/assets/hero.png",
+    "app/public/icons.svg",
+    "app/public/favicon.svg"
   ]
 }
