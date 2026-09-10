@@ -13,3 +13,9 @@ export const DEFAULT_PARTICLES = {
 export function hueToCss(hue) {
   return `hsl(${Math.round(hue)} 78% 62%)`
 }
+
+export const PARTICLE_TIPS = {
+  spacing: 'Distance between particles. Higher expands the whole cloud.',
+  hue: 'Hue of the particles. This is content color, not the UI highlight.',
+  shape: 'How irregular the outer hull is. 0% is a sphere; higher makes a lumpy blob.',
+}
