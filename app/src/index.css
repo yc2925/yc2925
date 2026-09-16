@@ -6,7 +6,9 @@
   --text: #e8e8e8;
   --text-dim: #8a8a8a;
   --text-mute: #5c5c5c;
-  --signal: #ff3b00;
+  --signal: #ff2020;
+  --signal-mid: #a31318;
+  --signal-dark: #4a0b0e;
   --sans: 'IBM Plex Sans', system-ui, 'Helvetica Neue', Arial, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   color-scheme: dark;

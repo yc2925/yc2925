@@ -1,142 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import * as THREE from 'three'
 import { fillHeightmap } from '../noise/sample.js'
-import {
-  captureHydraulicState,
-  createHydraulicState,
-  restoreHydraulicState,
-  stepHydraulic,
-} from '../simulation/hydraulic.js'
+import { heightmapKey } from '../noise/settings.js'
+import { captureHydraulicState, createHydraulicState } from '../simulation/hydraulic.js'
 import { DEFAULT_EROSION } from '../simulation/settings.js'
+import HydraulicWorld from '../simulation/HydraulicWorld.jsx'
 import SimulationPanel from '../ui/SimulationPanel.jsx'
 
 const SNAPSHOT_INTERVAL = 0.1
-
-function redGradient(t) {
-  const v = Math.min(1, Math.max(0, t))
-  if (v < 0.45) {
-    const u = v / 0.45
-    return [0.08 + u * 0.42, 0.005 + u * 0.025, 0.005]
-  }
-  const u = (v - 0.45) / 0.55
-  return [0.5 + u * 0.5, 0.03 + u * 0.35, 0.005 + u * 0.18]
-}
-
-function pseudoRandom(index, salt) {
-  const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453
-  return value - Math.floor(value)
-}
-
-function Rainfall({ active, intensity }) {
-  const pointsRef = useRef(null)
-  const count = 900
-  const positions = useMemo(() => {
-    const values = new Float32Array(count * 3)
-    for (let i = 0; i < count; i += 1) {
-      values[i * 3] = (pseudoRandom(i, 1) - 0.5) * 10
-      values[i * 3 + 1] = 1 + pseudoRandom(i, 2) * 8
-      values[i * 3 + 2] = (pseudoRandom(i, 3) - 0.5) * 10
-    }
-    return values
-  }, [])
-
-  useFrame((_, delta) => {
-    if (!active || !pointsRef.current) return
-    const attribute = pointsRef.current.geometry.attributes.position
-    const speed = 5 + intensity * 90
-    for (let i = 0; i < attribute.count; i += 1) {
-      let y = attribute.getY(i) - delta * speed
-      if (y < -0.5) y = 5 + Math.random() * 5
-      attribute.setY(i, y)
-    }
-    attribute.needsUpdate = true
-  })
-
-  return (
-    <points ref={pointsRef} visible={active}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        color="#168cff"
-        size={0.055}
-        sizeAttenuation
-        transparent
-        opacity={0.9}
-        depthWrite={false}
-      />
-    </points>
-  )
-}
-
-function SimulationTerrain({ state, amplitude, settings, reviewSnapshot }) {
-  const meshRef = useRef(null)
-  const colorsRef = useRef(null)
-
-  useEffect(() => {
-    if (reviewSnapshot) restoreHydraulicState(state, reviewSnapshot)
-  }, [reviewSnapshot, state])
-
-  useFrame((_, frameDelta) => {
-    if (!reviewSnapshot && settings.running) {
-      const delta = Math.min(1.5, frameDelta * 60) / settings.iterations
-      for (let i = 0; i < settings.iterations; i += 1) {
-        stepHydraulic(state, settings, delta)
-      }
-    }
-
-    const geometry = meshRef.current?.geometry
-    if (!geometry) return
-    const positions = geometry.attributes.position
-    if (!colorsRef.current || colorsRef.current.length !== positions.count * 3) {
-      colorsRef.current = new Float32Array(positions.count * 3)
-      geometry.setAttribute('color', new THREE.BufferAttribute(colorsRef.current, 3))
-    }
-    const colors = colorsRef.current
-    for (let i = 0; i < positions.count; i += 1) {
-      const height = state.terrain[i]
-      positions.setZ(i, height * amplitude * 2.4)
-
-      let [r, g, b] = redGradient((height + 1) * 0.5)
-      if (settings.showScour) {
-        const cut = Math.min(1, state.scour[i] * 2.5)
-        r += cut * 0.28
-        g += cut * 0.06
-      }
-      if (settings.showWater) {
-        const wet = Math.min(0.72, state.water[i] * 8)
-        r = r * (1 - wet) + 0.08 * wet
-        g = g * (1 - wet) + 0.38 * wet
-        b = b * (1 - wet) + 1 * wet
-      }
-
-      colors[i * 3] = Math.min(1, r)
-      colors[i * 3 + 1] = Math.min(1, g)
-      colors[i * 3 + 2] = Math.min(1, b)
-    }
-
-    positions.needsUpdate = true
-    geometry.attributes.color.needsUpdate = true
-    geometry.computeVertexNormals()
-  })
-
-  return (
-    <group rotation={[-Math.PI / 2, 0, 0]}>
-      <mesh ref={meshRef}>
-        <planeGeometry args={[10, 10, state.size - 1, state.size - 1]} />
-        <meshStandardMaterial
-          vertexColors
-          roughness={0.86}
-          metalness={0}
-          side={THREE.DoubleSide}
-          wireframe={settings.wireframe}
-        />
-      </mesh>
-    </group>
-  )
-}
 
 function nearestSnapshot(frames, cursor) {
   if (frames.length === 0) return null
@@ -147,27 +19,47 @@ function nearestSnapshot(frames, cursor) {
   return nearest
 }
 
+const EMPTY_TELEMETRY = {
+  totalWater: 0,
+  averageWater: 0,
+  maxWater: 0,
+  rainfallRate: 0,
+  evaporationRate: 0,
+  outflowRate: 0,
+  erodedMaterial: 0,
+  depositedMaterial: 0,
+  sedimentLoad: 0,
+  vegetationCoverage: 0,
+  soilMoisture: 0,
+  vegetationGrowthRate: 0,
+  vegetationDieOffRate: 0,
+}
+
 export default function SimulationView({ noise, onNoiseChange }) {
   const [erosion, setErosion] = useState(DEFAULT_EROSION)
   const [resetVersion, setResetVersion] = useState(0)
+  const terrainKey = heightmapKey(noise)
+  const terrainConfig = useMemo(() => JSON.parse(terrainKey), [terrainKey])
   const state = useMemo(
     () => {
       void resetVersion
-      return createHydraulicState(fillHeightmap(noise), Math.round(noise.resolution))
+      return createHydraulicState(
+        fillHeightmap(terrainConfig),
+        Math.round(terrainConfig.resolution),
+      )
     },
-    [noise, resetVersion],
+    [resetVersion, terrainConfig],
   )
   const stateRef = useRef(state)
   const [recording, setRecording] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [cursor, setCursor] = useState(0)
-  const [frames, setFrames] = useState([])
+  const [frameCount, setFrameCount] = useState(0)
+  const [reviewing, setReviewing] = useState(false)
+  const [reviewSnapshot, setReviewSnapshot] = useState(null)
+  const [telemetry, setTelemetry] = useState(EMPTY_TELEMETRY)
   const framesRef = useRef([])
   const startTimeRef = useRef(0)
-  const liveErosion = useMemo(
-    () => ({ ...erosion, rain: recording ? erosion.rain : 0 }),
-    [erosion, recording],
-  )
 
   useEffect(() => {
     stateRef.current = state
@@ -200,13 +92,13 @@ export default function SimulationView({ noise, onNoiseChange }) {
 
     function record(now) {
       const time = (now - startTimeRef.current) / 1000
-      setElapsed(time)
-      setCursor(time)
 
       if (time - lastCapture >= SNAPSHOT_INTERVAL) {
         lastCapture = time
         framesRef.current.push(captureHydraulicState(stateRef.current, time))
-        setFrames([...framesRef.current])
+        setFrameCount(framesRef.current.length)
+        setElapsed(time)
+        setCursor(time)
       }
 
       animationFrame = requestAnimationFrame(record)
@@ -218,7 +110,9 @@ export default function SimulationView({ noise, onNoiseChange }) {
 
   function startRecording() {
     framesRef.current = [captureHydraulicState(stateRef.current, 0)]
-    setFrames(framesRef.current)
+    setFrameCount(1)
+    setReviewing(false)
+    setReviewSnapshot(null)
     setElapsed(0)
     setCursor(0)
     startTimeRef.current = performance.now()
@@ -232,13 +126,38 @@ export default function SimulationView({ noise, onNoiseChange }) {
   function resetSimulation() {
     setRecording(false)
     framesRef.current = []
-    setFrames([])
+    setFrameCount(0)
     setElapsed(0)
     setCursor(0)
+    setReviewing(false)
+    setReviewSnapshot(null)
+    setTelemetry(EMPTY_TELEMETRY)
     setResetVersion((version) => version + 1)
   }
 
-  const reviewSnapshot = !recording ? nearestSnapshot(frames, cursor) : null
+  function updateNoise(nextNoise) {
+    if (heightmapKey(nextNoise) !== terrainKey) {
+      setRecording(false)
+      framesRef.current = []
+      setFrameCount(0)
+      setElapsed(0)
+      setCursor(0)
+      setReviewing(false)
+      setReviewSnapshot(null)
+    }
+    onNoiseChange(nextNoise)
+  }
+
+  function reviewAt(time) {
+    setCursor(time)
+    setReviewing(true)
+    setReviewSnapshot(nearestSnapshot(framesRef.current, time))
+  }
+
+  function returnLive() {
+    setReviewing(false)
+    setReviewSnapshot(null)
+  }
 
   return (
     <div className="simulation-view">
@@ -246,14 +165,13 @@ export default function SimulationView({ noise, onNoiseChange }) {
         <color attach="background" args={['#070707']} />
         <ambientLight intensity={0.48} />
         <directionalLight position={[6, 10, 4]} intensity={0.95} color="#e8e8e8" />
-        <SimulationTerrain
+        <HydraulicWorld
           state={state}
           amplitude={noise.amplitude}
-          settings={liveErosion}
+          settings={erosion}
           reviewSnapshot={reviewSnapshot}
+          onTelemetry={setTelemetry}
         />
-        <Rainfall active={recording} intensity={erosion.rain} />
-        <gridHelper args={[12, 12, '#2a2a2a', '#151515']} />
         <OrbitControls
           makeDefault
           enableDamping
@@ -265,16 +183,19 @@ export default function SimulationView({ noise, onNoiseChange }) {
 
       <SimulationPanel
         noise={noise}
-        onNoiseChange={onNoiseChange}
+        onNoiseChange={updateNoise}
         erosion={erosion}
         onErosionChange={setErosion}
+        telemetry={telemetry}
         recorder={{
           recording,
+          reviewing,
           elapsed,
           duration: elapsed,
-          frameCount: frames.length,
+          frameCount,
           cursor,
-          onCursorChange: setCursor,
+          onCursorChange: reviewAt,
+          onLive: returnLive,
           onStart: startRecording,
           onStop: stopRecording,
           onReset: resetSimulation,

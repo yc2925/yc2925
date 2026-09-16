@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Docs/style-guide.md",
+                "file": "Docs/Analysis/Hydraulic Simulation 0909.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "style-guide"
+              "title": "Hydraulic Simulation 0909"
             }
           }
         ],
@@ -203,21 +203,23 @@
       "bases:Create new base": false
     }
   },
-  "active": "916836dcbe045874",
+  "active": "0c34c48393938715",
   "lastOpenFiles": [
-    "app/dist/assets/index-CdJW6Tyd.js",
-    "app/dist/assets/index-G96fO78J.js",
-    "app/dist/assets/index-Ky3jvUCv.js",
-    "app/dist/assets/index-CchGiFPm.css",
-    "app/dist/assets/index-DpWIUYBZ.js",
-    "app/src/views/SimulationView.jsx",
-    "app/src/ui/SimulationPanel.jsx",
-    "app/src/simulation/hydraulic.js",
-    "app/src/simulation/settings.js",
-    "app/src/simulation",
-    "app/dist/assets/index-BiqBvZil.css",
-    "Docs/Tutorials/Installing React.md",
+    "app/dist/assets/index-DM2-N5-i.js",
+    "app/dist/assets/index-BbI39J4g.js",
+    "app/src/simulation/vegetation.js",
+    "app/dist/assets/index-DsTNMmSE.js",
+    "app/dist/assets/index-Utvc09gi.js",
+    "app/dist/assets/index-DzHuMaNh.js",
+    "app/dist/assets/index-CDMcM7Qr.js",
+    "app/dist/assets/index-Ba7qpziE.js",
+    "app/dist/index.html",
+    "app/dist/assets/index-CbJDGrnp.js",
+    "app/dist/assets/index-BYa3NzHx.css",
     "Docs/style-guide.md",
+    "Docs/Analysis/Hydraulic Simulation 0909.md",
+    "README.md",
+    "Docs/Tutorials/Installing React.md",
     "app/dist/favicon.svg",
     "app/dist/icons.svg",
     "app/node_modules/three/examples/jsm/libs/draco/README.md",
@@ -241,8 +243,6 @@
     "app/node_modules/@types/webxr/README.md",
     "app/node_modules/@use-gesture/core/CHANGELOG.md",
     "app/node_modules/meshoptimizer/README.md",
-    "app/node_modules/meshoptimizer/LICENSE.md",
-    "app/node_modules/react-use-measure/README.md",
     "app/src/assets/vite.svg",
     "app/src/assets/react.svg",
     "app/src/assets/hero.png",

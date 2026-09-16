@@ -38,11 +38,19 @@ Use CSS variables. Do not hardcode one-off hex in components unless mapping a li
 | `--text` | `#E8E8E8` | Titles, control labels |
 | `--text-dim` | `#8A8A8A` | Hints, inactive labels |
 | `--text-mute` | `#5C5C5C` | Metadata, units, disabled |
-| `--signal` | `#FF3B00` | **Only highlight** |
+| `--signal-dark` | `#4A0B0E` | Structural divisions and dominant industrial-red accent |
+| `--signal-mid` | `#A31318` | Armed controls and warning edges |
+| `--signal` | `#FF2020` | Bright active state only |
 
 ### Signal (the one highlight)
 
-`--signal: #FF3B00`
+The accent is a single red family:
+
+- `--signal-dark: #4A0B0E` for architectural structure
+- `--signal-mid: #A31318` for armed and warning states
+- `--signal: #FF2020` for the current live or selected state
+
+These are tonal levels of one hue, not separate accents. Dark red should occupy more interface area than bright red.
 
 Use it only for:
 
@@ -201,7 +209,7 @@ Match the interface: short, operational, unlabeled poetry.
 **Do**
 
 - Treat the UI as a legend on an image
-- Keep one red-orange live color
+- Keep one true-red live color
 - Use hairlines and mono values
 - Sit type on the pixel grid (integer px sizes)
 

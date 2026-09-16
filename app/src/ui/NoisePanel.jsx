@@ -44,6 +44,26 @@ export function NoiseControls({ noise, onNoiseChange }) {
         display={noise.amplitude.toFixed(2)}
         onChange={(amplitude) => onNoiseChange({ ...noise, amplitude })}
       />
+      <Slider
+        label="Smoothing"
+        tip={NOISE_TIPS.smoothing}
+        value={noise.smoothing}
+        min={limits.smoothing.min}
+        max={limits.smoothing.max}
+        step={limits.smoothing.step}
+        display={String(Math.round(noise.smoothing))}
+        onChange={(smoothing) => onNoiseChange({ ...noise, smoothing })}
+      />
+      <Slider
+        label="Island falloff"
+        tip={NOISE_TIPS.islandFalloff}
+        value={noise.islandFalloff}
+        min={limits.islandFalloff.min}
+        max={limits.islandFalloff.max}
+        step={limits.islandFalloff.step}
+        display={`${Math.round(noise.islandFalloff * 100)}%`}
+        onChange={(islandFalloff) => onNoiseChange({ ...noise, islandFalloff })}
+      />
 
       <div className="layer-picker">
         <LabelWithTip tip={NOISE_TIPS.layer}>Layer</LabelWithTip>

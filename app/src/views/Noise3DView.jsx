@@ -7,10 +7,10 @@ import Noise2DView from './Noise2DView.jsx'
 
 function heightToRed(t) {
   const stops = [
-    { t: 0, r: 0.1, g: 0.01, b: 0.01 },
-    { t: 0.35, r: 0.48, g: 0.05, b: 0.02 },
-    { t: 0.7, r: 1, g: 0.23, b: 0 },
-    { t: 1, r: 1, g: 0.72, b: 0.58 },
+    { t: 0, r: 0.08, g: 0, b: 0 },
+    { t: 0.35, r: 0.38, g: 0.01, b: 0.01 },
+    { t: 0.7, r: 0.82, g: 0.03, b: 0.03 },
+    { t: 1, r: 1, g: 0.45, b: 0.45 },
   ]
   const clamped = Math.min(1, Math.max(0, t))
   let i = 0
@@ -60,7 +60,7 @@ function HeightGrid({ noise }) {
         <meshStandardMaterial vertexColors roughness={0.88} metalness={0} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={geometry}>
-        <meshBasicMaterial color="#3f1a12" wireframe transparent opacity={0.22} />
+        <meshBasicMaterial color="#3f1010" wireframe transparent opacity={0.22} />
       </mesh>
     </group>
   )

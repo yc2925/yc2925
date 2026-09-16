@@ -130,9 +130,39 @@ export function sampleNoise(x, y, params, noise) {
   return applyShaping(applyType(x, y, params, noise), params.shaping, params.shapeAmount)
 }
 
+function blurHeightmap(source, size, passes) {
+  if (passes <= 0) return source
+  let input = source
+  let output = new Float32Array(source.length)
+
+  for (let pass = 0; pass < passes; pass += 1) {
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        let sum = 0
+        let weight = 0
+        for (let oy = -1; oy <= 1; oy += 1) {
+          const sy = Math.min(size - 1, Math.max(0, y + oy))
+          for (let ox = -1; ox <= 1; ox += 1) {
+            const sx = Math.min(size - 1, Math.max(0, x + ox))
+            const kernel = ox === 0 && oy === 0 ? 4 : ox === 0 || oy === 0 ? 2 : 1
+            sum += input[sy * size + sx] * kernel
+            weight += kernel
+          }
+        }
+        output[y * size + x] = sum / weight
+      }
+    }
+    const swap = input
+    input = output
+    output = swap
+  }
+
+  return input
+}
+
 export function fillHeightmap(params) {
   const size = Math.round(params.resolution)
-  const data = new Float32Array(size * size)
+  let data = new Float32Array(size * size)
   const last = Math.max(1, size - 1)
   const layers = params.layers ?? []
   const samplers = layers.map((layer) =>
@@ -157,5 +187,29 @@ export function fillHeightmap(params) {
     }
   }
 
+  data = blurHeightmap(data, size, Math.round(params.smoothing ?? 0))
+
+  let min = Infinity
+  let max = -Infinity
+  for (let i = 0; i < data.length; i += 1) {
+    min = Math.min(min, data[i])
+    max = Math.max(max, data[i])
+  }
+
+  const range = Math.max(1e-6, max - min)
+  const island = params.islandFalloff ?? 0
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const u = (x / last) * 2 - 1
+      const v = (y / last) * 2 - 1
+      const distance = Math.sqrt(u * u + v * v)
+      const edgeRaw = clamp01((distance - 0.5) / 0.58)
+      const edge = edgeRaw * edgeRaw * (3 - 2 * edgeRaw)
+      const normalized = ((data[y * size + x] - min) / range) * 1.6 - 0.72
+      data[y * size + x] = Math.max(-1, Math.min(1, normalized - edge * island * 1.35))
+    }
+  }
+
+  data = blurHeightmap(data, size, island > 0 ? 1 : 0)
   return data
 }

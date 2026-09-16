@@ -28,6 +28,8 @@ export const NOISE_LIMITS = {
   shapeAmount: { min: 0, max: 1, step: 0.01 },
   amplitude: { min: 0.05, max: 2.4, step: 0.01 },
   blend: { min: 0, max: 1, step: 0.01 },
+  smoothing: { min: 0, max: 4, step: 1 },
+  islandFalloff: { min: 0, max: 1, step: 0.01 },
 }
 
 function defaultLayer(overrides = {}) {
@@ -49,26 +51,44 @@ function defaultLayer(overrides = {}) {
 
 export const DEFAULT_NOISE = {
   resolution: 96,
-  amplitude: 0.85,
+  amplitude: 0.72,
+  smoothing: 2,
+  islandFalloff: 0.78,
   activeLayer: 0,
   layers: [
-    defaultLayer({ enabled: true, blend: 1, type: 'ridged', seed: 17 }),
     defaultLayer({
-      enabled: false,
-      blend: 0.45,
+      enabled: true,
+      blend: 1,
       type: 'billow',
-      frequency: 3.2,
-      octaves: 4,
-      seed: 64,
-      typeAmount: 0.7,
+      shaping: 'smooth',
+      shapeAmount: 0.58,
+      frequency: 0.55,
+      octaves: 5,
+      persistence: 0.46,
+      seed: 17,
+      typeAmount: 0.18,
     }),
     defaultLayer({
-      enabled: false,
-      blend: 0.35,
+      enabled: true,
+      blend: 0.52,
       type: 'warp',
-      frequency: 1.2,
+      shaping: 'smooth',
+      shapeAmount: 0.42,
+      frequency: 0.85,
+      octaves: 4,
+      persistence: 0.46,
+      seed: 64,
+      typeAmount: 0.42,
+    }),
+    defaultLayer({
+      enabled: true,
+      blend: 0.22,
+      type: 'ridged',
+      frequency: 1.35,
+      octaves: 3,
+      persistence: 0.38,
       seed: 121,
-      typeAmount: 0.4,
+      typeAmount: 0.24,
     }),
   ],
 }
@@ -83,6 +103,8 @@ export function patchLayer(noise, index, patch) {
 export function heightmapKey(noise) {
   return JSON.stringify({
     resolution: noise.resolution,
+    smoothing: noise.smoothing,
+    islandFalloff: noise.islandFalloff,
     layers: noise.layers,
   })
 }
@@ -179,6 +201,8 @@ export const NOISE_TIPS = {
   lacunarity: 'Frequency jump per octave. Higher spreads detail bands farther apart.',
   seed: 'Random offset of the pattern. The same seed repeats the same field.',
   amplitude: 'Vertical scale of the 3D grid. Does not change the 2D map.',
+  smoothing: 'Low-pass passes applied to the blended field to suppress synthetic spikes.',
+  islandFalloff: 'Lowers terrain near the square boundary to create a landmass surrounded by ocean.',
   layer: 'Which layer you are editing. Enable 2 and 3 to blend extra noise into the field.',
   enable: 'Include this layer in the blended heightmap. Off layers are skipped.',
   blend: 'Weight of this layer when mixing with the others. 0 is silent; 1 is full.',
