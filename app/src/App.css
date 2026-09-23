@@ -103,6 +103,22 @@
   pointer-events: none;
 }
 
+.assignment-status {
+  position: absolute;
+  left: 16px;
+  bottom: 52px;
+  z-index: 2;
+  width: 220px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--signal-dark);
+  background: rgb(12 12 12 / 94%);
+  pointer-events: none;
+}
+
+.assignment-status .telemetry-row {
+  border-left: 1px solid var(--line);
+}
+
 .noise-float {
   position: absolute;
   left: 16px;
@@ -676,6 +692,57 @@
   grid-template-columns: 1fr;
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
+}
+
+.voxel-debug {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-panel);
+}
+
+.meshing-hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.meshing-current {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--signal-dark);
+}
+
+.meshing-current > span:last-child {
+  color: var(--text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meshing-method {
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.meshing-method.is-current {
+  border-left: 2px solid var(--signal-dark);
+  padding-left: 8px;
+}
+
+.meshing-method h3 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.meshing-method p {
+  margin: 0 0 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .telemetry-row {

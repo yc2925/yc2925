@@ -1,9 +1,8 @@
 # yc2925
-Procedural World Building repo for yc2925
 
-#### **Class 04 Progress**
-![[Frame 1.jpg]]
+Procedural World Building repo for yc2925.
 
-![[Frame 2.jpg]]
+## Documentation
 
-![[Frame 3.jpg]]
+- [Week 4 — Voxel Exercise and Firebase](Docs/Documentation/Week4.md)
+

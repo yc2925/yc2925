@@ -1,4 +1,5 @@
 import { createSimplex2D } from '../noise/simplex2d.js'
+import { CSG_SPHERE_RADIUS } from './settings.js'
 import { createValueNoise3D } from './noise3d.js'
 
 export function voxelIndex(x, y, z, resolution) {
@@ -84,57 +85,90 @@ function densityAt(mode, noise, x, y, z, settings) {
   return surface - y
 }
 
-export function createDensityVolume(settings) {
-  const {
-    densityMode,
-    resolution,
-    terrainScale,
-    enableCaves,
-    caveFrequency,
-    caveThreshold,
-    caveStrength,
-  } = settings
-  const density = new Float32Array(resolution ** 3)
+function applyCsg(baseDensity, x, y, z, settings) {
+  if (settings.csgOperation === 'none') return baseDensity
+  if (settings.csgOperation === 'shell') {
+    return Math.min(baseDensity, settings.shellThickness - baseDensity)
+  }
+
+  const dx = x - settings.csgX
+  const dy = y - settings.csgY
+  const dz = z - settings.csgZ
+  const sphereDensity = CSG_SPHERE_RADIUS - Math.sqrt(dx * dx + dy * dy + dz * dz)
+
+  if (settings.csgOperation === 'union') {
+    return Math.max(baseDensity, sphereDensity)
+  }
+  if (settings.csgOperation === 'subtract') {
+    return sphereDensity > 0
+      ? Math.min(baseDensity, -sphereDensity)
+      : baseDensity
+  }
+  if (settings.csgOperation === 'intersection') {
+    return Math.min(baseDensity, sphereDensity)
+  }
+  if (settings.csgOperation === 'smoothUnion') {
+    const blend = Math.max(1e-6, settings.blendStrength)
+    const amount = Math.min(
+      1,
+      Math.max(0, 0.5 + (0.5 * (baseDensity - sphereDensity)) / blend),
+    )
+    return (
+      sphereDensity * (1 - amount) +
+      baseDensity * amount +
+      blend * amount * (1 - amount)
+    )
+  }
+  return baseDensity
+}
+
+export function createDensitySampler(settings) {
   const surfaceNoise = createSimplex2D(84)
   const caveNoise = createValueNoise3D(137)
+  const voxelStep = 1 / Math.max(1, settings.resolution - 1)
+
+  return function sampleDensity(x, y, z) {
+    const baseDensity = densityAt(settings.densityMode, surfaceNoise, x, y, z, settings)
+    let finalDensity = baseDensity
+
+    if (settings.enableCaves && baseDensity > 0) {
+      const caveValue = sampleCaveNoise(
+        caveNoise,
+        x,
+        y,
+        z,
+        settings.caveFrequency,
+      )
+      const caveMask = smoothstep(
+        settings.caveThreshold,
+        Math.min(1, settings.caveThreshold + 0.18),
+        caveValue,
+      )
+      const interiorMask = smoothstep(voxelStep * 1.1, voxelStep * 2.6, baseDensity)
+      finalDensity -= caveMask * settings.caveStrength * interiorMask
+    }
+
+    return applyCsg(finalDensity, x, y, z, settings)
+  }
+}
+
+export function createDensityVolume(settings) {
+  const { resolution, terrainScale } = settings
+  const density = new Float32Array(resolution ** 3)
+  const sampleDensity = createDensitySampler(settings)
   const last = Math.max(1, resolution - 1)
-  const voxelStep = 1 / last
 
   for (let z = 0; z < resolution; z += 1) {
     const normalizedZ = z / last - 0.5
     for (let x = 0; x < resolution; x += 1) {
       const normalizedX = x / last - 0.5
-
       for (let y = 0; y < resolution; y += 1) {
         const normalizedY = y / last - 0.5
-        const baseDensity = densityAt(
-          densityMode,
-          surfaceNoise,
+        density[voxelIndex(x, y, z, resolution)] = sampleDensity(
           normalizedX,
           normalizedY,
           normalizedZ,
-          settings,
         )
-        let finalDensity = baseDensity
-
-        if (enableCaves && baseDensity > 0) {
-          const caveValue = sampleCaveNoise(
-            caveNoise,
-            normalizedX,
-            normalizedY,
-            normalizedZ,
-            caveFrequency,
-          )
-          const caveMask = smoothstep(
-            caveThreshold,
-            Math.min(1, caveThreshold + 0.18),
-            caveValue,
-          )
-          const interiorMask = smoothstep(voxelStep * 1.1, voxelStep * 2.6, baseDensity)
-          finalDensity -= caveMask * caveStrength * interiorMask
-        }
-
-        density[voxelIndex(x, y, z, resolution)] = finalDensity
       }
     }
   }
