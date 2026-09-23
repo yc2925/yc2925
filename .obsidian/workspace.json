@@ -25,14 +25,12 @@
             "id": "0c34c48393938715",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "Docs/style-guide.md",
-                "mode": "source",
-                "source": false
+                "file": "Frame 1.jpg"
               },
-              "icon": "lucide-file",
-              "title": "style-guide"
+              "icon": "lucide-image",
+              "title": "Frame 1"
             }
           }
         ],
@@ -205,10 +203,15 @@
   },
   "active": "0c34c48393938715",
   "lastOpenFiles": [
+    "Docs/Tutorials/Git & Github.md",
+    "Frame 1.jpg",
+    "Frame 2.jpg",
+    "Frame 3.jpg",
+    "README.md",
+    "Docs/style-guide.md",
     "Docs/Analysis/Hydraulic Simulation 0909.md",
     "Docs/Analysis/Analysis.md",
     "Docs/Tutorials/Voxels.md",
-    "Docs/style-guide.md",
     "app/dist/assets/index-DM2-N5-i.js",
     "app/dist/assets/index-BbI39J4g.js",
     "app/src/simulation/vegetation.js",
@@ -219,7 +222,6 @@
     "app/dist/assets/index-Ba7qpziE.js",
     "app/dist/index.html",
     "app/dist/assets/index-CbJDGrnp.js",
-    "README.md",
     "Docs/Tutorials/Installing React.md",
     "app/dist/favicon.svg",
     "app/dist/icons.svg",
@@ -242,7 +244,6 @@
     "app/node_modules/base64-js/README.md",
     "app/node_modules/promise-worker-transferable/README.md",
     "app/node_modules/@types/webxr/README.md",
-    "app/node_modules/@use-gesture/core/CHANGELOG.md",
     "app/src/assets/vite.svg",
     "app/src/assets/react.svg",
     "app/src/assets/hero.png",

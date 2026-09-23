@@ -6,6 +6,55 @@
   background: var(--bg);
 }
 
+.firebase-actions {
+  position: absolute;
+  top: 16px;
+  right: 292px;
+  z-index: 2;
+  display: flex;
+  border-top: 2px solid var(--signal-dark);
+  background: rgb(12 12 12 / 94%);
+}
+
+.firebase-actions button {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-right: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: 10px/1 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 100ms linear,
+    color 100ms linear;
+}
+
+.firebase-actions button:last-child {
+  border-right: 1px solid var(--line);
+}
+
+.firebase-actions button:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.firebase-actions button:active {
+  border-color: var(--signal);
+  color: var(--text);
+}
+
+.firebase-actions button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+}
+
 .viewport,
 .noise-2d {
   display: block;
@@ -634,6 +683,22 @@
 @media (max-width: 720px) {
   .app-header {
     right: 16px;
+  }
+
+  .firebase-actions {
+    top: 88px;
+    right: 16px;
+    left: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .firebase-actions button:nth-child(2) {
+    border-right: 1px solid var(--line);
+  }
+
+  .firebase-actions button:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
   }
 
   .side-panel {
