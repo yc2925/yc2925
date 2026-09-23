@@ -1,13 +1,14 @@
+import { ref, uploadString } from "firebase/storage";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "./firebase.js";
 import { signInWithPopup, signOut } from "firebase/auth";
-import { auth, provider } from "./firebase.js";
+import { auth, provider, db, storage } from "./firebase.js";
 import { useState } from "react";
 
 import ParticlesView from "./views/ParticlesView.jsx";
 import Noise2DView from "./views/Noise2DView.jsx";
 import Noise3DView from "./views/Noise3DView.jsx";
 import SimulationView from "./views/SimulationView.jsx";
+import VoxelLabView from "./views/VoxelLabView.jsx";
 
 import AppTabs from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
@@ -48,6 +49,24 @@ function App() {
           configJson: configJson
         }
       );
+
+      console.log("Firestore saved");
+
+      const fileRef = ref(
+        storage,
+        `users/${user.uid}/latest-config.json`
+      );
+      
+      await uploadString(
+        fileRef,
+        configJson,
+        "raw",
+        {
+          contentType: "application/json"
+        }
+      );
+
+      console.log("Storage upload successful");
   
       alert("Configuration saved!");
       console.log("Saved configuration:", config);
@@ -156,6 +175,8 @@ function App() {
           onNoiseChange={setNoise}
         />
       ) : null}
+
+      {tab === "voxelLab" ? <VoxelLabView /> : null}
 
       <header className="app-header">
         <p className="app-kicker">yc2925</p>
