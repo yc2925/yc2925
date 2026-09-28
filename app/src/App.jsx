@@ -9,6 +9,7 @@ import Noise2DView from "./views/Noise2DView.jsx";
 import Noise3DView from "./views/Noise3DView.jsx";
 import SimulationView from "./views/SimulationView.jsx";
 import VoxelLabView from "./views/VoxelLabView.jsx";
+import ShaderLabView from "./views/ShaderLabView.jsx";
 
 import AppTabs from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
@@ -177,6 +178,8 @@ function App() {
       ) : null}
 
       {tab === "voxelLab" ? <VoxelLabView /> : null}
+
+      {tab === "shaders" ? <ShaderLabView /> : null}
 
       <header className="app-header">
         <p className="app-kicker">yc2925</p>

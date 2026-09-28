@@ -8,26 +8,12 @@
         "type": "tabs",
         "children": [
           {
-            "id": "05c6f5386bfda6f0",
+            "id": "34d286a644cfba4e",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Docs/Tutorials/Git & Github.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Git & Github"
-            }
-          },
-          {
-            "id": "0c34c48393938715",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "README.md",
+                "file": "Docs/08-shaders-experiments/README.md",
                 "mode": "source",
                 "source": false
               },
@@ -35,8 +21,7 @@
               "title": "README"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -203,34 +188,40 @@
       "bases:Create new base": false
     }
   },
-  "active": "0c34c48393938715",
+  "active": "34d286a644cfba4e",
   "lastOpenFiles": [
     "Docs/Documentation/Week4.md",
-    "Images/0922/0922_Voxel_Exercise8.png",
-    "Images/0922/0922_Voxel_Exercise7.png",
-    "Images/0922/0922_Voxel_Exercise6.png",
-    "Images/0922/0922_Voxel_Exercise5.png",
-    "Images/0922/0922_Voxel_Exercise4.png",
-    "Images/0922/0922_Voxel_Exercise3.png",
-    "Images/0922/0922_Voxel_Exercise2.png",
-    "Images/0922/0922_Voxel_Exercise1.png",
-    "Images/0922/0922_Doc_Firbase3.jpg",
-    "Images/0922/0922_Doc_Firbase2.jpg",
-    "Images/0922",
-    "Images/New Folder With Items",
-    "Docs/Documentation",
-    "Docs/untitled folder",
-    "Images",
-    "untitled folder",
-    "app/dist/index.html",
-    "app/dist/assets/index-CwovSzar.css",
-    "app/dist/assets/index-BlsZGW6C.js",
-    "app/dist/assets",
-    "README.md",
+    "Docs/08-shaders-experiments/README.md",
+    "Docs/08-shaders-experiments/Images/shader-illumination.png",
+    "Docs/08-shaders-experiments/Images/shader-position.png",
+    "Docs/08-shaders-experiments/Images/shader-curvature.png",
+    "Docs/08-shaders-experiments/Images/shader-stone.png",
+    "Docs/08-shaders-experiments/Images/shader-relief.png",
+    "Docs/08-shaders-experiments/Images/shader-baseline.png",
+    "Docs/08-shaders-experiments/Images/shader-growth-75.png",
+    "Docs/08-shaders-experiments/Images/shader-growth-25.png",
+    "Docs/08-shaders-experiments/Images/shader-lab-overview.png",
+    "Docs/08-shaders-experiments/Images",
+    "Docs/08-shaders-experiments",
+    "Docs/Tutorials/Shader-Studies.md",
+    "Docs/Tutorials/React.md",
     "Docs/Tutorials/Shaders.md",
+    "app/dist/index.html",
+    "app/dist/assets/index-CNphIUh0.js",
+    "app/dist/assets/index-BXAy4fKq.css",
+    "app/dist/assets",
+    "app/src/views/ShaderLabView.jsx",
+    "app/src/ui/ShaderLabPanel.jsx",
+    "app/src/shaders/ShaderScene.jsx",
+    "app/src/shaders/materials.js",
+    "README.md",
+    "Docs/07-firebase/README.md",
+    "Docs/03-terrain-generation/README.md",
+    "Docs/02-procedural-noise/README.md",
+    "Docs/01-particles/Images/0922_Doc_Firbase2.jpg",
+    "Docs/Tutorials/Git & Github.md",
     "Docs/Tutorials/Correct_Firebase_Tutorial_React_Vite.md",
     "Docs/Tutorials/Firebase_Tutorial.md",
-    "Docs/Tutorials/Git & Github.md",
     "Docs/style-guide.md",
     "Docs/Analysis/Hydraulic Simulation 0909.md",
     "Docs/Analysis/Analysis.md",
@@ -244,12 +235,6 @@
     "app/node_modules/utility-types/SECURITY.md",
     "app/node_modules/utility-types/README.md",
     "app/node_modules/utility-types/CHANGELOG.md",
-    "app/node_modules/fflate/README.md",
-    "app/node_modules/fflate/CHANGELOG.md",
-    "app/node_modules/tunnel-rat/README.md",
-    "app/node_modules/suspend-react/readme.md",
-    "app/node_modules/tunnel-rat/CHANGELOG.md",
-    "app/node_modules/@tweenjs/tween.js/README.md",
-    "app/node_modules/cross-spawn/README.md"
+    "app/node_modules/fflate/README.md"
   ]
 }

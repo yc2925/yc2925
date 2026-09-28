@@ -1,5 +1,12 @@
 # Week 4
 
+Study-notebook versions of this week’s work:
+
+- [06 — Voxel Experiments](../06-voxel-experiments/README.md)
+- [07 — Firebase](../07-firebase/README.md)
+
+Original screenshots remain in [`Images/0922`](../../Images/0922).
+
 This week added two assignment deliverables to the existing procedural world-building app:
 
 1. **Voxel Exercise** — a standalone Voxel Lab workspace for density fields, caves, CSG, meshing, chunking, and performance.

@@ -4,6 +4,7 @@ const TABS = [
   { id: 'noise3d', label: 'Noise 3D' },
   { id: 'simulation', label: 'Simulation' },
   { id: 'voxelLab', label: 'Voxel Lab' },
+  { id: 'shaders', label: 'Shaders' },
 ]
 
 export default function AppTabs({ tab, onTabChange }) {

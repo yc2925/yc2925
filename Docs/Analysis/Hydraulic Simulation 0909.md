@@ -1,6 +1,13 @@
 # App and Hydraulic Simulation Analysis
 
-This document summarizes the application as of September 15, 2026, with emphasis on the procedural noise and hydraulic erosion systems.
+Updated study notes (current controls and vegetation):
+
+- [02 — Procedural Noise](../02-procedural-noise/README.md)
+- [03 — Terrain Generation](../03-terrain-generation/README.md)
+- [04 — Hydraulic Simulation](../04-hydraulic-simulation/README.md)
+- [05 — Vegetation Simulation](../05-vegetation-simulation/README.md)
+
+This document summarizes the application as of September 15, 2026, with emphasis on the procedural noise and hydraulic erosion systems. Defaults below may differ slightly from `app/src/simulation/settings.js`.
 
 ## What we built
 

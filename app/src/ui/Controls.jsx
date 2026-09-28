@@ -97,6 +97,22 @@ export function Select({ label, tip, value, options, onChange }) {
   )
 }
 
+export function ColorField({ label, tip, value, onChange }) {
+  return (
+    <label className="color-field">
+      <span className="slider-meta">
+        <LabelWithTip tip={tip}>{label}</LabelWithTip>
+        <span className="slider-value">{String(value).toUpperCase()}</span>
+      </span>
+      <input
+        type="color"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  )
+}
+
 export function Toggle({ label, tip, value, onChange }) {
   return (
     <div className="toggle-row">
