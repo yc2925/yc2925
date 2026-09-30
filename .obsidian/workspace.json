@@ -188,6 +188,7 @@
   },
   "active": "916836dcbe045874",
   "lastOpenFiles": [
+    "app/firebase-debug.log",
     "Images/Visual_References.zip",
     "Images/Visual_References/9c6901dd573430b635db0d4b4dade62e.jpg",
     "Images/Visual_References/72a3d488992be544c551dcef21132b50.jpg",
@@ -202,7 +203,6 @@
     "Untitled.md",
     "Images/Visual_References",
     "Docs/08-shaders-experiments/README.md",
-    "app/firebase-debug.log",
     "app/dist/index.html",
     "app/dist/assets/index-DPq6AOOJ.js",
     "app/dist/assets/index-DLwNNT4Q.css",
