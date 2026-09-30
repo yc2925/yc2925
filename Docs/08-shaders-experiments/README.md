@@ -19,7 +19,7 @@ Research brief that preceded this lab: [Shader Studies](../Tutorials/Shader-Stud
 
 ## Shader Lab
 
-Tab: **Shaders**. Default study: Vegetal geometry, Growth strategy, Growth Progress `0.42`.
+Tab: **Shaders**. Default study (current code): Architectural Specimen geometry, Relief strategy. The sections below were written against the smaller test meshes; the specimen is documented at the end.
 
 The layout is:
 
@@ -41,8 +41,8 @@ Shared controls:
 
 | Control | Effect |
 |---|---|
-| Test Geometry | Plane / Sphere / Relief / Vegetal |
-| Shader Strategy | Baseline, Relief, Stone, Curvature, Growth, Position, Illumination |
+| Test Geometry | Architectural Specimen (default) / Organic Rock / Plane / Sphere / Relief / Vegetal — see [From Organic Rock to Architectural Specimen](#from-organic-rock-to-architectural-specimen) |
+| Shader Strategy | Baseline, Relief, Stone, Curvature, Growth, Position, Illumination, Scan / Wireframe |
 | Rotate Model | Slow Y-axis turn so lighting and growth can be read from more than one angle |
 | Compare | Same mesh twice: Baseline on the left, current strategy on the right |
 | Reset Shader | Restores only the active strategy’s defaults |
@@ -168,15 +168,15 @@ Procedural masonry instead of a photo. World-space fBm darkens the body, a slowe
 
 #### Parameters
 
-| Parameter | Effect |
-|---|---|
+| Parameter       | Effect                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Material Preset | Starting points: Limestone, Marble, Sandstone, Concrete. Parameters stay editable; editing marks the preset Custom |
-| Base Color | Ground hue of the stone body |
-| Grain Scale | Spatial frequency of grain and veins |
-| Grain Strength | How visible grain and veins are against the base color |
-| Roughness | Tight marble highlight vs open limestone |
-| Color Variation | Mineral tint range across the surface |
-| Weathering | Dirt and darkening in recesses and less-exposed faces |
+| Base Color      | Ground hue of the stone body                                                                                       |
+| Grain Scale     | Spatial frequency of grain and veins                                                                               |
+| Grain Strength  | How visible grain and veins are against the base color                                                             |
+| Roughness       | Tight marble highlight vs open limestone                                                                           |
+| Color Variation | Mineral tint range across the surface                                                                              |
+| Weathering      | Dirt and darkening in recesses and less-exposed faces                                                              |
 
 #### What I Observed
 
@@ -431,3 +431,170 @@ Code lives in `app/src/views/ShaderLabView.jsx`, `app/src/ui/ShaderLabPanel.jsx`
 - Procedural fBm grain, veins, and weathering let me change period and upkeep without a photographic texture and without rebuilding the ornament.
 - Auto Grow is already a playback of process. Binding the same uniforms to a generator’s branch age would turn this visualization into a live report of the procedure.
 - Compare (Baseline | Current) is the lab’s argument: if the left mesh is unreadable, the generator is at fault; if only the right mesh is unreadable, the shader is.
+
+---
+
+# From Organic Rock to Architectural Specimen
+
+Everything above uses small test meshes. Two more study objects followed. First, **Organic Rock** replaced the vegetal stand-in with a geological seed. Then the **Architectural Specimen** replaced the rock. The specimen is now the default geometry (`specimen`, strategy `02 — Relief`). Organic Rock is still in the Test Geometry selector as evidence of the step in between. The assignment is still a shader study: the object only exists so the shaders have something worth interpreting.
+
+## Why Organic Rock read as a displaced primitive
+
+`createOrganicRock` (`app/src/shaders/organicRock.js`) starts from `IcosahedronGeometry(1, 6)` and pushes each vertex along its direction from the center using layered noise (mass, erosion, roughness). Two things kept it from reading as an object:
+
+- **It was faceted.** In three r185 that icosahedron is *non-indexed*: 980 triangles, 2,940 vertices, and no shared vertices. `computeVertexNormals()` on non-indexed geometry gives every triangle its own flat normal. Every strategy, including Relief and Stone, therefore lit a polygon mosaic.
+- **It was still a sphere.** Displacement was purely radial, so the silhouette could only ever be a bumpy ball. There was no inside, no opening, no hierarchy, and nothing thin. Noise changed the surface but not the organization.
+
+The result looked like a low-resolution polygonal rock. The shaders had very little spatial structure to reveal.
+
+## The shift
+
+```
+ARCHITECTURAL SCAFFOLD      ribs, arches, piers, slabs, frames
+        +
+ORGANIC DEFORMATION         bend, twist, domain warp, erosion
+        +
+NEGATIVE SPACE              portal, cage, gaps, see-through voids
+        +
+VEGETAL GROWTH LOGIC        bifurcating crown, lattice, vein channels
+```
+
+`createArchitecturalSpecimen` (`app/src/shaders/specimen.js`) assembles the object from **many intersecting indexed parts** instead of deforming one closed surface. It is not manifold, and it does not need to be. At the default seed 7, it is 92 parts and **210,720 triangles**, built in roughly 180–220 ms in the browser. It rebuilds only when a geometry-level slider changes.
+
+Two generators produce every part:
+
+- **Sweep.** A superellipse cross-section is swept along a centripetal Catmull-Rom path, with rounded end caps. The exponent comes from *Architectural Order*: close to 2 gives a round organic stem, around 5–6 gives a rectangular stone rib. UVs are in world units (arc length × perimeter), which the Scan shader relies on.
+- **Mass.** This is a rounded box. A uniform sphere grid is projected radially onto \(|x|^n + |y|^n + |z|^n = 1\), which keeps vertex spacing even on the flat faces. Masses also carry low-frequency asymmetry, masonry coursing grooves, worn arrises (erosion concentrated where two faces meet), and shallow vein channels.
+
+The parts are arranged as a vertical hierarchy about 1.6× taller than wide:
+
+| Zone | Components |
+|---|---|
+| **Top** | fragmented crown: recursive branching ribs (up to 3 levels, 2- or 3-way splits, sections rounding and curling toward the tips), suspended shard plates |
+| **Upper** | upper mass where the cage ribs converge; the top ledge ring |
+| **Middle** | rib cage (5–6 primary ribs, some broken by erosion) around a narrow central core; crossing diagonal lattice ribs; partial ledge rings with gaps; a lancet screen with a Y-shaped tracery mullion behind |
+| **Cavity** | pointed-arch portal: 1–3 stepped archivolts in front and one arch behind, open all the way through |
+| **Base** | sill slab and two coursed piers with engaged corner shafts; the gap between the piers is the portal passage |
+
+After assembly, one continuous world-space field processes every part, so parts that touch stay touching:
+
+- **Erosion** bites along each surface's outward direction, limited by the member's thickness.
+- **Organic Deformation** applies bend, twist, and a low-frequency domain warp that grow with height. The base stays architectural and the crown goes organic.
+
+Normals are computed per part with indexed, smooth vertex normals. They are checked against the outward direction and then averaged across coincident seam vertices. There is no flat shading anywhere.
+
+### Geometry vs shader
+
+| Scale | Where it lives | Examples |
+|---|---|---|
+| **Macro** | geometry | silhouette, zones, portal, cage, crown |
+| **Meso** | geometry | coursing grooves, worn edges, erosion pits, vein channels, rib breaks, member sections |
+| **Micro** | shader | grain, pitting, fine tool/strata lines (`DETAIL_GLSL`: finite-difference normal perturbation driven by `uSurfaceDetail`) |
+| **Interpretation** | shader | material, relief, curvature, growth, position, light, scan |
+
+Two of the nine form controls deliberately do **not** rebuild the mesh:
+
+- **Layer Separation** is a vertex offset. Each part carries an `aLayer` vector, and the vertex shader adds `aLayer * uLayerSeparation`. For the Baseline `MeshStandardMaterial`, the same line is injected after `#include <begin_vertex>` via `onBeforeCompile`.
+- **Surface Detail** is purely a fragment effect, sampled in object space before the layer offset so it stays attached to each part. Baseline receives no micro detail, so it always shows the pure geometry.
+
+| Control | Rebuilds mesh | What it changes |
+|---|---|---|
+| Form Seed | yes | every random choice (keyed per feature, so one slider does not reshuffle unrelated ones) |
+| Verticality | yes | total height (the zones keep their proportions) |
+| Architectural Order | yes | section exponent, arch pointedness, archivolt count, rib regularity, lattice crossing |
+| Organic Deformation | yes | bend / twist / warp, increasing toward the crown |
+| Erosion | yes | pit and wear depth, broken ribs, more crown shards |
+| Branching | yes | crown recursion depth, curl, vein density |
+| Void Scale | yes | portal width, ledge gaps, how much the core withdraws |
+| Layer Separation | no (uniform) | restrained exploded view |
+| Surface Detail | no (uniform) | shader micro detail |
+
+The geometry keys are listed in `SPECIMEN_GEOMETRY_KEYS`. `ShaderScene` memoizes the mesh on exactly those keys, and `useDeferredValue` keeps slider drags responsive while a rebuild is pending.
+
+## What each shader reveals on the specimen
+
+| Shader | Reads |
+|---|---|
+| Baseline | the geometry alone: hierarchy, voids, member sizes |
+| Relief | cavities, ridges, depth, layering (ledges over piers, lattice over core) |
+| Stone | material continuity across all parts, grain, weathering streaks, dirt in recesses |
+| Curvature | rib edges, arch profiles, intersections of lattice, rib, and ledge |
+| Growth | the branching network: base veins → portal → ribs + lattice → crown |
+| Position | vertical hierarchy (Y gradient) |
+| Illumination | silhouettes, the see-through portal and cage, thin crown members |
+| **Scan** | internal organization through the outer surfaces |
+
+Growth ordering baked into `aGrowth`:
+
+- mass veins run about 0.03–0.7 by height;
+- shafts 0.05–0.16;
+- portal arches 0.08–0.3;
+- primary ribs about 0.13–0.46;
+- lattice 0.2–0.42;
+- crown branches continue from their parent rib up to 0.97;
+- the tracery mullion runs 0.18–0.52;
+- ledges, shards, the screen frame, and the sill are inactive (`1.2`) and stay stone.
+
+## 08 — Scan / Wireframe
+
+This is not `material.wireframe`. Triangle edges would only show the tessellation, which says nothing about the object. The scan shader draws **structure** instead:
+
+- **Structural lines**: anti-aliased (`fwidth`) grid lines from the world-unit UVs. They run along every rib, arch, and branch, and around every mass.
+- **Section contours**: horizontal lines in object Y, with a brighter major line every fifth. The object reads as stacked survey sections.
+- **Edge response**: a Fresnel silhouette term plus a crease term from screen-space derivatives of the smooth normal.
+- **Surface fill**: a faint Lambert-shaded surface with micro detail, scaled by Surface Opacity.
+- **Depth fade**: `exp(-max(viewZ - focusDepth, 0) * k)`. Here `focusDepth` is the camera distance to the object center (updated every frame), so the back half dims and the front structure reads first. Back faces are drawn at half strength.
+
+The material is `transparent`, `depthWrite: false`, `AdditiveBlending`. Every layer contributes, so the core, back arch, and lattice show through the front piers and ribs.
+
+| Control | Effect |
+|---|---|
+| Line Intensity | brightness of structural lines and contours |
+| Surface Opacity | how much shaded surface each layer adds; low values make the interior legible |
+| Depth Fade | how quickly layers behind the center fade |
+| Edge Contrast | silhouette and crease strength (ribs, arches, thin members) |
+| Scan Density | lines per unit for both structural lines and contours |
+
+The limitation is that additive blending saturates where many layers overlap along one view ray. The crown and the core top go close to white at high Surface Opacity or Edge Contrast.
+
+## Screenshots
+
+All five use the same geometry (Architectural Specimen, seed 7, all Specimen Form sliders at their defaults), the same default camera (`[3.6, 1.3, 5.75]`, fov 38), and the same 1024 × 640 viewport. Only the shader strategy changes. Growth is shown at Growth Progress `0.62`.
+
+![Architectural Specimen — Baseline](Images/architectural-specimen-baseline.png)
+
+*Baseline. MeshStandardMaterial with no micro detail, so this is the geometry alone. Smooth normals throughout. The hierarchy reads as base piers with shafts and portal, then rib cage with crossing lattice around the core, then upper mass, then branching crown.*
+
+![Architectural Specimen — Relief](Images/architectural-specimen-relief.png)
+
+*Relief. Raking light plus cavity and depth terms separate the layers: ledges over piers, lattice over core, coursing grooves and vein channels on the masses. Micro detail adds tooled grain.*
+
+![Architectural Specimen — Stone](Images/architectural-specimen-stone.png)
+
+*Stone (limestone preset). One continuous material across masses, ribs, and branches, with grain, darker recesses, and weathering.*
+
+![Architectural Specimen — Growth](Images/architectural-specimen-growth.png)
+
+*Growth at 0.62. Shafts, portal arches, primary ribs, and the diagonal lattice are revealed, and the fronts are climbing into the crown branches. Thin vein filaments are grown across the coursed masses. Ledges and shards stay dormant stone.*
+
+![Architectural Specimen — Scan](Images/architectural-specimen-scan.png)
+
+*Scan / Wireframe. Section contours and structural lines, with the core, the back portal arch, and the lattice visible through the front. The internal organization is clearer here than in any lit view.*
+
+## What I observed
+
+- **Baseline is no longer a placeholder.** With 210k smooth-shaded triangles and a real hierarchy, the unshaded object already reads as a specimen. That makes the other strategies comparisons of *interpretation*, not rescues of a weak mesh.
+- **Growth needs topology, not only noise.** On the rock, growth was a noise field painted over a ball. On the specimen it follows members that physically connect: pier shaft → arch → rib → lattice → branch. The progress slider now reads as a process moving through a structure.
+- **Scan is where the negative space pays off.** The voids, the back arch, and the core behind the cage are what make the transparent view informative. A solid rock would have produced a glowing blob.
+- **Micro detail has to stay out of analytic shaders.** At full strength, the Surface Detail normal made Curvature a field of speckles. Curvature now takes only a small fraction of it (`detailNormal(ng, 0.12)`), so edges and intersections dominate again.
+- **Vein channels are vertex attributes.** Their sharpness is bounded by the mass grid (128 × 88 per mass). The first attempt thresholded a ridge function and produced camouflage-like patches. Narrow iso-lines of the fBm field, with secondary veins allowed only near the primary ones, read as filaments.
+
+## Key learning
+
+**Geometry creates the macro and meso spatial organization**: zones, voids, members, intersections, coursing, erosion, and the paths growth can take.
+
+**Shaders create everything that interprets that organization**: surface reading, micro detail, material, analytical visualization (curvature, position, scan), and process visualization (growth).
+
+Organic Rock failed as a shader subject because the geometry had no organization for the shaders to interpret. The specimen works because the two layers are split cleanly: the mesh carries structure, and the shaders carry meaning.
+
+Code: `app/src/shaders/specimen.js` (generator), `app/src/shaders/noise3.js` (deterministic JS noise), `app/src/shaders/common.glsl.js` (`VERTEX_GLSL` with `aLayer`, `DETAIL_GLSL`), `app/src/shaders/materials.js` (all fragment shaders including `SCAN_FRAG`, and the Baseline `onBeforeCompile` layer offset).

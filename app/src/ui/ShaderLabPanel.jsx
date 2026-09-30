@@ -14,10 +14,10 @@ export default function ShaderLabPanel({ settings, onChange }) {
     onChange({ ...settings, [group]: { ...settings[group], ...change } })
 
   return (
-    <ControlPanel title="Shader lab" hint="vegetal facade studies · real-time uniforms">
+    <ControlPanel title="Shader lab" hint="architectural specimen · latent growth">
       <Select
         label="Test Geometry"
-        tip="Plane for materials, sphere for lighting, relief for carved depth, vegetal for branching ornament."
+        tip="Architectural Specimen is the main study object. Organic Rock is kept as the previous experiment; plane, sphere, relief, and vegetal remain as shader tests."
         value={settings.geometry}
         options={TEST_GEOMETRIES}
         onChange={(geometry) => patch({ geometry })}
@@ -48,6 +48,162 @@ export default function ShaderLabPanel({ settings, onChange }) {
       >
         Reset Shader
       </button>
+
+      {settings.geometry === 'specimen' ? (
+        <details className="control-section" open>
+          <summary>Specimen Form</summary>
+          <div className="section-controls">
+            <Slider
+              label="Form Seed"
+              tip="Repeatable specimen. Same seed and sliders always produce the same object."
+              value={settings.specimen.seed}
+              min={1}
+              max={48}
+              step={1}
+              display={String(settings.specimen.seed)}
+              onChange={(seed) => patchGroup('specimen', { seed: Math.round(seed) })}
+            />
+            <Slider
+              label="Verticality"
+              tip="Overall height against a fixed footprint. The zones (base, portal, cage, crown) keep their proportions."
+              value={settings.specimen.verticality}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.verticality.toFixed(2)}
+              onChange={(verticality) => patchGroup('specimen', { verticality })}
+            />
+            <Slider
+              label="Architectural Order"
+              tip="Low: rounded, leaning, irregular members. High: rectangular sections, pointed arches, regular rib spacing, more archivolts."
+              value={settings.specimen.order}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.order.toFixed(2)}
+              onChange={(order) => patchGroup('specimen', { order })}
+            />
+            <Slider
+              label="Organic Deformation"
+              tip="Bend, twist and low-frequency warp. Stronger toward the crown, so the base stays architectural."
+              value={settings.specimen.deformation}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.deformation.toFixed(2)}
+              onChange={(deformation) => patchGroup('specimen', { deformation })}
+            />
+            <Slider
+              label="Erosion"
+              tip="Pits and worn zones cut along each surface; breaks ribs and adds crown fragments."
+              value={settings.specimen.erosion}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.erosion.toFixed(2)}
+              onChange={(erosion) => patchGroup('specimen', { erosion })}
+            />
+            <Slider
+              label="Branching"
+              tip="Bifurcation depth of the crown ribs and density of vein channels on the masses."
+              value={settings.specimen.branching}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.branching.toFixed(2)}
+              onChange={(branching) => patchGroup('specimen', { branching })}
+            />
+            <Slider
+              label="Void Scale"
+              tip="Width of the portal passage, gaps between ledges, and how much the central mass withdraws."
+              value={settings.specimen.voidScale}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.voidScale.toFixed(2)}
+              onChange={(voidScale) => patchGroup('specimen', { voidScale })}
+            />
+            <Slider
+              label="Layer Separation"
+              tip="Restrained exploded view. Each component moves along its own layer vector in the vertex shader — no rebuild."
+              value={settings.specimen.layerSeparation}
+              min={0}
+              max={0.4}
+              step={0.005}
+              display={settings.specimen.layerSeparation.toFixed(3)}
+              onChange={(layerSeparation) => patchGroup('specimen', { layerSeparation })}
+            />
+            <Slider
+              label="Surface Detail"
+              tip="Shader-level micro grain, pitting and tool lines (normal perturbation). Does not change the geometry."
+              value={settings.specimen.surfaceDetail}
+              min={0}
+              max={1}
+              step={0.01}
+              display={settings.specimen.surfaceDetail.toFixed(2)}
+              onChange={(surfaceDetail) => patchGroup('specimen', { surfaceDetail })}
+            />
+          </div>
+        </details>
+      ) : null}
+
+      {settings.geometry === 'rock' ? (
+        <details className="control-section" open>
+          <summary>Form</summary>
+          <div className="section-controls">
+            <Slider
+              label="Form Seed"
+              tip="Repeatable geological specimen. Same seed always produces the same rock."
+              value={settings.form.seed}
+              min={1}
+              max={48}
+              step={1}
+              display={String(settings.form.seed)}
+              onChange={(seed) => patchGroup('form', { seed: Math.round(seed) })}
+            />
+            <Slider
+              label="Mass Variation"
+              tip="Large-scale silhouette deformation. Low frequency only."
+              value={settings.form.massVariation}
+              min={0.15}
+              max={0.95}
+              step={0.01}
+              display={settings.form.massVariation.toFixed(2)}
+              onChange={(massVariation) => patchGroup('form', { massVariation })}
+            />
+            <Slider
+              label="Erosion"
+              tip="Rounded cavities and weathered undersides. Does not punch holes through the mass."
+              value={settings.form.erosion}
+              min={0}
+              max={0.9}
+              step={0.01}
+              display={settings.form.erosion.toFixed(2)}
+              onChange={(erosion) => patchGroup('form', { erosion })}
+            />
+            <Slider
+              label="Surface Roughness"
+              tip="Fine surface grain only. Does not change the silhouette."
+              value={settings.form.surfaceRoughness}
+              min={0}
+              max={0.8}
+              step={0.01}
+              display={settings.form.surfaceRoughness.toFixed(2)}
+              onChange={(surfaceRoughness) => patchGroup('form', { surfaceRoughness })}
+            />
+            <Slider
+              label="Growth Complexity"
+              tip="Density of latent veins, corridors, and branching in the growth field."
+              value={settings.form.growthComplexity}
+              min={0.1}
+              max={0.95}
+              step={0.01}
+              display={settings.form.growthComplexity.toFixed(2)}
+              onChange={(growthComplexity) => patchGroup('form', { growthComplexity })}
+            />
+          </div>
+        </details>
+      ) : null}
 
       {settings.strategy === 'baseline' ? (
         <>
@@ -264,7 +420,7 @@ export default function ShaderLabPanel({ settings, onChange }) {
         <>
           <Slider
             label="Growth Progress"
-            tip="0 hides the ornament; 1 reveals the full structure along baked growth."
+            tip="0 is geological stone. Higher values reveal veins, then connecting paths, then branching organization."
             value={settings.growth.progress}
             min={0}
             max={1}
@@ -496,6 +652,61 @@ export default function ShaderLabPanel({ settings, onChange }) {
             tip="Albedo of the ornament under this lighting study."
             value={settings.illumination.surfaceColor}
             onChange={(surfaceColor) => patchGroup('illumination', { surfaceColor })}
+          />
+        </>
+      ) : null}
+
+      {settings.strategy === 'scan' ? (
+        <>
+          <Slider
+            label="Line Intensity"
+            tip="Brightness of structural lines and section contours."
+            value={settings.scan.lineIntensity}
+            min={0}
+            max={1.5}
+            step={0.01}
+            display={settings.scan.lineIntensity.toFixed(2)}
+            onChange={(lineIntensity) => patchGroup('scan', { lineIntensity })}
+          />
+          <Slider
+            label="Surface Opacity"
+            tip="How much shaded surface each layer adds. Low values make inner components legible."
+            value={settings.scan.surfaceOpacity}
+            min={0}
+            max={1}
+            step={0.01}
+            display={settings.scan.surfaceOpacity.toFixed(2)}
+            onChange={(surfaceOpacity) => patchGroup('scan', { surfaceOpacity })}
+          />
+          <Slider
+            label="Depth Fade"
+            tip="Fades layers behind the object's center so front structure reads first."
+            value={settings.scan.depthFade}
+            min={0}
+            max={1.5}
+            step={0.01}
+            display={settings.scan.depthFade.toFixed(2)}
+            onChange={(depthFade) => patchGroup('scan', { depthFade })}
+          />
+          <Slider
+            label="Edge Contrast"
+            tip="Silhouette and crease response. Pulls out ribs, arches and thin members."
+            value={settings.scan.edgeContrast}
+            min={0}
+            max={1}
+            step={0.01}
+            display={settings.scan.edgeContrast.toFixed(2)}
+            onChange={(edgeContrast) => patchGroup('scan', { edgeContrast })}
+          />
+          <Slider
+            label="Scan Density"
+            tip="Spacing of structural lines and horizontal section contours (lines per unit)."
+            value={settings.scan.scanDensity}
+            min={2}
+            max={24}
+            step={0.5}
+            display={settings.scan.scanDensity.toFixed(1)}
+            onChange={(scanDensity) => patchGroup('scan', { scanDensity })}
           />
         </>
       ) : null}

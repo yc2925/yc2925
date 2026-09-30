@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { DEFAULT_ROCK_FORM, createOrganicRock } from './organicRock.js'
+import { DEFAULT_SPECIMEN, createArchitecturalSpecimen } from './specimen.js'
 
 function setScalarAttrs(geometry, growthFn, reliefFn) {
   const position = geometry.attributes.position
@@ -188,6 +190,18 @@ const BUILDERS = {
   vegetal: createVegetal,
 }
 
-export function createTestGeometry(id) {
-  return (BUILDERS[id] ?? createVegetal)()
+function withZeroLayer(geometry) {
+  if (!geometry.getAttribute('aLayer')) {
+    const count = geometry.attributes.position.count
+    geometry.setAttribute('aLayer', new THREE.BufferAttribute(new Float32Array(count * 3), 3))
+  }
+  return geometry
+}
+
+export function createTestGeometry(id, forms = {}) {
+  if (id === 'specimen') return createArchitecturalSpecimen(forms.specimen ?? DEFAULT_SPECIMEN)
+  if (id === 'rock') return withZeroLayer(createOrganicRock(forms.rock ?? DEFAULT_ROCK_FORM))
+  const build = BUILDERS[id]
+  if (build) return withZeroLayer(build())
+  return createArchitecturalSpecimen(forms.specimen ?? DEFAULT_SPECIMEN)
 }

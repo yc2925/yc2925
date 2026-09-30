@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { createTestGeometry } from './geometry.js'
+import { DEFAULT_ROCK_FORM } from './organicRock.js'
+import { DEFAULT_SPECIMEN, SPECIMEN_GEOMETRY_KEYS } from './specimen.js'
 import { createBaselineMaterial, createStrategyMaterial, syncMaterial } from './materials.js'
 
 function StudyMesh({ geometry, material, position }) {
@@ -17,30 +19,45 @@ function StudyMesh({ geometry, material, position }) {
 
 export default function ShaderScene({
   geometryId,
+  form = DEFAULT_ROCK_FORM,
+  specimen = DEFAULT_SPECIMEN,
   strategy,
   settingsRef,
   rotateModel,
   compare,
   onFps,
   onGrowthProgress,
+  onGeometryInfo,
 }) {
   const group = useRef()
   const fpsAccum = useRef({ time: 0, frames: 0 })
   const growAccum = useRef(0)
 
-  const geometry = useMemo(() => createTestGeometry(geometryId), [geometryId])
+  // Layer Separation and Surface Detail are uniforms, so they are left out of the key.
+  const formKey = JSON.stringify({
+    rock: form,
+    specimen: Object.fromEntries(SPECIMEN_GEOMETRY_KEYS.map((key) => [key, specimen[key]])),
+  })
+  const geometry = useMemo(
+    () => createTestGeometry(geometryId, JSON.parse(formKey)),
+    [geometryId, formKey],
+  )
   const material = useMemo(() => createStrategyMaterial(strategy), [strategy])
   const baselineMaterial = useMemo(() => createBaselineMaterial(), [])
 
   useEffect(() => {
-    return () => {
-      geometry.dispose()
-      material.dispose()
-      baselineMaterial.dispose()
-    }
-  }, [geometry, material, baselineMaterial])
+    geometry.computeBoundingBox()
+    onGeometryInfo?.({
+      triangles: Math.round((geometry.index ? geometry.index.count : geometry.attributes.position.count) / 3),
+      buildMs: geometry.userData.buildMs ?? null,
+    })
+    return () => geometry.dispose()
+  }, [geometry, onGeometryInfo])
 
-  useFrame((_, delta) => {
+  useEffect(() => () => material.dispose(), [material])
+  useEffect(() => () => baselineMaterial.dispose(), [baselineMaterial])
+
+  useFrame((state, delta) => {
     const settings = settingsRef.current
     if (rotateModel && group.current) {
       group.current.rotation.y += delta * 0.28
@@ -56,8 +73,14 @@ export default function ShaderScene({
       }
     }
 
-    syncMaterial(material, settings, strategy)
-    syncMaterial(baselineMaterial, settings, 'baseline')
+    const isSpecimen = geometryId === 'specimen'
+    const shared = {
+      layerSeparation: isSpecimen ? settings.specimen.layerSeparation : 0,
+      surfaceDetail: isSpecimen ? settings.specimen.surfaceDetail : 0,
+      focusDepth: state.camera.position.length() - 0.6,
+    }
+    syncMaterial(material, settings, strategy, shared)
+    syncMaterial(baselineMaterial, settings, 'baseline', shared)
 
     const fps = fpsAccum.current
     fps.time += delta
@@ -69,7 +92,9 @@ export default function ShaderScene({
     }
   })
 
-  const offset = compare ? 1.45 : 0
+  const box = geometry.boundingBox
+  const halfWidth = box ? (box.max.x - box.min.x) / 2 : 1.2
+  const offset = compare ? Math.max(1.45, halfWidth + 0.08) : 0
 
   return (
     <group ref={group}>

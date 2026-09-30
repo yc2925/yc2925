@@ -1,7 +1,9 @@
 import * as THREE from 'three'
-import { NOISE_GLSL, VERTEX_GLSL } from './common.glsl.js'
+import { DETAIL_GLSL, NOISE_GLSL, VERTEX_GLSL } from './common.glsl.js'
 
-function makeMaterial(fragment) {
+const SHADER_HEADER = `${NOISE_GLSL}\n${DETAIL_GLSL}`
+
+function makeMaterial(fragment, options = {}) {
   return new THREE.ShaderMaterial({
     vertexShader: VERTEX_GLSL,
     fragmentShader: fragment,
@@ -34,15 +36,27 @@ function makeMaterial(fragment) {
       uRimIntensity: { value: 1.35 },
       uRimWidth: { value: 2.4 },
       uFalloff: { value: 1.6 },
+      uLineIntensity: { value: 0.8 },
+      uSurfaceOpacity: { value: 0.28 },
+      uDepthFade: { value: 0.45 },
+      uEdgeContrast: { value: 0.7 },
+      uScanDensity: { value: 9 },
+      uFocusDepth: { value: 5 },
+      uLayerSeparation: { value: 0 },
+      uSurfaceDetail: { value: 0 },
     },
     side: THREE.DoubleSide,
+    ...options,
   })
 }
 
 const RELIEF_FRAG = /* glsl */ `
+${SHADER_HEADER}
+
 varying vec3 vWorldNormal;
 varying vec3 vViewDir;
 varying float vRelief;
+varying float vGrowth;
 
 uniform vec3 uLightDir;
 uniform float uReliefContrast;
@@ -50,26 +64,34 @@ uniform float uDepthIntensity;
 uniform float uShadowEmphasis;
 
 void main() {
-  vec3 n = normalize(vWorldNormal);
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 n = detailNormal(ng, 1.0);
+  vec3 v = normalize(vViewDir);
   vec3 l = normalize(uLightDir);
   float ndotl = clamp(dot(n, l), 0.0, 1.0);
   float wrap = mix(ndotl, ndotl * 0.65 + 0.35, 0.2);
   float reliefLit = pow(wrap, mix(0.45, 2.8, uReliefContrast));
   float cavity = pow(1.0 - ndotl, mix(0.8, 3.2, uShadowEmphasis));
-  float depth = mix(1.0, 0.35 + vRelief * 1.4, uDepthIntensity);
+  float curve = length(dFdx(ng)) + length(dFdy(ng));
+  float channel = 1.0 - smoothstep(0.08, 1.02, vGrowth);
+  float depth = mix(1.0, 0.32 + vRelief * 1.35 + channel * 0.12, uDepthIntensity);
   vec3 warm = vec3(0.86, 0.8, 0.7);
   vec3 cool = vec3(0.12, 0.11, 0.1);
   vec3 color = mix(cool, warm, reliefLit * depth);
   color *= 1.0 - cavity * (0.35 + uShadowEmphasis * 0.5);
+  color *= 1.0 - clamp(curve * 4.5 * (1.0 - clamp(dot(ng, v), 0.0, 1.0)), 0.0, 1.0) * 0.22 * uShadowEmphasis;
+  color *= detailOcclusion();
   gl_FragColor = vec4(color, 1.0);
 }
 `
 
 const STONE_FRAG = /* glsl */ `
-${NOISE_GLSL}
+${SHADER_HEADER}
 
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
+varying vec3 vViewDir;
 varying float vRelief;
 
 uniform vec3 uBaseColor;
@@ -81,23 +103,32 @@ uniform float uColorVariation;
 uniform float uWeathering;
 
 void main() {
-  vec3 n = normalize(vWorldNormal);
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 n = detailNormal(ng, 1.0);
+  vec3 v = normalize(vViewDir);
   vec3 l = normalize(uLightDir);
-  float ndotl = clamp(dot(n, l) * 0.65 + 0.35, 0.0, 1.0);
-  float grain = fbm3(vWorldPos * uGrainScale);
-  float vein = abs(fbm3(vWorldPos * uGrainScale * 0.28 + 17.0) - 0.5) * 2.0;
+  float ndotl = clamp(dot(n, l) * 0.62 + 0.38, 0.0, 1.0);
+  float grain = fbm3(vObjPos * uGrainScale);
+  float vein = abs(fbm3(vObjPos * uGrainScale * 0.22 + 17.0) - 0.5) * 2.0;
   vec3 mineral = vec3(
-    fbm3(vWorldPos * 2.4 + 3.1) - 0.5,
-    fbm3(vWorldPos * 2.4 + 9.7) - 0.5,
-    fbm3(vWorldPos * 2.4 + 14.2) - 0.5
-  ) * uColorVariation;
+    fbm3(vObjPos * 1.8 + 3.1) - 0.5,
+    fbm3(vObjPos * 1.8 + 9.7) - 0.5,
+    fbm3(vObjPos * 1.8 + 14.2) - 0.5
+  ) * uColorVariation * 0.85;
   vec3 color = uBaseColor + mineral;
-  color *= 1.0 - grain * uGrainStrength;
-  color = mix(color, color * 0.55, vein * uGrainStrength * 0.65);
-  float cavityWeather = (1.0 - vRelief) * (1.0 - n.y * 0.35);
-  color = mix(color, color * vec3(0.42, 0.4, 0.36), uWeathering * cavityWeather);
-  float spec = pow(clamp(dot(reflect(-l, n), normalize(cameraPosition - vWorldPos)), 0.0, 1.0), mix(12.0, 2.0, uRoughness));
-  color = color * ndotl + spec * (1.0 - uRoughness) * 0.18;
+  color *= 1.0 - grain * uGrainStrength * 0.85;
+  color = mix(color, color * 0.62, vein * uGrainStrength * 0.45);
+  float cavityWeather = (1.0 - vRelief) * (1.0 - ng.y * 0.4);
+  float streak = smoothstep(0.45, 0.8, fbm3(vObjPos * vec3(7.0, 0.9, 7.0) + 4.0));
+  color = mix(color, color * vec3(0.4, 0.38, 0.34), uWeathering * clamp(cavityWeather + streak * 0.35, 0.0, 1.0));
+  float curve = length(dFdx(ng)) + length(dFdy(ng));
+  float concave = clamp(curve * 7.0 * (1.0 - clamp(dot(ng, v), 0.0, 1.0)), 0.0, 1.0);
+  color *= 1.0 - concave * (0.18 + uWeathering * 0.38);
+  color *= mix(0.86, 1.07, clamp(vRelief, 0.0, 1.0));
+  color *= detailOcclusion();
+  float spec = pow(clamp(dot(reflect(-l, n), v), 0.0, 1.0), mix(14.0, 2.4, uRoughness));
+  color = color * ndotl + spec * (1.0 - uRoughness) * 0.12;
   gl_FragColor = vec4(color, 1.0);
 }
 `
@@ -108,6 +139,7 @@ const CURVATURE_FRAG = /* glsl */ `
 // changes across neighboring fragments. High change ≈ ridge or cavity.
 // Convex (bending toward the camera) is treated as edge/ridge;
 // concave as cavity. Not true mesh curvature (no 1-ring Laplacian).
+${SHADER_HEADER}
 
 varying vec3 vWorldNormal;
 varying vec3 vViewDir;
@@ -118,27 +150,30 @@ uniform float uCurvatureScale;
 uniform float uContrast;
 
 void main() {
-  vec3 n = normalize(vWorldNormal);
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 n = detailNormal(ng, 0.12);
   vec3 v = normalize(vViewDir);
   vec3 dx = dFdx(n);
   vec3 dy = dFdy(n);
-  float curve = (length(dx) + length(dy)) * uCurvatureScale * 8.0;
-  float facing = dot(n, v);
+  float curve = (length(dx) + length(dy)) * uCurvatureScale * 9.2;
+  float facing = clamp(dot(n, v), 0.0, 1.0);
   float convex = clamp(curve * facing, 0.0, 1.0);
   float concave = clamp(curve * (1.0 - facing), 0.0, 1.0);
-  vec3 base = vec3(0.22);
-  vec3 ridges = vec3(0.92, 0.9, 0.84) * convex * uEdgeIntensity;
-  vec3 cavities = vec3(0.04, 0.035, 0.03) * concave * uCavityIntensity;
+  vec3 base = vec3(0.2);
+  vec3 ridges = vec3(0.93, 0.9, 0.84) * convex * uEdgeIntensity;
+  vec3 cavities = vec3(0.035, 0.03, 0.028) * concave * uCavityIntensity;
   vec3 color = mix(base, ridges + (base - cavities), uContrast);
   gl_FragColor = vec4(color, 1.0);
 }
 `
 
 const GROWTH_FRAG = /* glsl */ `
+${SHADER_HEADER}
+
 varying vec3 vWorldNormal;
-varying vec3 vViewDir;
 varying float vGrowth;
-varying float vLocalZ;
+varying float vRelief;
 
 uniform vec3 uBaseColor;
 uniform vec3 uColorB;
@@ -148,23 +183,28 @@ uniform float uEdgeWidth;
 uniform float uContrast;
 
 void main() {
-  vec3 n = normalize(vWorldNormal);
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 n = detailNormal(ng, 0.7);
   vec3 l = normalize(uLightDir);
   float ndotl = clamp(dot(n, l) * 0.55 + 0.45, 0.0, 1.0);
   float edge = max(uEdgeWidth, 0.004);
-  float isFacade = 1.0 - step(-0.06, vLocalZ);
-  float revealed = (1.0 - isFacade) * (1.0 - smoothstep(uProgress, uProgress + edge, vGrowth));
-  float front = (1.0 - isFacade) * (1.0 - abs(vGrowth - uProgress) / edge);
-  front = pow(clamp(front, 0.0, 1.0), 1.4);
-  vec3 dormant = uColorB;
+  float inactive = step(1.05, vGrowth);
+  float revealed = (1.0 - inactive) * (1.0 - smoothstep(uProgress, uProgress + edge, vGrowth));
+  float front = (1.0 - inactive) * (1.0 - abs(vGrowth - uProgress) / edge);
+  front = pow(clamp(front, 0.0, 1.0), 1.35);
+  vec3 dormant = uColorB * ndotl * mix(0.84, 1.05, clamp(vRelief, 0.0, 1.0));
   vec3 grown = uBaseColor * ndotl;
   vec3 color = mix(dormant, grown, revealed);
-  color += front * uContrast * vec3(1.0, 0.92, 0.55);
+  color *= detailOcclusion();
+  color += front * uContrast * vec3(1.0, 0.9, 0.52);
   gl_FragColor = vec4(color, 1.0);
 }
 `
 
 const POSITION_FRAG = /* glsl */ `
+${SHADER_HEADER}
+
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 
@@ -179,7 +219,9 @@ uniform float uAxis;
 uniform float uAnchorMode;
 
 void main() {
-  vec3 n = normalize(vWorldNormal);
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 n = detailNormal(ng, 0.6);
   vec3 l = normalize(uLightDir);
   float ndotl = clamp(dot(n, l) * 0.5 + 0.5, 0.0, 1.0);
   float axisValue = uAxis < 0.5 ? vWorldPos.x : (uAxis < 1.5 ? vWorldPos.y : vWorldPos.z);
@@ -193,6 +235,8 @@ void main() {
 `
 
 const ILLUMINATION_FRAG = /* glsl */ `
+${SHADER_HEADER}
+
 varying vec3 vWorldNormal;
 varying vec3 vViewDir;
 varying vec3 vWorldPos;
@@ -206,11 +250,13 @@ uniform float uRimWidth;
 uniform float uFalloff;
 
 void main() {
-  vec3 n = normalize(vWorldNormal);
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 n = detailNormal(ng, 0.6);
   vec3 v = normalize(vViewDir);
   vec3 l = normalize(uLightDir);
   float ndotl = pow(clamp(dot(n, l), 0.0, 1.0), max(uFalloff, 0.2));
-  float rim = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), uRimWidth) * uRimIntensity;
+  float rim = pow(1.0 - clamp(dot(ng, v), 0.0, 1.0), uRimWidth) * uRimIntensity;
   float dist = 1.0 / (1.0 + length(vWorldPos) * 0.15);
   vec3 color = uBaseColor * ndotl * uLightIntensity * uLightColor * dist;
   color += rim * uLightColor;
@@ -219,13 +265,80 @@ void main() {
 }
 `
 
+const SCAN_FRAG = /* glsl */ `
+// Additive, depth-write-off analytical view: every layer of the specimen
+// contributes, so inner scaffold shows through outer surfaces.
+// Lines come from the parametrization (uv in world units along ribs/masses)
+// and from horizontal section contours, not from triangle edges.
+${SHADER_HEADER}
+
+varying vec3 vWorldNormal;
+varying vec3 vViewDir;
+varying vec2 vUv;
+varying float vViewZ;
+
+uniform vec3 uBaseColor;
+uniform vec3 uColorB;
+uniform vec3 uLightDir;
+uniform float uLineIntensity;
+uniform float uSurfaceOpacity;
+uniform float uDepthFade;
+uniform float uEdgeContrast;
+uniform float uScanDensity;
+uniform float uFocusDepth;
+
+float aaLine(float x, float width) {
+  float fw = max(fwidth(x), 1e-4);
+  float f = abs(fract(x - 0.5) - 0.5);
+  return 1.0 - smoothstep(width * fw, (width + 1.0) * fw, f);
+}
+
+void main() {
+  vec3 ng = normalize(vWorldNormal);
+  if (!gl_FrontFacing) ng = -ng;
+  vec3 v = normalize(vViewDir);
+  vec3 l = normalize(uLightDir);
+  float facing = abs(dot(ng, v));
+
+  float fres = pow(1.0 - facing, 3.2);
+  float crease = clamp((length(dFdx(ng)) + length(dFdy(ng))) * 5.0, 0.0, 1.0);
+  float edge = pow(clamp(fres + crease * 0.8, 0.0, 1.0), mix(1.8, 0.55, uEdgeContrast));
+
+  float d = uScanDensity;
+  float along = aaLine(vUv.x * d, 0.35);
+  float around = aaLine(vUv.y * d * 1.5, 0.35);
+  float section = vObjPos.y * d * 1.4;
+  float contour = aaLine(section, 0.5);
+  float major = aaLine(section / 5.0, 0.9);
+  float lines = max(max(along, around) * 0.45, max(contour * 0.75, major));
+
+  vec3 n = detailNormal(ng, 0.5);
+  float fill = clamp(dot(n, l) * 0.5 + 0.5, 0.0, 1.0);
+
+  float fade = exp(-max(vViewZ - uFocusDepth, 0.0) * uDepthFade * 2.4);
+  vec3 color = uBaseColor * fill * uSurfaceOpacity;
+  color += uColorB * (lines * uLineIntensity * 0.6 + edge * uEdgeContrast * 0.38);
+  color *= fade * (gl_FrontFacing ? 1.0 : 0.5);
+  gl_FragColor = vec4(color, 1.0);
+}
+`
+
 export function createBaselineMaterial() {
-  return new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshStandardMaterial({
     color: '#c8c2b6',
     roughness: 0.62,
     metalness: 0.04,
     side: THREE.DoubleSide,
   })
+  const layerUniform = { value: 0 }
+  material.userData.layerUniform = layerUniform
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uLayerSeparation = layerUniform
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 aLayer;\nuniform float uLayerSeparation;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += aLayer * uLayerSeparation;')
+  }
+  return material
 }
 
 export function createStrategyMaterial(strategy) {
@@ -236,14 +349,26 @@ export function createStrategyMaterial(strategy) {
   if (strategy === 'growth') return makeMaterial(GROWTH_FRAG)
   if (strategy === 'position') return makeMaterial(POSITION_FRAG)
   if (strategy === 'illumination') return makeMaterial(ILLUMINATION_FRAG)
+  if (strategy === 'scan') {
+    return makeMaterial(SCAN_FRAG, {
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+  }
   return createBaselineMaterial()
 }
 
-export function syncMaterial(material, settings, strategy) {
+/** shared: { layerSeparation, surfaceDetail, focusDepth } — geometry-level, not per-strategy. */
+export function syncMaterial(material, settings, strategy, shared = {}) {
+  const layerSeparation = shared.layerSeparation ?? 0
+  const surfaceDetail = shared.surfaceDetail ?? 0
+
   if (strategy === 'baseline') {
     material.color.set(settings.baseline.baseColor)
     material.roughness = settings.baseline.roughness
     material.metalness = settings.baseline.metalness
+    if (material.userData.layerUniform) material.userData.layerUniform.value = layerSeparation
     return
   }
 
@@ -254,6 +379,10 @@ export function syncMaterial(material, settings, strategy) {
     if (uniforms[key]) uniforms[key].value = value
   }
   const setVec3 = (key, x, y, z) => uniforms[key]?.value.set(x, y, z).normalize()
+
+  setNum('uLayerSeparation', layerSeparation)
+  setNum('uSurfaceDetail', surfaceDetail)
+  if (shared.focusDepth !== undefined) setNum('uFocusDepth', shared.focusDepth)
 
   if (strategy === 'relief') {
     const p = settings.relief
@@ -271,7 +400,7 @@ export function syncMaterial(material, settings, strategy) {
     setNum('uRoughness', p.roughness)
     setNum('uColorVariation', p.colorVariation)
     setNum('uWeathering', p.weathering)
-    setVec3('uLightDir', 0.55, 0.7, 0.4)
+    setVec3('uLightDir', 0.72, 0.48, 0.32)
   }
 
   if (strategy === 'curvature') {
@@ -314,5 +443,17 @@ export function syncMaterial(material, settings, strategy) {
     setNum('uRimIntensity', p.rimIntensity)
     setNum('uRimWidth', p.rimWidth)
     setNum('uFalloff', p.falloff)
+  }
+
+  if (strategy === 'scan') {
+    const p = settings.scan
+    setColor('uBaseColor', '#46525c')
+    setColor('uColorB', '#dfe6e8')
+    setVec3('uLightDir', 0.6, 0.7, 0.4)
+    setNum('uLineIntensity', p.lineIntensity)
+    setNum('uSurfaceOpacity', p.surfaceOpacity)
+    setNum('uDepthFade', p.depthFade)
+    setNum('uEdgeContrast', p.edgeContrast)
+    setNum('uScanDensity', p.scanDensity)
   }
 }

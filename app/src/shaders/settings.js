@@ -1,4 +1,9 @@
+import { DEFAULT_ROCK_FORM } from './organicRock.js'
+import { DEFAULT_SPECIMEN } from './specimen.js'
+
 export const TEST_GEOMETRIES = [
+  { id: 'specimen', label: 'Architectural Specimen' },
+  { id: 'rock', label: 'Organic Rock' },
   { id: 'plane', label: 'Plane' },
   { id: 'sphere', label: 'Sphere' },
   { id: 'relief', label: 'Relief' },
@@ -13,6 +18,7 @@ export const SHADER_STRATEGIES = [
   { id: 'growth', label: '05 — Growth' },
   { id: 'position', label: '06 — Position' },
   { id: 'illumination', label: '07 — Illumination' },
+  { id: 'scan', label: '08 — Scan / Wireframe' },
 ]
 
 export const POSITION_AXES = [
@@ -82,8 +88,8 @@ export const SHADER_NOTES = {
     why: 'Dense vegetal relief collapses at a distance. Curvature bias keeps stems and hollows parseable.',
   },
   growth: {
-    testing: 'A 0–1 growth attribute revealed by a traveling front, not a global fade.',
-    why: 'The project is computational growth. This makes PROCESS visible on religious-facade ornament, not only the finished mesh.',
+    testing: 'A 0–1 growth field revealed along organic paths, not a global fade or a bottom-to-top wipe.',
+    why: 'The project is computational growth. On the Architectural Specimen it runs from base veins through portal arches and ribs into the branching crown.',
   },
   position: {
     testing: 'World-space axis or distance-to-anchor coloring.',
@@ -92,6 +98,10 @@ export const SHADER_NOTES = {
   illumination: {
     testing: 'Directional light, rim, falloff, and glow as presentation, not as physically based sun.',
     why: 'Dramatic architectural lighting changes how carved plants are perceived. The study is illumination convention, not a sacred effect.',
+  },
+  scan: {
+    testing: 'Structural lines, section contours, edge response and depth fade drawn additively through transparent layers — not triangle wireframe.',
+    why: 'Reads the specimen like a scan or survey drawing: the rib cage, portal and inner masses become legible through the outer surface.',
   },
 }
 
@@ -123,11 +133,11 @@ const CURVATURE = {
 }
 
 const GROWTH = {
-  progress: 0.42,
-  edgeWidth: 0.08,
-  contrast: 0.85,
-  growthColor: '#d4c48a',
-  dormantColor: '#3a3834',
+  progress: 0,
+  edgeWidth: 0.07,
+  contrast: 0.72,
+  growthColor: '#cbb892',
+  dormantColor: '#7a7368',
   autoGrow: false,
   speed: 0.18,
 }
@@ -157,11 +167,22 @@ const ILLUMINATION = {
   surfaceColor: '#5c5348',
 }
 
+const SCAN = {
+  lineIntensity: 0.8,
+  surfaceOpacity: 0.18,
+  depthFade: 0.45,
+  edgeContrast: 0.7,
+  scanDensity: 9,
+}
+
 export const DEFAULT_SHADER_LAB = {
-  geometry: 'vegetal',
-  strategy: 'growth',
+  geometry: 'specimen',
+  strategy: 'relief',
   rotateModel: false,
   compare: false,
+  form: { ...DEFAULT_ROCK_FORM },
+  specimen: { ...DEFAULT_SPECIMEN },
+  scan: { ...SCAN },
   baseline: { ...BASELINE },
   relief: { ...RELIEF },
   stone: { ...STONE },
@@ -180,6 +201,7 @@ export function resetShaderParams(settings) {
   if (id === 'growth') return { ...settings, growth: { ...GROWTH } }
   if (id === 'position') return { ...settings, position: { ...POSITION } }
   if (id === 'illumination') return { ...settings, illumination: { ...ILLUMINATION } }
+  if (id === 'scan') return { ...settings, scan: { ...SCAN } }
   return settings
 }
 
