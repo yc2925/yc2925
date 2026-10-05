@@ -18,8 +18,23 @@
               "icon": "lucide-image",
               "title": "9c4baf5980da49f8c4d0652c481b1288"
             }
+          },
+          {
+            "id": "26a62e6ad0eb8356",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Docs/09-growth-lab/README.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -186,9 +201,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "916836dcbe045874",
+  "active": "26a62e6ad0eb8356",
   "lastOpenFiles": [
     "app/firebase-debug.log",
+    "Images/Visual_References/9c4baf5980da49f8c4d0652c481b1288.jpg",
     "Images/Visual_References.zip",
     "Images/Visual_References/9c6901dd573430b635db0d4b4dade62e.jpg",
     "Images/Visual_References/72a3d488992be544c551dcef21132b50.jpg",
@@ -199,7 +215,6 @@
     "Images/Visual_References/ffed774524146f656c850654a4d2088b.jpg",
     "Images/Visual_References/Screenshot 2026-09-29 at 4.25.00 PM.png",
     "Images/Visual_References/aeab444d47fea385f27b44b1f23a155e.jpg",
-    "Images/Visual_References/9b2c4260211a8bdae2a0309ec73f99cc.jpg",
     "Untitled.md",
     "Images/Visual_References",
     "Docs/08-shaders-experiments/README.md",
@@ -210,7 +225,6 @@
     "app/dist/assets/index-B3awYiBD.js",
     "app/dist/assets/index-CywtazyU.js",
     "app/src/shaders/specimen.js",
-    "app/src/shaders/noise3.js",
     "Docs/Documentation/Week4.md",
     "Docs/Tutorials/Shader-Studies.md",
     "Docs/Tutorials/React.md",

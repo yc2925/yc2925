@@ -10,6 +10,7 @@ import Noise3DView from "./views/Noise3DView.jsx";
 import SimulationView from "./views/SimulationView.jsx";
 import VoxelLabView from "./views/VoxelLabView.jsx";
 import ShaderLabView from "./views/ShaderLabView.jsx";
+import GrowthLabView from "./views/GrowthLabView.jsx";
 
 import AppTabs from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
@@ -180,6 +181,7 @@ function App() {
       {tab === "voxelLab" ? <VoxelLabView /> : null}
 
       {tab === "shaders" ? <ShaderLabView /> : null}
+      {tab === "growthLab" ? <GrowthLabView /> : null}
 
       <header className="app-header">
         <p className="app-kicker">yc2925</p>

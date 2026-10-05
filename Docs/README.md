@@ -16,6 +16,7 @@ The application code stays in `app/`. These notes describe what that code is doi
 | 06 | [Voxel Experiments](06-voxel-experiments/README.md) | Density, CSG, meshing, chunks |
 | 07 | [Firebase](07-firebase/README.md) | Auth, Firestore, Hosting |
 | 08 | [Shader Experiments](08-shaders-experiments/README.md) | Shader Lab: growth, relief, stone, curvature, position, light |
+| 09 | [Growth Lab](09-growth-lab/README.md) | Where ornament emerges, how it travels (splines), which forces could drive it (particles + vector field) |
 
 [Shader Studies](Tutorials/Shader-Studies.md) is the research brief that preceded Shader Lab. [Style guide](style-guide.md) is the visual authority for the interface, not a simulation study.
 
@@ -29,6 +30,7 @@ The application code stays in `app/`. These notes describe what that code is doi
 | Simulation | `app/src/views/SimulationView.jsx`, `app/src/simulation/` |
 | Voxel Lab | `app/src/views/VoxelLabView.jsx`, `app/src/voxel/` |
 | Shaders | `app/src/views/ShaderLabView.jsx`, `app/src/shaders/` |
+| Growth Lab | `app/src/views/GrowthLabView.jsx`, `app/src/growth/` |
 
 Noise 2D, Noise 3D, and Simulation share one heightmap from `fillHeightmap()` in `app/src/noise/sample.js`. Voxel Lab does not; it uses its own 3D density sampler.
 
@@ -46,6 +48,7 @@ These are earlier write-ups, kept because they still describe the work:
 - [Shaders (concept note)](Tutorials/Shaders.md)
 - [Shader Studies](Tutorials/Shader-Studies.md)
 - [08 — Shader Experiments](08-shaders-experiments/README.md)
+- [09 — Growth Lab](09-growth-lab/README.md) (session of 4 October 2026)
 
 Screenshot originals stay in [`Images/0922`](../Images/0922). Topic folders hold copies next to the notes that use them. Shader Lab stills are in [`08-shaders-experiments/Images`](08-shaders-experiments/Images).
 
