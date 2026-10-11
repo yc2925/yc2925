@@ -6,6 +6,7 @@ const TABS = [
   { id: 'voxelLab', label: 'Voxel Lab' },
   { id: 'shaders', label: 'Shaders' },
   { id: 'growthLab', label: 'Growth Lab' },
+  { id: 'lsystems', label: 'L-Systems' },
 ]
 
 export default function AppTabs({ tab, onTabChange }) {

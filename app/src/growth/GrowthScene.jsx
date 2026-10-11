@@ -13,7 +13,7 @@ function useDisposable(geometry) {
   return geometry
 }
 
-function Architecture({ facade }) {
+export function Architecture({ facade }) {
   const { surface, edges } = useMemo(() => {
     const merged = mergeGeometries(facade.parts.map((part) => part.geometry), false)
     return { surface: merged, edges: new THREE.EdgesGeometry(merged, 40) }

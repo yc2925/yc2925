@@ -11,6 +11,7 @@ import SimulationView from "./views/SimulationView.jsx";
 import VoxelLabView from "./views/VoxelLabView.jsx";
 import ShaderLabView from "./views/ShaderLabView.jsx";
 import GrowthLabView from "./views/GrowthLabView.jsx";
+import LSystemView from "./views/LSystemView.jsx";
 
 import AppTabs from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
@@ -182,6 +183,7 @@ function App() {
 
       {tab === "shaders" ? <ShaderLabView /> : null}
       {tab === "growthLab" ? <GrowthLabView /> : null}
+      {tab === "lsystems" ? <LSystemView /> : null}
 
       <header className="app-header">
         <p className="app-kicker">yc2925</p>

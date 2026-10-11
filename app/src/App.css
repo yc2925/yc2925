@@ -81,7 +81,8 @@
 
 .voxel-lab,
 .shader-lab,
-.growth-lab {
+.growth-lab,
+.lsystem-lab {
   position: relative;
   width: 100%;
   height: 100%;
@@ -261,6 +262,81 @@
   width: 6px;
   height: 6px;
   background: var(--text);
+}
+
+.lsystem-status {
+  bottom: 64px;
+  overflow-y: auto;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.lsystem-status .growth-studies {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.lsystem-status .growth-studies button {
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.lsystem-rules {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.lsystem-rules span {
+  margin-right: 8px;
+  color: var(--text-mute);
+}
+
+.lsystem-status .lsystem-lod {
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line);
+}
+
+.lsystem-status .lsystem-lod button {
+  align-items: center;
+  text-align: center;
+}
+
+.lsystem-compare > div {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  font-variant-numeric: tabular-nums;
+}
+
+.lsystem-compare > div > span {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.lsystem-compare > div > span + span {
+  text-align: right;
+}
+
+.lsystem-compare > div:first-child > span {
+  color: var(--text-mute);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lsystem-compare > div.is-active > span {
+  color: var(--text);
+}
+
+.lsystem-compare > div.is-active > span:first-child {
+  color: var(--signal);
 }
 
 .field-actions {
