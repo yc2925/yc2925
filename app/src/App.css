@@ -82,10 +82,72 @@
 .voxel-lab,
 .shader-lab,
 .growth-lab,
-.lsystem-lab {
+.lsystem-lab,
+.gothic-lab,
+.ornament-lab {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.gothic-feature-legend {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.gothic-feature-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gothic-feature-row span:nth-child(2) {
+  color: var(--text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+.gothic-swatch {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--line-strong);
+}
+
+.ornament-suitability-legend {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ornament-legend-label {
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ornament-legend-bar {
+  height: 6px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(90deg, #1a1a1a 0%, #6e6e6e 50%, #ff2020 100%);
+}
+
+.gothic-status code {
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9px;
 }
 
 .voxel-lab-title {
@@ -133,6 +195,27 @@
   border-top: 2px solid var(--signal-dark);
   background: rgb(12 12 12 / 94%);
   pointer-events: none;
+}
+
+.shader-status.gothic-status {
+  bottom: 64px;
+  overflow-y: auto;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.gothic-status .gothic-display {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gothic-status .gothic-typologies {
+  grid-template-columns: 1fr;
+}
+
+.gothic-status .gothic-typologies button {
+  text-align: left;
+  letter-spacing: 0.08em;
 }
 
 .shader-status .telemetry-row {

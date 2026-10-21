@@ -1,0 +1,21 @@
+---
+description: Capture real app screenshots for Docs study READMEs
+alwaysApply: true
+---
+
+# Docs screenshots
+
+When creating or updating a study README under `Docs/NN-*/README.md`:
+
+1. **Take real screenshots** of the running app (local Vite / preview). Do not invent, AI-generate, or placeholder images.
+2. Save them under that study’s `Images/` folder (create it if needed), using short kebab-case names (e.g. `ornament-branching.png`).
+3. Embed them in the README next to the section they illustrate, following the pattern in `Docs/10-lsystems-lod/README.md`:
+
+```markdown
+![Short title](Images/filename.png)
+
+*One-line caption: mode, preset, and what to notice.*
+```
+
+4. Prefer a few strong shots over many: each major mode / family / typology that the text describes should have at least one supporting image when the UI exists.
+5. If the app cannot be opened, say so in the README and do not fabricate images.

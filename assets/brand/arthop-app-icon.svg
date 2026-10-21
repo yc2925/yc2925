@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">ArtHop app icon</title>
+  <desc id="desc">A colorful gallery roof and columns inside a location pin on a charcoal rounded square.</desc>
+  <rect width="1024" height="1024" rx="230" fill="#151516"/>
+  <path d="M512 174c-168 0-304 132-304 295 0 207 220 359 286 407a30 30 0 0 0 36 0c66-48 286-200 286-407 0-163-136-295-304-295Z" fill="#B03E26"/>
+  <path d="M512 224 292 391h440L512 224Z" fill="#1A3EA8"/>
+  <rect x="303" y="389" width="418" height="84" rx="24" fill="#FAF9E5"/>
+  <rect x="336" y="453" width="72" height="202" rx="18" fill="#F1B316"/>
+  <rect x="476" y="453" width="72" height="202" rx="18" fill="#F1B316"/>
+  <rect x="616" y="453" width="72" height="202" rx="18" fill="#F1B316"/>
+  <rect x="296" y="636" width="432" height="84" rx="24" fill="#FAF9E5"/>
+</svg>

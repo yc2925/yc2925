@@ -7,6 +7,8 @@ const TABS = [
   { id: 'shaders', label: 'Shaders' },
   { id: 'growthLab', label: 'Growth Lab' },
   { id: 'lsystems', label: 'L-Systems' },
+  { id: 'gothic', label: 'Gothic Architecture' },
+  { id: 'ornament', label: 'Ornament System' },
 ]
 
 export default function AppTabs({ tab, onTabChange }) {

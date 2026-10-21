@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">ArtHop logo mark</title>
+  <desc id="desc">A colorful gallery roof and columns inside a location pin.</desc>
+  <path d="M512 94c-212 0-384 166-384 371 0 260 278 452 361 513a38 38 0 0 0 46 0c83-61 361-253 361-513C896 260 724 94 512 94Z" fill="#B03E26"/>
+  <path d="M512 158 234 368h556L512 158Z" fill="#1A3EA8"/>
+  <rect x="248" y="365" width="528" height="106" rx="30" fill="#FAF9E5"/>
+  <rect x="290" y="446" width="90" height="255" rx="22" fill="#F1B316"/>
+  <rect x="467" y="446" width="90" height="255" rx="22" fill="#F1B316"/>
+  <rect x="644" y="446" width="90" height="255" rx="22" fill="#F1B316"/>
+  <rect x="240" y="676" width="544" height="106" rx="30" fill="#FAF9E5"/>
+</svg>
