@@ -32,9 +32,19 @@
               "icon": "lucide-file",
               "title": "README"
             }
+          },
+          {
+            "id": "cd4fed215a916b6e",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -201,23 +211,60 @@
       "bases:Create new base": false
     }
   },
-  "active": "26a62e6ad0eb8356",
+  "floating": {
+    "id": "9da379b8e0bf0391",
+    "type": "floating",
+    "children": [
+      {
+        "id": "7d741b9b0ad0a144",
+        "type": "window",
+        "children": [
+          {
+            "id": "f93732e601329ef5",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "96221dc7a026d4af",
+                "type": "leaf",
+                "state": {
+                  "type": "empty",
+                  "state": {},
+                  "icon": "lucide-file",
+                  "title": "New tab"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "vertical",
+        "x": 244,
+        "y": 38,
+        "width": 1024,
+        "height": 800,
+        "maximize": false,
+        "zoom": 0
+      }
+    ]
+  },
+  "active": "96221dc7a026d4af",
   "lastOpenFiles": [
-    "Docs/11-gothic-architecture/README.md",
+    "Untitled.canvas",
+    "Images/Visual_References/9c4baf5980da49f8c4d0652c481b1288.jpg",
     "Docs/12-ornament-system/README.md",
-    "Docs/12-ornament-system/Images/ornament-architectural-integration.png",
+    "app/firebase-debug.log",
     "app/dist/index.html",
     "app/dist/assets/index-beFgUMLL.css",
-    "app/dist/assets/index-DIyNO4F9.js",
+    "app/dist/assets/index-CwdFcWqp.js",
     "app/dist/assets",
+    "Docs/11-gothic-architecture/README.md",
+    "Docs/12-ornament-system/Images/ornament-architectural-integration.png",
+    "app/dist/assets/index-DIyNO4F9.js",
     "app/scripts/validate-ornament-integration.mjs",
     "app/src/ornament/architecturalAttachment.js",
     "app/dist/assets/index-DYHxbxkv.js",
     "Docs/12-ornament-system/Images/ornament-sculptural-profiles.png",
     "app/dist/assets/index-CfolBmIj.js",
-    "app/scripts/validate-ornament-profiles.mjs",
     "Docs/12-ornament-system/Images/ornament-geometry.png",
-    "app/dist/assets/index-1WsTBexS.js",
     "Docs/12-ornament-system/Images/ornament-rhythmic-repetition.png",
     "Docs/12-ornament-system/Images/ornament-bilateral-symmetry.png",
     "Docs/09-growth-lab/README.md",
@@ -225,7 +272,6 @@
     "Docs/12-ornament-system/Images/ornament-suitability.png",
     "Docs/12-ornament-system/Images/ornament-particle-trails.png",
     "Docs/12-ornament-system/Images/ornament-branching.png",
-    "Docs/12-ornament-system/Images/ornament-anchors.png",
     "Docs/10-lsystems-lod/README.md",
     "Docs/08-shaders-experiments/README.md",
     "Docs/07-firebase/README.md",
