@@ -117,8 +117,20 @@ export function createDesignBuilder(params = {}) {
   // Deterministic mapping so seed steps change grammar, not jitter.
   const strategy = ((seed % 3) + 3) % 3
 
-  const W = 3.0
-  const H = W * aspect
+  // Step 12A — physical scale (1 world unit = 1 m).
+  // Width from overallWidth (default 3.0 m). Height follows aspect so family
+  // presets keep their proportions (legacy H = W × aspect ≈ 5.7 at aspect 1.9).
+  // overallHeight is the documented reference envelope; when explicitly provided
+  // with lockAspect=false it overrides. architecturalScale multiplies both axes
+  // without changing procedural complexity (branch counts, density, etc.).
+  const archScale = Math.max(0.05, params.architecturalScale ?? 1)
+  const designW = Math.max(1.2, params.overallWidth ?? 3.0)
+  const lockAspect = params.lockWindowAspect !== false
+  const designH = lockAspect
+    ? designW * aspect
+    : Math.max(2.0, params.overallHeight ?? designW * aspect)
+  const W = designW * archScale
+  const H = designH * archScale
   const half = W * 0.5
   const sill = 0
   const apex = H
@@ -273,6 +285,10 @@ export function createDesignBuilder(params = {}) {
       strategy,
       symmetry,
       seed,
+      designWidth: designW,
+      designHeight: designH,
+      architecturalScale: archScale,
+      worldUnitMeters: 1,
       ...extras,
     }
     return {

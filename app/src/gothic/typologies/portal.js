@@ -366,8 +366,9 @@ export function buildPortal(params) {
   const riseScale = 0.7 + rand() * 0.4
   const depthBias = 0.92 + rand() * 0.2
 
-  const W = Math.max(2.4, params.overallWidth)
-  const H = Math.max(3.2, params.overallHeight)
+  const archScale = Math.max(0.05, params.architecturalScale ?? 1)
+  const W = Math.max(2.4, params.overallWidth ?? 4.2) * archScale
+  const H = Math.max(3.2, params.overallHeight ?? 5.2) * archScale
   const prop = clamp(params.verticalProportion ?? 0.55, 0.25, 0.85)
   const bays = Math.max(1, Math.min(3, Math.round(params.bayCount ?? 1)))
   const depth = (0.65 + detail.structural * 1.05) * depthBias

@@ -7,8 +7,11 @@ import {
 import { DESIGN_LAYERS, TRACERY_FAMILIES } from '../gothic/typologies/windowDesign2d.js'
 import { TRACERY_PRESETS, applyPreset, regenerateSeed, presetById } from '../gothic/typologies/presets.js'
 import { MOLDING_PROFILE_OPTIONS } from '../gothic/profiles.js'
+import ScaleSection from './ScaleSection.jsx'
+import LodSection from './LodSection.jsx'
+import { formatMillimeters } from '../scale/units.js'
 
-export default function GothicArchitecturePanel({ settings, onChange, onTypology }) {
+export default function GothicArchitecturePanel({ settings, onChange, onTypology, activeLod = null }) {
   const isWindow = settings.typology === 'window'
   const displayOptions = displayModesForTypology(settings.typology)
   const showDesignLayers = isWindow && settings.displayMode === 'design'
@@ -70,6 +73,23 @@ export default function GothicArchitecturePanel({ settings, onChange, onTypology
       <button type="button" className="action-button" onClick={() => onChange(resetGothic(settings.typology))}>
         Reset Typology
       </button>
+
+      <ScaleSection
+        settings={settings}
+        onPatch={patch}
+        onFitToObject={() =>
+          patch({ fitToObjectToken: (settings.fitToObjectToken ?? 0) + 1 })
+        }
+        showArchitecturalDims={isWindow}
+        open
+      />
+      <LodSection
+        settings={settings}
+        onPatch={patch}
+        activeLevel={activeLod}
+        showFit={false}
+        open
+      />
 
       {isWindow ? (
         <>
@@ -187,12 +207,12 @@ export default function GothicArchitecturePanel({ settings, onChange, onTypology
             <div className="section-controls">
               <Slider
                 label="Profile Thickness"
-                tip="Bar cross-section scale. Does not change 2D centerlines."
+                tip="Mullion / member cross-section thickness. Does not change 2D centerlines."
                 value={settings.profileThickness ?? 0.055}
                 min={0.03}
                 max={0.1}
                 step={0.005}
-                display={(settings.profileThickness ?? 0.055).toFixed(3)}
+                display={formatMillimeters(settings.profileThickness ?? 0.055, 0)}
                 onChange={(profileThickness) => patch({ profileThickness })}
               />
               <Slider
@@ -202,7 +222,7 @@ export default function GothicArchitecturePanel({ settings, onChange, onTypology
                 min={0.06}
                 max={0.28}
                 step={0.01}
-                display={(settings.architecturalDepth ?? 0.14).toFixed(2)}
+                display={formatMillimeters(settings.architecturalDepth ?? 0.14, 0)}
                 onChange={(architecturalDepth) => patch({ architecturalDepth })}
               />
               <Slider
@@ -325,22 +345,22 @@ export default function GothicArchitecturePanel({ settings, onChange, onTypology
               />
               <Slider
                 label="Overall Height"
-                tip="Total vertical extent."
+                tip="Total vertical extent in meters."
                 value={settings.overallHeight}
                 min={3.2}
                 max={12}
                 step={0.1}
-                display={settings.overallHeight.toFixed(1)}
+                display={`${settings.overallHeight.toFixed(1)} m`}
                 onChange={(overallHeight) => patch({ overallHeight })}
               />
               <Slider
                 label="Overall Width"
-                tip="Total horizontal extent."
+                tip="Total horizontal extent in meters."
                 value={settings.overallWidth}
                 min={2}
                 max={14}
                 step={0.1}
-                display={settings.overallWidth.toFixed(1)}
+                display={`${settings.overallWidth.toFixed(1)} m`}
                 onChange={(overallWidth) => patch({ overallWidth })}
               />
               <Slider

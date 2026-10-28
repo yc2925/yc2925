@@ -602,10 +602,16 @@ export function buildOrnamentMeshCache(network, params = {}) {
     (a, b) => (a.generation ?? 0) - (b.generation ?? 0),
   )
 
+  // Step 12B — render-only filters (same network; omit tiny / deep foliage at low LOD)
+  const lodMaxGen = params.lodMaxGeneration ?? Infinity
+  const lodMinLen = params.lodMinBranchLength ?? 0
+
   for (const branch of ordered) {
     const pts0 = branch.points
     if (!pts0 || pts0.length < 2) continue
     const gen = branch.generation ?? 0
+    if (gen > lodMaxGen) continue
+    if (lodMinLen > 0 && (branch.length ?? 0) < lodMinLen && gen >= 1) continue
     const isChild = gen >= 1 || branch.parentId != null
     const attachment = attachResult.attachments.get(branch.id) ?? branch.attachment ?? null
     let baseRadius = baseRadiusForGeneration(gen, thickness, decay)

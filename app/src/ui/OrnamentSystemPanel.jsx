@@ -14,6 +14,9 @@ import {
 } from '../ornament/settings.js'
 import { TRACERY_FAMILIES } from '../gothic/typologies/windowDesign2d.js'
 import { TRACERY_PRESETS, applyPreset, presetById } from '../gothic/typologies/presets.js'
+import ScaleSection from './ScaleSection.jsx'
+import LodSection from './LodSection.jsx'
+import { formatMillimeters } from '../scale/units.js'
 
 export default function OrnamentSystemPanel({
   settings,
@@ -26,6 +29,7 @@ export default function OrnamentSystemPanel({
   timelineTime,
   timelineDuration,
   onTimelineScrub,
+  activeLod = null,
 }) {
   const patch = (change) => onChange({ ...settings, ...change })
   const trails = settings.displayMode === 'trails'
@@ -67,6 +71,23 @@ export default function OrnamentSystemPanel({
       <button type="button" className="action-button" onClick={() => onChange(resetOrnament())}>
         Reset All
       </button>
+
+      <ScaleSection
+        settings={settings}
+        onPatch={patch}
+        onFitToObject={() =>
+          patch({ fitToObjectToken: (settings.fitToObjectToken ?? 0) + 1 })
+        }
+        showArchitecturalDims
+        open
+      />
+      <LodSection
+        settings={settings}
+        onPatch={patch}
+        activeLevel={activeLod}
+        showFit={false}
+        open
+      />
 
       <details className="control-section" open>
         <summary>Architectural Source</summary>
@@ -688,12 +709,12 @@ export default function OrnamentSystemPanel({
                 />
                 <Slider
                   label="Ornament Thickness"
-                  tip="Primary stem scale. Keep readable but subordinate to the frame."
+                  tip="Primary stem thickness (15–60 mm design range). Proportional to mullion thickness."
                   value={settings.ornamentThickness ?? 0.032}
-                  min={0.012}
-                  max={0.09}
+                  min={0.015}
+                  max={0.06}
                   step={0.001}
-                  display={(settings.ornamentThickness ?? 0.032).toFixed(3)}
+                  display={formatMillimeters(settings.ornamentThickness ?? 0.032, 0)}
                   onChange={(ornamentThickness) => patch({ ornamentThickness })}
                 />
                 <Slider
@@ -738,12 +759,12 @@ export default function OrnamentSystemPanel({
                 />
                 <Slider
                   label="Relief Depth"
-                  tip="How far ornament lifts from the local window-plane support."
+                  tip="How far ornament lifts from the local window-plane support (5–40 mm)."
                   value={settings.reliefDepth ?? 0.016}
-                  min={0}
-                  max={0.06}
+                  min={0.005}
+                  max={0.04}
                   step={0.001}
-                  display={(settings.reliefDepth ?? 0.016).toFixed(3)}
+                  display={formatMillimeters(settings.reliefDepth ?? 0.016, 0)}
                   onChange={(reliefDepth) => patch({ reliefDepth })}
                 />
                 <Slider

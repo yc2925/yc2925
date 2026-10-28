@@ -64,6 +64,20 @@ export const DEFAULT_ORNAMENT = {
   curvature: 0.48,
   subdivisionComplexity: 0.35,
   symmetry: true,
+  // Step 12A — physical scale (1 wu = 1 m)
+  overallHeight: 5.7,
+  overallWidth: 3.0,
+  architecturalScale: 1,
+  worldUnitMeters: 1,
+  showScaleReference: false,
+  showDimensions: false,
+  showHumanReference: false,
+  fitToObjectToken: 0,
+  // Step 12B — camera LOD (render only)
+  enableAutoLod: true,
+  lodMode: 'auto',
+  lodBias: 0,
+  showLodDebug: false,
   // Stone (match Gothic defaults; not editable heavily here)
   profileThickness: 0.055,
   architecturalDepth: 0.14,

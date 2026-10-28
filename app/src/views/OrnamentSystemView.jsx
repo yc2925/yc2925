@@ -11,6 +11,13 @@ import { completeParticleTrails } from '../ornament/branching.js'
 import { composeOrnamentNetwork } from '../ornament/composition.js'
 import { createGrowthPlayback } from '../ornament/growthPlayback.js'
 import { presetById } from '../gothic/typologies/presets.js'
+import { resolveOrnamentPhysical } from '../scale/proportions.js'
+import ScaleReference from '../scale/ScaleReference.jsx'
+import FitCamera from '../scale/FitCamera.jsx'
+import { resolveOrnamentRenderParams, LOD_LABELS } from '../lod/index.js'
+import LodController from '../lod/LodController.jsx'
+import LodDebug from '../lod/LodDebug.jsx'
+import FpsProbe from '../lod/FpsProbe.jsx'
 
 function Row({ label, value }) {
   return (
@@ -113,6 +120,9 @@ export default function OrnamentSystemView() {
   const [branchStats, setBranchStats] = useState(null)
   const [simEpoch, setSimEpoch] = useState(0)
   const [playbackEpoch, setPlaybackEpoch] = useState(0)
+  const [activeLod, setActiveLod] = useState('high')
+  const [lodMetrics, setLodMetrics] = useState(null)
+  const [fps, setFps] = useState(0)
 
   const archKey = useMemo(
     () =>
@@ -134,6 +144,9 @@ export default function OrnamentSystemView() {
         moldingDepth: params.moldingDepth,
         bevelIntensity: params.bevelIntensity,
         detailResolution: params.detailResolution,
+        overallWidth: params.overallWidth,
+        overallHeight: params.overallHeight,
+        architecturalScale: params.architecturalScale,
       }),
     [params],
   )
@@ -274,9 +287,14 @@ export default function OrnamentSystemView() {
     })
   }, [networkMode, completedTrails, branchGeomKey, architecture, growth, params])
 
-  const geomParams = useMemo(
-    () => ({
-      ornamentThickness: params.ornamentThickness ?? 0.032,
+  const geomParams = useMemo(() => {
+    const physical = resolveOrnamentPhysical(params, {
+      profileThickness: params.profileThickness ?? 0.055,
+      architecturalDepth: params.architecturalDepth ?? 0.14,
+      height: architecture.arch?.bounds?.y1 ?? 5.7,
+    })
+    const base = {
+      ornamentThickness: physical.ornamentThickness,
       taperStrength: params.taperStrength ?? 0.72,
       branchThicknessDecay: params.branchThicknessDecay ?? 0.68,
       radialResolution: params.radialResolution ?? 12,
@@ -286,42 +304,27 @@ export default function OrnamentSystemView() {
       profileDepth: params.profileDepth ?? 0.58,
       flutingStrength: params.flutingStrength ?? 0.48,
       profileTransition: params.profileTransition ?? 0.58,
-      reliefDepth: params.reliefDepth ?? 0.016,
-      reliefProjection: params.reliefProjection ?? params.reliefDepth ?? 0.018,
+      reliefDepth: physical.reliefDepth,
+      reliefProjection: physical.reliefProjection,
       sculptureMode: params.sculptureMode ?? 'surface',
       tipCurl: params.tipCurl ?? 0.55,
       attachmentStrength: params.attachmentStrength ?? 0.88,
       surfaceConformity: params.surfaceConformity ?? 0.72,
-      rootEmbedding: params.rootEmbedding ?? 0.014,
-      sculpturalEmergence: params.sculpturalEmergence ?? 0.52,
+      rootEmbedding: physical.rootEmbedding,
+      sculpturalEmergence: physical.sculpturalEmergence,
       transitionLength: params.transitionLength ?? 0.55,
       arch: architecture.arch,
       specimen: architecture.specimen,
-    }),
-    [
-      params.ornamentThickness,
-      params.taperStrength,
-      params.branchThicknessDecay,
-      params.radialResolution,
-      params.curveResolution,
-      params.profileType,
-      params.profileWidth,
-      params.profileDepth,
-      params.flutingStrength,
-      params.profileTransition,
-      params.reliefDepth,
-      params.reliefProjection,
-      params.sculptureMode,
-      params.tipCurl,
-      params.attachmentStrength,
-      params.surfaceConformity,
-      params.rootEmbedding,
-      params.sculpturalEmergence,
-      params.transitionLength,
-      architecture.arch,
-      architecture.specimen,
-    ],
-  )
+      physical,
+    }
+    return resolveOrnamentRenderParams(base, activeLod)
+  }, [params, architecture.arch, architecture.specimen, activeLod])
+
+  const onLodChange = useCallback((level, ev) => {
+    setActiveLod(level)
+    setLodMetrics(ev)
+  }, [])
+  const onLodMetrics = useCallback((ev) => setLodMetrics(ev), [])
 
   const debugFlags = useMemo(
     () => ({
@@ -492,7 +495,38 @@ export default function OrnamentSystemView() {
           viewIsolation={settings.viewIsolation ?? 'combined'}
           debugFlags={debugFlags}
         />
+        <ScaleReference
+          width={layout?.W ?? params.overallWidth ?? 3}
+          height={layout?.H ?? params.overallHeight ?? 5.7}
+          showScaleReference={!!params.showScaleReference}
+          showDimensions={!!params.showDimensions}
+          showHumanReference={!!params.showHumanReference}
+        />
         <gridHelper args={[20, 20, '#2a2a2a', '#1a1a1a']} />
+        <FitCamera
+          token={params.fitToObjectToken ?? 0}
+          envelope={{
+            width: layout?.W ?? params.overallWidth ?? 3,
+            height: layout?.H ?? params.overallHeight ?? 5.7,
+          }}
+          controlsRef={controlsRef}
+        />
+        <LodController
+          bounds={architecture.arch?.bounds ?? layout}
+          lodMode={params.lodMode ?? 'auto'}
+          enableAutoLod={params.enableAutoLod !== false}
+          lodBias={params.lodBias ?? 0}
+          onLodChange={onLodChange}
+          onMetrics={onLodMetrics}
+        />
+        <LodDebug
+          bounds={architecture.arch?.bounds ?? layout}
+          level={activeLod}
+          projectedFrac={lodMetrics?.projectedFrac ?? 0}
+          thresholds={lodMetrics?.thresholds}
+          visible={!!params.showLodDebug}
+        />
+        <FpsProbe onFps={setFps} />
         <OrbitControls
           ref={controlsRef}
           makeDefault
@@ -564,6 +598,12 @@ export default function OrnamentSystemView() {
               <>
                 <Row label="Ornament meshes" value={String(bStats.ornamentMeshes ?? 0)} />
                 <Row label="Ornament triangles" value={String(bStats.ornamentTriangles ?? 0)} />
+                <Row label="LOD" value={LOD_LABELS[activeLod] ?? activeLod} />
+                <Row
+                  label="Proj. size"
+                  value={lodMetrics ? `${(lodMetrics.projectedFrac * 100).toFixed(0)}% vh` : '—'}
+                />
+                <Row label="FPS" value={fps ? fps.toFixed(0) : '—'} />
                 <Row
                   label="Primary / secondary"
                   value={`${bStats.primaryMeshCount ?? 0} / ${bStats.secondaryMeshCount ?? 0}`}
@@ -704,6 +744,7 @@ export default function OrnamentSystemView() {
         timelineTime={branchStats?.time ?? 0}
         timelineDuration={branchStats?.duration ?? settings.simulationDuration ?? 12}
         onTimelineScrub={networkMode ? onTimelineScrub : undefined}
+        activeLod={activeLod}
       />
     </section>
   )

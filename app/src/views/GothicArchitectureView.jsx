@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
 import GothicArchitecturePanel from '../ui/GothicArchitecturePanel.jsx'
@@ -14,6 +14,21 @@ import {
   typologyById,
 } from '../gothic/settings.js'
 import { DESIGN_LAYERS } from '../gothic/typologies/windowDesign2d.js'
+import { buildWindowDesignOnly, buildWindowFromDesign } from '../gothic/typologies/window.js'
+import ScaleReference from '../scale/ScaleReference.jsx'
+import FitCamera from '../scale/FitCamera.jsx'
+import { formatMeters } from '../scale/units.js'
+import {
+  createLodGeometryCache,
+  makeLodCacheKey,
+  countMeshTriangles,
+  estimateGeometryBytes,
+  resolveGothicRenderParams,
+  LOD_LABELS,
+} from '../lod/index.js'
+import LodController from '../lod/LodController.jsx'
+import LodDebug from '../lod/LodDebug.jsx'
+import FpsProbe from '../lod/FpsProbe.jsx'
 
 function Row({ label, value }) {
   return (
@@ -79,6 +94,10 @@ export default function GothicArchitectureView() {
   const [settings, setSettings] = useState(() => ({ ...DEFAULT_GOTHIC }))
   const params = useDeferredValue(settings)
   const controlsRef = useRef(null)
+  const lodCacheRef = useRef(createLodGeometryCache({ maxEntries: 12 }))
+  const [activeLod, setActiveLod] = useState('high')
+  const [lodMetrics, setLodMetrics] = useState(null)
+  const [fps, setFps] = useState(0)
 
   const isWindow = settings.typology === 'window'
   const displayModes = displayModesForTypology(settings.typology)
@@ -92,51 +111,123 @@ export default function GothicArchitectureView() {
     }
   }, [displayMode, settings.displayMode])
 
-  const specimen = useMemo(
-    () =>
-      generateArchitecture({
-        typology: params.typology,
-        bayCount: params.bayCount,
-        lancetCount: params.lancetCount ?? params.bayCount,
-        overallHeight: params.overallHeight,
-        overallWidth: params.overallWidth,
-        verticalProportion: params.verticalProportion,
-        structuralComplexity: params.structuralComplexity,
-        traceryComplexity: params.traceryComplexity,
-        moldingLayers: params.moldingLayers,
-        detailResolution: params.detailResolution,
-        structuralDensity: params.structuralComplexity,
-        ornamentDensity: params.traceryComplexity,
-        symmetry: params.symmetry,
-        variationSeed: params.variationSeed,
-        traceryFamily: params.traceryFamily,
-        windowAspect: params.windowAspect,
-        upperTraceryHeight: params.upperTraceryHeight,
-        curvature: params.curvature,
-        subdivisionComplexity: params.subdivisionComplexity ?? params.cuspingComplexity,
-        cuspingComplexity: params.cuspingComplexity ?? params.subdivisionComplexity,
-        profileThickness: params.profileThickness,
-        architecturalDepth: params.architecturalDepth,
-        moldingComplexity: params.moldingComplexity ?? params.moldingLayers,
-        moldingProfile: params.moldingProfile,
-        moldingDepth: params.moldingDepth,
-        bevelIntensity: params.bevelIntensity,
-      }),
+  // Canonical architecture at design detail — topology / openings independent of LOD.
+  const designParams = useMemo(
+    () => ({
+      typology: params.typology,
+      bayCount: params.bayCount,
+      lancetCount: params.lancetCount ?? params.bayCount,
+      overallHeight: params.overallHeight,
+      overallWidth: params.overallWidth,
+      architecturalScale: params.architecturalScale ?? 1,
+      verticalProportion: params.verticalProportion,
+      structuralComplexity: params.structuralComplexity,
+      traceryComplexity: params.traceryComplexity,
+      moldingLayers: params.moldingLayers,
+      detailResolution: params.detailResolution,
+      structuralDensity: params.structuralComplexity,
+      ornamentDensity: params.traceryComplexity,
+      symmetry: params.symmetry,
+      variationSeed: params.variationSeed,
+      traceryFamily: params.traceryFamily,
+      windowAspect: params.windowAspect,
+      upperTraceryHeight: params.upperTraceryHeight,
+      curvature: params.curvature,
+      subdivisionComplexity: params.subdivisionComplexity ?? params.cuspingComplexity,
+      cuspingComplexity: params.cuspingComplexity ?? params.subdivisionComplexity,
+      profileThickness: params.profileThickness,
+      architecturalDepth: params.architecturalDepth,
+      moldingComplexity: params.moldingComplexity ?? params.moldingLayers,
+      moldingProfile: params.moldingProfile,
+      moldingDepth: params.moldingDepth,
+      bevelIntensity: params.bevelIntensity,
+    }),
     [params],
   )
 
-  useEffect(() => () => specimen.dispose(), [specimen])
+  // Window: design graph only (cheap). Portal/façade: full specimen as topology source.
+  const canonical = useMemo(() => {
+    if (designParams.typology === 'window') return buildWindowDesignOnly(designParams)
+    return generateArchitecture(designParams)
+  }, [designParams])
+
+  useEffect(
+    () => () => {
+      canonical.dispose?.()
+      lodCacheRef.current.clear()
+    },
+    [canonical],
+  )
+
+  const archScale = params.architecturalScale ?? 1
+  const renderParams = useMemo(
+    () => resolveGothicRenderParams(designParams, activeLod),
+    [designParams, activeLod],
+  )
+
+  const specimen = useMemo(() => {
+    if (params.typology === 'window' && canonical.meta?.design2d) {
+      const designId = [
+        params.traceryFamily,
+        params.variationSeed,
+        params.windowAspect,
+        params.lancetCount,
+        params.overallWidth,
+        archScale,
+      ].join(':')
+      const key = makeLodCacheKey({
+        kind: 'gothic-window',
+        designId,
+        lod: activeLod,
+        scale: archScale,
+        extras: `${renderParams.detailResolution.toFixed(3)}:${renderParams.moldingComplexity}`,
+      })
+      const hit = lodCacheRef.current.get(key)
+      if (hit) return hit
+      const solidParams = {
+        profileThickness: (params.profileThickness ?? 0.055) * archScale,
+        architecturalDepth: (params.architecturalDepth ?? 0.14) * archScale,
+        moldingComplexity: renderParams.moldingComplexity,
+        detailResolution: renderParams.detailResolution,
+        moldingProfile: params.moldingProfile,
+        moldingDepth: params.moldingDepth,
+        bevelIntensity: params.bevelIntensity,
+        lodLevel: activeLod,
+      }
+      const built = buildWindowFromDesign(canonical.meta.design2d, solidParams)
+      lodCacheRef.current.set(key, built, () => built.dispose())
+      return built
+    }
+    // Portal / façade: same composition params; LOD only changes detailResolution / mold layers
+    const key = makeLodCacheKey({
+      kind: `gothic-${params.typology}`,
+      designId: `${params.variationSeed}:${params.overallWidth}:${params.overallHeight}`,
+      lod: activeLod,
+      scale: archScale,
+      extras: `${renderParams.detailResolution.toFixed(3)}`,
+    })
+    const hit = lodCacheRef.current.get(key)
+    if (hit) return hit
+    const built = generateArchitecture({ ...designParams, ...renderParams })
+    lodCacheRef.current.set(key, built, () => built.dispose())
+    return built
+  }, [params, canonical, renderParams, activeLod, archScale, designParams])
+
+  const onLodChange = useCallback((level, ev) => {
+    setActiveLod(level)
+    setLodMetrics(ev)
+  }, [])
+  const onLodMetrics = useCallback((ev) => setLodMetrics(ev), [])
 
   const chooseTypology = (id) => {
     setSettings(() => defaultForTypology(id))
+    lodCacheRef.current.clear()
   }
 
   const counts = countFeatures(specimen.features)
   const meshCount = specimen.meshes.length
-  const triangles = specimen.meshes.reduce((n, m) => {
-    const g = m.geometry
-    return n + (g.index ? g.index.count : g.attributes.position.count) / 3
-  }, 0)
+  const triangles = countMeshTriangles(specimen.meshes)
+  const geomBytes = estimateGeometryBytes(specimen.meshes)
   const active = typologyById(settings.typology)
   const design = specimen.meta?.design2d
   const designLayout = design?.layout
@@ -181,6 +272,15 @@ export default function GothicArchitectureView() {
           designLayers={settings.designLayers}
           stone={stone}
         />
+        {!orthoView ? (
+          <ScaleReference
+            width={designLayout?.W ?? params.overallWidth ?? 3}
+            height={designLayout?.H ?? params.overallHeight ?? 5.7}
+            showScaleReference={!!params.showScaleReference}
+            showDimensions={!!params.showDimensions}
+            showHumanReference={!!params.showHumanReference}
+          />
+        ) : null}
         {!orthoView ? <gridHelper args={[20, 20, '#2a2a2a', '#1a1a1a']} /> : null}
         <CameraRig
           typologyId={settings.typology}
@@ -189,6 +289,30 @@ export default function GothicArchitectureView() {
           ortho={orthoView}
           displayMode={displayMode}
         />
+        <FitCamera
+          token={params.fitToObjectToken ?? 0}
+          envelope={{
+            width: designLayout?.W ?? params.overallWidth ?? 3,
+            height: designLayout?.H ?? params.overallHeight ?? 5.7,
+          }}
+          controlsRef={controlsRef}
+        />
+        <LodController
+          bounds={specimen.bounds ?? designLayout}
+          lodMode={params.lodMode ?? 'auto'}
+          enableAutoLod={params.enableAutoLod !== false}
+          lodBias={params.lodBias ?? 0}
+          onLodChange={onLodChange}
+          onMetrics={onLodMetrics}
+        />
+        <LodDebug
+          bounds={specimen.bounds ?? designLayout}
+          level={activeLod}
+          projectedFrac={lodMetrics?.projectedFrac ?? 0}
+          thresholds={lodMetrics?.thresholds}
+          visible={!!params.showLodDebug}
+        />
+        <FpsProbe onFps={setFps} />
         <OrbitControls
           ref={controlsRef}
           makeDefault
@@ -268,8 +392,21 @@ export default function GothicArchitectureView() {
             <Row label="Seed" value={String(Math.round(params.variationSeed ?? 7))} />
             <Row
               label="Extent"
-              value={designLayout ? `${designLayout.W.toFixed(1)} × ${designLayout.H.toFixed(1)}` : '—'}
+              value={
+                designLayout
+                  ? `${formatMeters(designLayout.W, 1)} × ${formatMeters(designLayout.H, 1)}`
+                  : '—'
+              }
             />
+            <Row
+              label="Scale"
+              value={`${(params.architecturalScale ?? 1).toFixed(2)}× · 1 wu = 1 m`}
+            />
+            <Row label="LOD" value={`${LOD_LABELS[activeLod] ?? activeLod}${params.lodMode === 'auto' && params.enableAutoLod !== false ? ' · auto' : ''}`} />
+            <Row label="Proj. size" value={lodMetrics ? `${(lodMetrics.projectedFrac * 100).toFixed(0)}% vh` : '—'} />
+            <Row label="Cam dist" value={lodMetrics ? formatMeters(lodMetrics.cameraDistance, 1) : '—'} />
+            <Row label="Geom mem" value={`~${(geomBytes / 1024).toFixed(0)} KB`} />
+            <Row label="FPS" value={fps ? fps.toFixed(0) : '—'} />
           </>
         ) : (
           <>
@@ -281,7 +418,16 @@ export default function GothicArchitectureView() {
             <Row label="Triangles" value={Math.round(triangles).toLocaleString('en-US')} />
             <Row label="Skeleton" value={String(skeletonCount)} />
             <Row label="Bays / lights" value={String(Math.round(params.bayCount))} />
-            <Row label="Extent" value={`${params.overallWidth.toFixed(1)} × ${params.overallHeight.toFixed(1)}`} />
+            <Row
+              label="Extent"
+              value={`${formatMeters((params.overallWidth ?? 4.2) * (params.architecturalScale ?? 1), 1)} × ${formatMeters((params.overallHeight ?? 5.2) * (params.architecturalScale ?? 1), 1)}`}
+            />
+            <Row
+              label="Scale"
+              value={`${(params.architecturalScale ?? 1).toFixed(2)}× · 1 wu = 1 m`}
+            />
+            <Row label="LOD" value={LOD_LABELS[activeLod] ?? activeLod} />
+            <Row label="FPS" value={fps ? fps.toFixed(0) : '—'} />
           </>
         )}
 
@@ -332,7 +478,12 @@ export default function GothicArchitectureView() {
         </p>
       </aside>
 
-      <GothicArchitecturePanel settings={settings} onChange={setSettings} onTypology={chooseTypology} />
+      <GothicArchitecturePanel
+        settings={settings}
+        onChange={setSettings}
+        onTypology={chooseTypology}
+        activeLod={activeLod}
+      />
     </section>
   )
 }

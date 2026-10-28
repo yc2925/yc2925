@@ -14,6 +14,7 @@ import GrowthLabView from "./views/GrowthLabView.jsx";
 import LSystemView from "./views/LSystemView.jsx";
 import GothicArchitectureView from "./views/GothicArchitectureView.jsx";
 import OrnamentSystemView from "./views/OrnamentSystemView.jsx";
+import AgentSimulationView from "./views/AgentSimulationView.jsx";
 
 import AppTabs from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
@@ -188,6 +189,7 @@ function App() {
       {tab === "lsystems" ? <LSystemView /> : null}
       {tab === "gothic" ? <GothicArchitectureView /> : null}
       {tab === "ornament" ? <OrnamentSystemView /> : null}
+      {tab === "agents" ? <AgentSimulationView /> : null}
 
       <header className="app-header">
         <p className="app-kicker">yc2925</p>

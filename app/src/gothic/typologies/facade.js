@@ -94,8 +94,9 @@ export function buildFacade(params) {
   const rand = seededRandom(params.variationSeed, 5)
   const skeleton = []
 
-  const W = Math.max(5.5, params.overallWidth)
-  const H = Math.max(5.5, params.overallHeight)
+  const archScale = Math.max(0.05, params.architecturalScale ?? 1)
+  const W = Math.max(5.5, params.overallWidth ?? 9.5) * archScale
+  const H = Math.max(5.5, params.overallHeight ?? 8.5) * archScale
   const prop = clamp(params.verticalProportion ?? 0.48, 0.28, 0.8)
   let bayCount = Math.max(3, Math.min(5, Math.round(params.bayCount ?? 3)))
   if (bayCount % 2 === 0) bayCount += 1

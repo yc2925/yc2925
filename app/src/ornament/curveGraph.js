@@ -180,6 +180,7 @@ export function pickOutgoing(graph, junctionId, incomingCurveId, heading, rand, 
   const suitW = opts.suitability ?? 0.5
   const explore = clamp01(opts.explorationBias ?? 0.45)
   const visits = opts.visitCounts ?? null
+  const fieldScoreFn = typeof opts.fieldScore === 'function' ? opts.fieldScore : null
 
   const candidates = []
   for (const e of j.edges) {
@@ -195,12 +196,14 @@ export function pickOutgoing(graph, junctionId, incomingCurveId, heading, rand, 
     // Sqrt softens saturation so underexplored edges stay attractive longer.
     // vCount is accumulated arc travel; log keeps novelty meaningful over long sims
     const novelty = 1 / (1 + Math.log1p(vCount * 2.5))
+    const field = fieldScoreFn ? fieldScoreFn(e.curveId, e.at, travelSign) : 0
     const score =
       0.12 +
       align * (0.62 - explore * 0.52) +
       up * upW * (0.3 - explore * 0.14) +
       novelty * (0.1 + explore * 1.05) +
       suitW * 0.05 +
+      field +
       rand() * (0.03 + explore * 0.1)
     candidates.push({ edge: e, curve, travelSign, dir, score })
   }

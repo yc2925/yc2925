@@ -1,4 +1,4 @@
-# Procedural World Building
+# Procedural World Building (To be updated)
 
 This repository is a study notebook for a Procedural World Building course. It documents experiments in procedural generation, terrain, environmental simulation, voxels, and related computational systems.
 
@@ -57,5 +57,13 @@ Live build: [pwb-yc2925-project-64c07.web.app](https://pwb-yc2925-project-64c07.
 - [Style guide](Docs/style-guide.md)
 
   Visual rules for the UI: near-black chrome, one red signal color, square controls.
+
+- [14 — Architectural Scale](Docs/14-architectural-scale/README.md)
+
+  Shared meter convention (1 wu = 1 m), proportional ornament, scale-aware agents, and optional scale-reference overlays.
+
+- [15 — Camera LOD](Docs/15-camera-lod/README.md)
+
+  Screen-space level of detail for Gothic stone and ornament meshes; simulation and topology stay fixed.
 
 A fuller index, weekly notes, and tutorials live in [Docs/README.md](Docs/README.md).

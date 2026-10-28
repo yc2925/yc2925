@@ -20,6 +20,9 @@ The application code stays in `app/`. These notes describe what that code is doi
 | 10 | [L-Systems and Levels of Detail](10-lsystems-lod/README.md) | Rule-based branching (tree, ivy, tracery) on the wall; High/Medium/Low LOD from one branch graph, with measured triangles and draw calls |
 | 11 | [Gothic Architecture](11-gothic-architecture/README.md) | Tracery Window families (Geometric / Rayonnant / Flamboyant), shared 2D curve graph → stone sweeps, six curated presets |
 | 12 | [Ornament System](12-ornament-system/README.md) | Growth conditions, trails, branching, composition, sculptural integration (Steps 7–10C) |
+| 13 | [Agent Simulation](13-agent-simulation/README.md) | Surface agents, stigmergy, agent-built ornament (Steps 11A–11C) |
+| 14 | [Architectural Scale](14-architectural-scale/README.md) | Shared meter scale, proportional ornament, scale reference (Step 12A) |
+| 15 | [Camera LOD](15-camera-lod/README.md) | Screen-space LOD for Gothic / ornament / agent viz (Step 12B) |
 
 [Shader Studies](Tutorials/Shader-Studies.md) is the research brief that preceded Shader Lab. [Style guide](style-guide.md) is the visual authority for the interface, not a simulation study.
 
@@ -37,6 +40,7 @@ The application code stays in `app/`. These notes describe what that code is doi
 | L-Systems | `app/src/views/LSystemView.jsx`, `app/src/lsystems/` (reuses the Growth Lab wall and surface) |
 | Gothic Architecture | `app/src/views/GothicArchitectureView.jsx`, `app/src/gothic/` |
 | Ornament System | `app/src/views/OrnamentSystemView.jsx`, `app/src/ornament/` (reuses Gothic window generator) |
+| Agent Simulation | `app/src/views/AgentSimulationView.jsx`, `app/src/agents/` (reuses Gothic window + ornament anchors/graph) |
 
 Noise 2D, Noise 3D, and Simulation share one heightmap from `fillHeightmap()` in `app/src/noise/sample.js`. Voxel Lab does not; it uses its own 3D density sampler.
 
@@ -58,6 +62,9 @@ These are earlier write-ups, kept because they still describe the work:
 - [10 — L-Systems and Levels of Detail](10-lsystems-lod/README.md) (session of 10 October 2026)
 - [11 — Gothic Architecture](11-gothic-architecture/README.md) (session of 20 October 2026)
 - [12 — Ornament System](12-ornament-system/README.md) (session of 21 October 2026)
+- [13 — Agent Simulation](13-agent-simulation/README.md) (session of 28 October 2026)
+- [14 — Architectural Scale](14-architectural-scale/README.md) (session of 28 October 2026)
+- [15 — Camera LOD](15-camera-lod/README.md) (session of 28 October 2026)
 
 Screenshot originals stay in [`Images/0922`](../Images/0922). Topic folders hold copies next to the notes that use them. Shader Lab stills are in [`08-shaders-experiments/Images`](08-shaders-experiments/Images).
 

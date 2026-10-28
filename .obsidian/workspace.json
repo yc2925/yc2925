@@ -25,7 +25,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Docs/12-ornament-system/README.md",
+                "file": "Docs/13-agent-simulation/README.md",
                 "mode": "source",
                 "source": false
               },
@@ -44,7 +44,7 @@
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -211,67 +211,36 @@
       "bases:Create new base": false
     }
   },
-  "floating": {
-    "id": "9da379b8e0bf0391",
-    "type": "floating",
-    "children": [
-      {
-        "id": "7d741b9b0ad0a144",
-        "type": "window",
-        "children": [
-          {
-            "id": "f93732e601329ef5",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "96221dc7a026d4af",
-                "type": "leaf",
-                "state": {
-                  "type": "empty",
-                  "state": {},
-                  "icon": "lucide-file",
-                  "title": "New tab"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "vertical",
-        "x": 244,
-        "y": 38,
-        "width": 1024,
-        "height": 800,
-        "maximize": false,
-        "zoom": 0
-      }
-    ]
-  },
-  "active": "96221dc7a026d4af",
+  "active": "26a62e6ad0eb8356",
   "lastOpenFiles": [
+    "Docs/14-architectural-scale/README.md",
+    "Docs/15-camera-lod/README.md",
+    "README.md",
+    "Docs/15-camera-lod",
+    "app/dist/assets/index-BSAcNTOJ.js",
+    "app/scripts/validate-lod.mjs",
+    "app/src/lod/FpsProbe.jsx",
+    "app/src/lod/index.js",
+    "app/src/ui/LodSection.jsx",
+    "app/src/lod/LodDebug.jsx",
+    "app/src/lod/LodController.jsx",
+    "app/src/lod/resolve.js",
+    "app/src/lod/cache.js",
+    "Docs/13-agent-simulation/Images/comparison-off-on.png",
+    "Docs/13-agent-simulation/Images/field-attraction.png",
+    "Docs/13-agent-simulation/Images/agent-simulation.png",
+    "Docs/13-agent-simulation/README.md",
+    "Docs/12-ornament-system/README.md",
     "Untitled.canvas",
     "Images/Visual_References/9c4baf5980da49f8c4d0652c481b1288.jpg",
-    "Docs/12-ornament-system/README.md",
-    "app/firebase-debug.log",
-    "app/dist/index.html",
-    "app/dist/assets/index-beFgUMLL.css",
-    "app/dist/assets/index-CwdFcWqp.js",
-    "app/dist/assets",
     "Docs/11-gothic-architecture/README.md",
     "Docs/12-ornament-system/Images/ornament-architectural-integration.png",
-    "app/dist/assets/index-DIyNO4F9.js",
-    "app/scripts/validate-ornament-integration.mjs",
-    "app/src/ornament/architecturalAttachment.js",
-    "app/dist/assets/index-DYHxbxkv.js",
     "Docs/12-ornament-system/Images/ornament-sculptural-profiles.png",
-    "app/dist/assets/index-CfolBmIj.js",
     "Docs/12-ornament-system/Images/ornament-geometry.png",
     "Docs/12-ornament-system/Images/ornament-rhythmic-repetition.png",
     "Docs/12-ornament-system/Images/ornament-bilateral-symmetry.png",
     "Docs/09-growth-lab/README.md",
     "Docs/12-ornament-system/Images/ornament-direction-field.png",
-    "Docs/12-ornament-system/Images/ornament-suitability.png",
-    "Docs/12-ornament-system/Images/ornament-particle-trails.png",
-    "Docs/12-ornament-system/Images/ornament-branching.png",
     "Docs/10-lsystems-lod/README.md",
     "Docs/08-shaders-experiments/README.md",
     "Docs/07-firebase/README.md",
@@ -280,7 +249,6 @@
     "Docs/Tutorials/Shader-Studies.md",
     "Docs/Tutorials/React.md",
     "Docs/Tutorials/Shaders.md",
-    "README.md",
     "Docs/03-terrain-generation/README.md",
     "Docs/02-procedural-noise/README.md",
     "Docs/Tutorials/Git & Github.md",
@@ -291,8 +259,6 @@
     "Docs/Analysis/Analysis.md",
     "Docs/Tutorials/Voxels.md",
     "Docs/Tutorials/Installing React.md",
-    "app/node_modules/three/examples/jsm/libs/draco/README.md",
-    "app/node_modules/three/examples/jsm/libs/basis/README.md",
-    "app/node_modules/three/src/nodes/materialx/DISCLAIMER.md"
+    "app/node_modules/three/examples/jsm/libs/draco/README.md"
   ]
 }
