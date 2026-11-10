@@ -80,13 +80,17 @@ export function Slider({
   )
 }
 
-export function Select({ label, tip, value, options, onChange }) {
+export function Select({ label, tip, value, options, onChange, disabled = false }) {
   return (
-    <label className="select">
+    <label className={`select ${disabled ? 'select-disabled' : ''}`.trim()}>
       <span className="slider-meta">
         <LabelWithTip tip={tip}>{label}</LabelWithTip>
       </span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option.id} value={option.id}>
             {option.label}

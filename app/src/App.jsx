@@ -13,10 +13,11 @@ import ShaderLabView from "./views/ShaderLabView.jsx";
 import GrowthLabView from "./views/GrowthLabView.jsx";
 import LSystemView from "./views/LSystemView.jsx";
 import GothicArchitectureView from "./views/GothicArchitectureView.jsx";
+import GothicGrammarView from "./views/GothicGrammarView.jsx";
 import OrnamentSystemView from "./views/OrnamentSystemView.jsx";
 import AgentSimulationView from "./views/AgentSimulationView.jsx";
 
-import AppTabs from "./ui/AppTabs.jsx";
+import AppTabs, { APP_TABS } from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
 import NoisePanel from "./ui/NoisePanel.jsx";
 
@@ -26,7 +27,7 @@ import { DEFAULT_NOISE } from "./noise/settings.js";
 import "./App.css";
 
 function App() {
-  const [tab, setTab] = useState("particles");
+  const [tab, setTab] = useState("gothicGrammar");
   const [particles, setParticles] = useState(DEFAULT_PARTICLES);
   const [noise, setNoise] = useState(DEFAULT_NOISE);
 
@@ -102,7 +103,7 @@ function App() {
       const savedData = snapshot.data();
       const config = JSON.parse(savedData.configJson);
   
-      if (config.tab) {
+      if (config.tab && APP_TABS.some((item) => item.id === config.tab)) {
         setTab(config.tab);
       }
   
@@ -188,6 +189,7 @@ function App() {
       {tab === "growthLab" ? <GrowthLabView /> : null}
       {tab === "lsystems" ? <LSystemView /> : null}
       {tab === "gothic" ? <GothicArchitectureView /> : null}
+      {tab === "gothicGrammar" ? <GothicGrammarView /> : null}
       {tab === "ornament" ? <OrnamentSystemView /> : null}
       {tab === "agents" ? <AgentSimulationView /> : null}
 
