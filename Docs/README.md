@@ -23,19 +23,11 @@ The application code stays in `app/`. These notes describe what that code is doi
 | 13 | [Agent Simulation](13-agent-simulation/README.md) | Surface agents, stigmergy, agent-built ornament (Steps 11A–11C) |
 | 14 | [Architectural Scale](14-architectural-scale/README.md) | Shared meter scale, proportional ornament, scale reference (Step 12A) |
 | 15 | [Camera LOD](15-camera-lod/README.md) | Screen-space LOD for Gothic / ornament / agent viz (Step 12B) |
-| 16 | [Geometric Kernel](16-geometric-kernel/README.md) | Pure 2D math kernel for Gothic Grammar (Step 13A.1): points, arcs, intersections, regions |
-| 17 | [Pointed Arch](17-pointed-arch/README.md) | Two-centered equilateral / lancet / depressed arches (Step 13B) |
-| 18 | [Gothic Tracery Grammar](18-gothic-tracery-grammar/README.md) | Lancet subdivision, trefoil/quatrefoil, oculus, composed window (Step 13C) |
-| 19 | [Constructible Tracery Regions](19-constructible-tracery-regions/README.md) | Solid/void planar regions + SECTION mode (Step 13C.1) |
-| 20 | [Procedural 3D Stone](20-procedural-3d-stone/README.md) | Region extrusion, molding profiles/sweeps, Stone/3D workspace (Step 13D / 13D.1) |
-| 21 | [Rayonnant Architectural Refinement](21-rayonnant-refinement/README.md) | Bar-tracery hierarchy, spandrel openings, Baseline ↔ Refined presets (Step 13D.2) |
-| 22 | [Rayonnant Bar Network](22-rayonnant-bar-network/README.md) | Connected bar-tracery graph, stone-from-network, clipped-spandrel diagnosis (Step 13D.3) |
-| 23 | [Rayonnant Elaborate](23-rayonnant-elaborate/README.md) | Hierarchical zones, nested lancets, dominant oculus, curved spandrels (Step 13D.4) |
-| 24 | [Skeleton-First Rayonnant](24-skeleton-first-rayonnant/README.md) | Centerline graph → strip union stone; Rayonnant Skeleton preset (Step 13D.5) |
-| 25 | [Connected Oculus Tracery](25-connected-oculus-tracery/README.md) | Skeleton + connected oculus ring / upper connectors; Rayonnant Oculus Network (Step 13D.6) |
-| 26 | [Rayonnant Secondary Tracery](26-rayonnant-secondary-tracery/README.md) | Quatrefoil in oculus + symmetric side secondaries; Rayonnant Secondary Tracery (Step 13D.7) |
-| 27 | [Oculus Junction Refinement](27-oculus-junction-refinement/README.md) | Tip-to-ring foils, apex clearance, junction scale; Rayonnant Oculus Refined (Step 13D.8) |
-| 28 | [Hierarchical Rayonnant](28-hierarchical-rayonnant/README.md) | Recursive pointed-arch cells, nested lancets, trefoil heads; Rayonnant Hierarchical (Step 13D.9) |
+| 16 | [Gothic Grammar Foundations](16-gothic-foundations/README.md) | 2D kernel + pointed arches (Steps 13A–13B) |
+| 17 | [Tracery Grammar](17-tracery-grammar/README.md) | Lancet / foils / oculus / composed windows + solid/void + trefoil repair (13C) |
+| 18 | [Procedural Stone & Rayonnant](18-stone-rayonnant/README.md) | 3D stone extrusion through hierarchical Rayonnant presets (13D) |
+| 19 | [Architectural Assemblies](19-architectural-assemblies/README.md) | Multi-bay facade, articulation, surface semantics, shared window module (13E.1–13E.3) |
+| 20 | [Growth Attachment](20-growth-attachment/README.md) | Surface seeds, navigation, placement + viewport stability (13E.4) |
 
 [Shader Studies](Tutorials/Shader-Studies.md) is the research brief that preceded Shader Lab. [Style guide](style-guide.md) is the visual authority for the interface, not a simulation study.
 
@@ -79,15 +71,11 @@ These are earlier write-ups, kept because they still describe the work:
 - [13 — Agent Simulation](13-agent-simulation/README.md) (session of 28 October 2026)
 - [14 — Architectural Scale](14-architectural-scale/README.md) (session of 28 October 2026)
 - [15 — Camera LOD](15-camera-lod/README.md) (session of 28 October 2026)
-- [16 — Geometric Kernel](16-geometric-kernel/README.md) (session of 8 November 2026)
-- [17 — Pointed Arch](17-pointed-arch/README.md) (session of 8 November 2026)
-- [18 — Gothic Tracery Grammar](18-gothic-tracery-grammar/README.md) (session of 8 November 2026)
-- [19 — Constructible Tracery Regions](19-constructible-tracery-regions/README.md) (session of 8 November 2026)
-- [20 — Procedural 3D Stone](20-procedural-3d-stone/README.md) (session of 8 November 2026)
-- [21 — Rayonnant Architectural Refinement](21-rayonnant-refinement/README.md) (session of 9 November 2026)
-- [22 — Rayonnant Bar Network](22-rayonnant-bar-network/README.md) (session of 9 November 2026)
-- [23 — Rayonnant Elaborate](23-rayonnant-elaborate/README.md) (session of 9 November 2026)
-- [24 — Skeleton-First Rayonnant](24-skeleton-first-rayonnant/README.md) (session of 9 November 2026)
+- [16 — Gothic Grammar Foundations](16-gothic-foundations/README.md) (sessions of 8–9 November 2026)
+- [17 — Tracery Grammar](17-tracery-grammar/README.md) (sessions of 8–9 November 2026)
+- [18 — Procedural Stone & Rayonnant](18-stone-rayonnant/README.md) (sessions of 8–9 November 2026)
+- [19 — Architectural Assemblies](19-architectural-assemblies/README.md) (session of 9 November 2026)
+- [20 — Growth Attachment](20-growth-attachment/README.md) (session of 9 November 2026)
 
 Screenshot originals stay in [`Images/0922`](../Images/0922). Topic folders hold copies next to the notes that use them. Shader Lab stills are in [`08-shaders-experiments/Images`](08-shaders-experiments/Images).
 
