@@ -23,7 +23,11 @@
     "validate:trefoil-topology": "node scripts/validate-trefoil-topology.mjs",
     "validate:growth-attachment": "node scripts/validate-growth-attachment.mjs",
     "validate:seed-placement": "node scripts/validate-seed-placement.mjs",
-    "validate:viewport-initialization": "node scripts/validate-viewport-initialization.mjs"
+    "validate:viewport-initialization": "node scripts/validate-viewport-initialization.mjs",
+    "validate:construction-overlay": "node scripts/validate-construction-overlay.mjs",
+    "validate:workspace-rendering": "node scripts/validate-workspace-rendering.mjs",
+    "validate:ornament-growth": "node scripts/validate-ornament-growth.mjs",
+    "validate:ornament-motifs": "node scripts/validate-ornament-motifs.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

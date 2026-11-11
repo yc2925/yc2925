@@ -82,15 +82,17 @@ function CurveLines({ curves, showConstruction, showResult, showDimensions, sect
         opacity = 0.55
       }
 
-      out.push({ id: c.id, points, color, lineWidth, opacity, role })
+      const dashed = role === 'construction' || role === 'guide'
+      out.push({ id: c.id, points, color, lineWidth, opacity, role, dashed })
     }
     return out
   }, [curves, showConstruction, showResult, showDimensions, sectionMode])
 
+  // Construction overlays are visual-only — never enter raycast / attachment layers.
   return (
-    <group>
+    <group raycast={() => null}>
       {items.map((it) => (
-        <group key={it.id}>
+        <group key={it.id} raycast={() => null}>
           {it.role === 'result' && !sectionMode ? (
             <Line
               points={it.points}
@@ -99,6 +101,7 @@ function CurveLines({ curves, showConstruction, showResult, showDimensions, sect
               transparent
               opacity={0.22}
               depthTest={false}
+              raycast={() => null}
             />
           ) : null}
           <Line
@@ -108,6 +111,10 @@ function CurveLines({ curves, showConstruction, showResult, showDimensions, sect
             transparent
             opacity={it.opacity}
             depthTest={false}
+            dashed={it.dashed}
+            dashSize={it.dashed ? 0.08 : undefined}
+            gapSize={it.dashed ? 0.06 : undefined}
+            raycast={() => null}
           />
         </group>
       ))}
@@ -165,13 +172,13 @@ function PointMarks({ primitives, showPoints, showCenters, showLabels }) {
   }, [primitives, showPoints, showCenters])
 
   return (
-    <group>
+    <group raycast={() => null}>
       {marks.map((m) => {
         const color = m.role === 'center' ? COLORS.center : COLORS.point
         const r = m.role === 'center' ? 0.04 : 0.032
         return (
-          <group key={m.id} position={[m.x, m.y, 0.05]}>
-            <mesh>
+          <group key={m.id} position={[m.x, m.y, 0.05]} raycast={() => null}>
+            <mesh raycast={() => null}>
               <circleGeometry args={[r, 12]} />
               <meshBasicMaterial color={color} depthTest={false} />
             </mesh>

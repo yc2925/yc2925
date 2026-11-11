@@ -1,6 +1,6 @@
 # Gothic reference library
 
-16 supplied JPEG originals, copied byte-for-byte and renamed descriptively. No recompression, cropping, substitutes or duplicate placements are included.
+16 supplied JPEG originals (REF-001–REF-016), copied byte-for-byte and renamed descriptively, plus four Gothic foliate ornament references (REF-017–REF-020) under `gothic-foliate-ornament/`. No recompression, cropping, substitutes or duplicate placements are included.
 
 ## Numbering and navigation
 REF-001 through REF-016 follow the image order in the latest user message. The earlier conversation order is unknown and is not reconstructed. In this numbering the English window typology is REF-001 and the bracket/corbel catalog is REF-003.
@@ -16,6 +16,7 @@ All requested folders are present, including empty ones. Empty folders mark coll
 - Columns and piers: REF-004, 007.
 - Stone molding profiles and architectural sections: REF-008, 010; relief in REF-013.
 - Material and lighting: REF-004, 005, 009, 013, 016.
+- Gothic foliate / grotesque stone ornament: REF-017, 018, 019, 020 (use together; not vegetation).
 
 ## Extract on macOS
 Download gothic-reference-library.zip to Downloads. In Terminal:
@@ -47,3 +48,7 @@ Read VISUAL_DIRECTION.md first, then choose reference IDs for a specific feature
 - [REF-014 — Ornamental panel pattern library](02-tracery-grammar/ornamental-pattern-library/REF-014-fifteen-cusped-ornamental-pattern-panels.jpg): 40f74a6a9a8d541caecde9162fe023e9.jpg
 - [REF-015 — Stylized rose-window fragment](05-contemporary-visual-direction/monochromatic-gothic/REF-015-speculative-rose-tracery-fragment.jpg): 7a7ffe61e95ab092f3e5e45e0fd252e9.jpg
 - [REF-016 — Speculative architectural assemblage](05-contemporary-visual-direction/speculative-architecture/REF-016-speculative-gothic-industrial-structure.jpg): 3b9e0344f311155412b6ad90b66cd00e.jpg
+- [REF-017 — Gothic geometric patterns](gothic-foliate-ornament/REF-017-gothic-geometric-patterns.jpg): gothic-geometric-patterns.jpg
+- [REF-018 — Biomorphic creature sculpture](gothic-foliate-ornament/REF-018-biomorphic-creature-sculpture.jpg): biomorphic-creature-sculpture.jpg.jpg
+- [REF-019 — Gothic stone foliate carving](gothic-foliate-ornament/REF-019-gothic-stone-foliate-carving.jpg): gothic-stone-foliate-carving.jpg
+- [REF-020 — Symmetrical grotesque ornament](gothic-foliate-ornament/REF-020-symmetrical-grotesque-ornament.jpg): symmetrical-grotesque-ornament.jpg.jpg

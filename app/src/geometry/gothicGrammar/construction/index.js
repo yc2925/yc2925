@@ -20,3 +20,9 @@ export {
   archToConstruction,
   archFramingBounds,
 } from './archConstruction.js'
+
+export {
+  extractArchConstructionGeometry,
+  extractTraceryConstructionGeometry,
+  extractConstructionGeometryFromResult,
+} from './constructionGeometry.js'

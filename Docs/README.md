@@ -28,6 +28,11 @@ The application code stays in `app/`. These notes describe what that code is doi
 | 18 | [Procedural Stone & Rayonnant](18-stone-rayonnant/README.md) | 3D stone extrusion through hierarchical Rayonnant presets (13D) |
 | 19 | [Architectural Assemblies](19-architectural-assemblies/README.md) | Multi-bay facade, articulation, surface semantics, shared window module (13E.1–13E.3) |
 | 20 | [Growth Attachment](20-growth-attachment/README.md) | Surface seeds, navigation, placement + viewport stability (13E.4) |
+| 40 | [Workspace & Construction Anatomy](40-workspace-construction-anatomy/README.md) | Design/Technical nav + construction overlays (13E.4.3) |
+| 41 | [Workspace Rendering Regression](41-workspace-rendering-regression/README.md) | Stone / Graph blank-viewport repair (13E.4.3.1) |
+| 42 | [Gothic Foliate Ornament](42-gothic-foliate-ornament/README.md) | Design refs REF-017–020 (Step 14.0) |
+| 43 | [Ornamental Growth Skeleton](43-ornamental-growth-skeleton/README.md) | First growth skeleton workspace (14A.1) |
+| 44 | [Ornament Grammar Repair](44-ornament-grammar-repair/README.md) | Motif grammar + surface attachment repair (14A.1.1) |
 
 [Shader Studies](Tutorials/Shader-Studies.md) is the research brief that preceded Shader Lab. [Style guide](style-guide.md) is the visual authority for the interface, not a simulation study.
 
@@ -76,6 +81,7 @@ These are earlier write-ups, kept because they still describe the work:
 - [18 — Procedural Stone & Rayonnant](18-stone-rayonnant/README.md) (sessions of 8–9 November 2026)
 - [19 — Architectural Assemblies](19-architectural-assemblies/README.md) (session of 9 November 2026)
 - [20 — Growth Attachment](20-growth-attachment/README.md) (session of 9 November 2026)
+- [40 — Workspace & Construction Anatomy](40-workspace-construction-anatomy/README.md) (session of 10 November 2026)
 
 Screenshot originals stay in [`Images/0922`](../Images/0922). Topic folders hold copies next to the notes that use them. Shader Lab stills are in [`08-shaders-experiments/Images`](08-shaders-experiments/Images).
 

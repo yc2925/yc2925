@@ -7,6 +7,7 @@ import { sampleCircle, sampleSegment } from '../kernel/sampling.js'
 import { createConstructionResult, markInvalid } from '../kernel/result.js'
 import { createSegment } from '../kernel/line2.js'
 import { point } from '../kernel/vector2.js'
+import { extractArchConstructionGeometry } from './constructionGeometry.js'
 import {
   ARCH_FAMILIES,
   ARCH_FAMILY_META,
@@ -105,6 +106,31 @@ export function buildArchComparison(params = {}, display = {}) {
     })
   }
 
+  const constructionGeometry = {
+    constructionPoints: [],
+    constructionLines: [],
+    constructionCircles: [],
+    constructionArcs: [],
+    intersectionPoints: [],
+    symmetryAxes: [],
+    constraintGuides: [],
+    sourceComponentIds: [],
+    limitations: [],
+  }
+  for (const arch of arches) {
+    const part = extractArchConstructionGeometry(arch, arch.family ?? 'arch')
+    constructionGeometry.constructionPoints.push(...part.constructionPoints)
+    constructionGeometry.constructionLines.push(...part.constructionLines)
+    constructionGeometry.constructionCircles.push(...part.constructionCircles)
+    constructionGeometry.constructionArcs.push(...part.constructionArcs)
+    constructionGeometry.intersectionPoints.push(...part.intersectionPoints)
+    constructionGeometry.symmetryAxes.push(...part.symmetryAxes)
+    constructionGeometry.constraintGuides.push(...part.constraintGuides)
+    constructionGeometry.sourceComponentIds.push(...part.sourceComponentIds)
+    constructionGeometry.limitations.push(...part.limitations)
+  }
+  constructionGeometry.sourceComponentIds = [...new Set(constructionGeometry.sourceComponentIds)]
+
   let result = createConstructionResult({
     type: 'arch-comparison',
     parameters: { span, springingY, samplingQuality, mode: 'compare' },
@@ -122,6 +148,7 @@ export function buildArchComparison(params = {}, display = {}) {
       title: 'Compare Arch Families',
       arches,
       annotations,
+      constructionGeometry,
       references: ['REF-008', 'REF-007', 'REF-011'],
       framingPadY: RATIO_OFFSET_Y + 0.15,
     },
@@ -132,6 +159,7 @@ export function buildArchComparison(params = {}, display = {}) {
 
 function archToConstruction(arch, display = {}) {
   const parts = archToConstructionParts(arch, display, { includeFamilyLabel: false })
+  const constructionGeometry = extractArchConstructionGeometry(arch, 'pointed-arch')
   let result = createConstructionResult({
     type: 'pointed-arch',
     parameters: arch.parameters,
@@ -147,6 +175,7 @@ function archToConstruction(arch, display = {}) {
       mode: display.mode ?? 'pointed-arch',
       derived: arch.derived,
       annotations: parts.annotations,
+      constructionGeometry,
       framingPadY: 0.35,
     },
   })

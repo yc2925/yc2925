@@ -1,9 +1,9 @@
 # 20 — Growth Attachment & Viewport Stability
 
 **Sessions:** 9 November 2026 · Steps **13E.4 / 13E.4.1 / 13E.4.2**  
-**Next:** 14A Vegetation Growth Engine *(not started)*
+**Next:** Step 14.0 design direction complete → future **Gothic Foliate Ornament** (not a vegetation simulator). See `Docs/42-gothic-foliate-ornament/`.
 
-Seeds attach to real semantic stone surfaces. Navigation paths follow the facade. Camera framing and anchor lifecycle were repaired so placement stays responsive and every workspace mode loads at a readable scale.
+Seeds attach to real semantic stone surfaces and are reinterpreted as **ornament initiation points**. Navigation paths follow the facade. Camera framing and anchor lifecycle were repaired so placement stays responsive and every workspace mode loads at a readable scale.
 
 ## What was built
 

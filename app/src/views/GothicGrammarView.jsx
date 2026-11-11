@@ -27,9 +27,19 @@ import {
   createAnchorOnPatch,
   findSurfacePath,
   attachFromWorldHit,
+  buildOrnamentGrowthSkeleton,
+  revealOrnamentSkeleton,
+  ornamentGrowthCacheKey,
+  buildParametricMotifs,
+  parametricMotifCacheKey,
+  DEFAULT_FOLIATE_SETTINGS,
+  FOLIATE_WORKSPACE_ID,
+  COMPOSITION_MODES,
 } from '../geometry/gothicGrammar/assemblies/index.js'
 import SurfaceSemanticsOverlay from '../geometry/gothicGrammar/assemblies/SurfaceSemanticsOverlay.jsx'
 import GrowthAttachmentOverlay from '../geometry/gothicGrammar/assemblies/GrowthAttachmentOverlay.jsx'
+import FoliateOrnamentOverlay from '../geometry/gothicGrammar/assemblies/foliateOrnament/FoliateOrnamentOverlay.jsx'
+import ParametricMotifOverlay from '../geometry/gothicGrammar/assemblies/foliateOrnament/parametricMotif/ParametricMotifOverlay.jsx'
 import {
   DEFAULT_GOTHIC_GRAMMAR,
   DEFAULT_TRACERY_SETTINGS,
@@ -342,6 +352,8 @@ function buildWorkspaceConstruction(settings, display) {
     showFamilyLabels: display.showFamilyLabels,
     showSection: display.showSection,
     showSpringing: display.showConstruction,
+    showMullionCenterlines: display.showMullionCenterlines,
+    showFoilConstruction: display.showFoilConstruction,
   }
 
   if (settings.workspaceMode === 'compare-arches') {
@@ -386,8 +398,11 @@ export default function GothicGrammarView() {
     tracery: { ...DEFAULT_GOTHIC_GRAMMAR.tracery },
     stone: { ...DEFAULT_STONE_SETTINGS },
     assembly: { ...DEFAULT_ASSEMBLY_SETTINGS },
+    foliate: { ...DEFAULT_FOLIATE_SETTINGS },
   }))
   const controlsRef = useRef(null)
+  const ornamentSkeletonCacheRef = useRef({ key: null, skeleton: null })
+  const parametricMotifCacheRef = useRef({ key: null, result: null })
   const [selectedSemanticPatchId, setSelectedSemanticPatchId] = useState(null)
   const [growthAttachment, setGrowthAttachment] = useState(() => emptyGrowthAttachmentState())
   const [selectedGrowthAnchorId, setSelectedGrowthAnchorId] = useState(null)
@@ -402,8 +417,12 @@ export default function GothicGrammarView() {
   })
   const display = useMemo(() => resolveDisplayFlags(settings), [settings])
   const stoneMode = settings.workspaceMode === 'stone-3d'
-  const assemblyMode = settings.workspaceMode === 'architectural-assembly'
+  const foliateMode = settings.workspaceMode === FOLIATE_WORKSPACE_ID
+  // Foliate Ornament reuses the Architectural Assembly host + semantics.
+  const assemblyMode =
+    settings.workspaceMode === 'architectural-assembly' || foliateMode
   const workspaceMode = settings.workspaceMode ?? 'pointed-arch'
+  const foliate = { ...DEFAULT_FOLIATE_SETTINGS, ...(settings.foliate ?? {}) }
 
   // Dev/browser probe for camera persistence acceptance (13E.2).
   useEffect(() => {
@@ -550,6 +569,8 @@ export default function GothicGrammarView() {
   )
 
   const stoneAssembly = useMemo(() => {
+    // Must depend on stoneMode: when false the memo caches null; switching into
+    // stone-3d / geometry-graph without a geomKey change previously left a blank viewport (13E.4.3.1).
     if (!stoneMode) return null
     try {
       return buildStoneAssembly({
@@ -565,9 +586,59 @@ export default function GothicGrammarView() {
         decorative: [],
       }
     }
-    // geomKey captures geometry-affecting inputs
+    // geomKey captures geometry-affecting inputs; stoneMode gates generation
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geomKey])
+  }, [geomKey, stoneMode])
+
+  /**
+   * Geometry Graph inspect assembly. Prefers the active stone module's network /
+   * skeleton. When the active preset has no graph members, builds a display-only
+   * bar-network assembly (does not mutate saved settings).
+   */
+  const stoneGraphAssembly = useMemo(() => {
+    if (!stoneMode) return null
+    const networkMode =
+      stone.inspectLayer === 'network-graph' || settings.technicalView === 'geometry-graph'
+    if (!networkMode) return null
+    const existing =
+      stoneAssembly?.solidVoid?.skeleton ?? stoneAssembly?.solidVoid?.network ?? null
+    if (existing) {
+      return { assembly: stoneAssembly, fallback: false, unavailable: false }
+    }
+    try {
+      const patch = applyArchitecturePreset(
+        ARCHITECTURE_PRESETS.RAYONNANT_BAR_NETWORK,
+        { ...DEFAULT_TRACERY_SETTINGS, ...(settings.tracery ?? {}) },
+        { ...DEFAULT_STONE_SETTINGS, ...stone },
+      )
+      const { params } = buildTraceryParams(patch.tracery)
+      const fallbackAsm = buildStoneAssembly({
+        regionParams: params,
+        stone: patch.stone,
+      })
+      const net =
+        fallbackAsm?.solidVoid?.skeleton ?? fallbackAsm?.solidVoid?.network ?? null
+      if (!net) {
+        return { assembly: stoneAssembly, fallback: false, unavailable: true }
+      }
+      return { assembly: fallbackAsm, fallback: true, unavailable: false }
+    } catch {
+      return { assembly: stoneAssembly, fallback: false, unavailable: true }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    stoneMode,
+    stoneAssembly,
+    stone.inspectLayer,
+    settings.technicalView,
+    settings.tracery,
+    geomKey,
+  ])
+
+  const stoneRenderAssembly =
+    stone.inspectLayer === 'network-graph' && stoneGraphAssembly?.assembly
+      ? stoneGraphAssembly.assembly
+      : stoneAssembly
 
   const facadeAssembly = useMemo(() => {
     if (!assemblyMode) return null
@@ -825,11 +896,21 @@ export default function GothicGrammarView() {
   const runAutomaticSeedDistribution = useCallback(() => {
     if (!surfaceSemantics) return
     const result = distributeGrowthSeeds(surfaceSemantics, {
-      seedCount: assemblySettings.growthSeedCount ?? 24,
-      randomSeed: assemblySettings.growthRandomSeed ?? 13,
+      seedCount: foliateMode
+        ? Math.min(12, assemblySettings.growthSeedCount ?? 12)
+        : (assemblySettings.growthSeedCount ?? 24),
+      randomSeed: foliateMode
+        ? (foliate.randomSeed ?? 42)
+        : (assemblySettings.growthRandomSeed ?? 13),
       minSpacing: assemblySettings.growthMinSeedSpacing ?? 0.22,
-      distributionMode: assemblySettings.growthDistributionMode ?? 'WEIGHTED_BY_ELIGIBILITY',
-      allowRestricted: assemblySettings.growthAllowRestricted === true,
+      distributionMode: foliateMode
+        ? 'FEATURE_BASED'
+        : (assemblySettings.growthDistributionMode ?? 'WEIGHTED_BY_ELIGIBILITY'),
+      // Spandrel / OUTER_ARCH hosts are often RESTRICTED — allow for ornament initiation.
+      allowRestricted:
+        foliateMode ||
+        foliate.allowRestrictedHost !== false ||
+        assemblySettings.growthAllowRestricted === true,
       preferVertical: assemblySettings.growthPreferVertical !== false,
       preferRecesses: assemblySettings.growthPreferRecesses === true,
       preferJunctions: assemblySettings.growthPreferJunctions !== false,
@@ -851,7 +932,7 @@ export default function GothicGrammarView() {
     setGrowthPathPreview(null)
     setGrowthPathPick([])
     setSelectedGrowthAnchorId(null)
-  }, [surfaceSemantics, assemblySettings])
+  }, [surfaceSemantics, assemblySettings, foliateMode, foliate.randomSeed, foliate.allowRestrictedHost])
 
   const clearGrowthSeeds = useCallback(() => {
     setGrowthAttachment((prev) => ({
@@ -892,6 +973,201 @@ export default function GothicGrammarView() {
       delete window.__ggClearGrowthSeeds
     }
   }, [growthAttachment, growthPathPreview, runAutomaticSeedDistribution, clearGrowthSeeds])
+
+  const compositionMode = foliate.compositionMode ?? COMPOSITION_MODES.SINGLE_MOTIF
+  const legacyGrowthMode = foliateMode && compositionMode === COMPOSITION_MODES.LEGACY_GROWTH
+  const parametricMode =
+    foliateMode &&
+    (compositionMode === COMPOSITION_MODES.SINGLE_MOTIF ||
+      compositionMode === COMPOSITION_MODES.FULL_FACADE)
+
+  // Foliate ornament growth skeleton — Legacy Growth only.
+  const ornamentSkeletonFull = useMemo(() => {
+    if (!legacyGrowthMode || !surfaceSemantics) return null
+    const anchorIds = (growthAttachment?.anchors ?? []).map((a) => a.anchorId)
+    const key = ornamentGrowthCacheKey(
+      surfaceSemantics.geometryVersion ?? '',
+      anchorIds,
+      foliate,
+    )
+    const cached = ornamentSkeletonCacheRef.current
+    if (cached.key === key && cached.skeleton) return cached.skeleton
+    const skeleton = buildOrnamentGrowthSkeleton({
+      semantics: surfaceSemantics,
+      anchors: growthAttachment?.anchors ?? [],
+      params: foliate,
+    })
+    ornamentSkeletonCacheRef.current = { key, skeleton }
+    return skeleton
+  }, [
+    legacyGrowthMode,
+    surfaceSemantics,
+    growthAttachment?.anchors,
+    foliate.growthLength,
+    foliate.branchDensity,
+    foliate.curlStrength,
+    foliate.symmetryStrength,
+    foliate.creatureInfluence,
+    foliate.randomSeed,
+    foliate.architecturalAttraction,
+    foliate.branchAngle,
+    foliate.maxBranchDepth,
+    foliate.surfaceAdherence,
+    foliate.growthStepSize,
+    foliate.minBranchSeparation,
+    foliate.terminationThreshold,
+    foliate.maxMotifs,
+    foliate.maxAttachmentDistance,
+    foliate.preferSpandrelHost,
+    foliate.allowRestrictedHost,
+  ])
+
+  const ornamentSkeleton = useMemo(() => {
+    if (!ornamentSkeletonFull) return null
+    return revealOrnamentSkeleton(ornamentSkeletonFull, foliate.growthProgress ?? 1)
+  }, [ornamentSkeletonFull, foliate.growthProgress])
+
+  // Bidirectional sync: shared GrowthAttachment selection ↔ foliate.selectedAnchorId
+  useEffect(() => {
+    if (!parametricMode) return
+    if (!selectedGrowthAnchorId) return
+    if (foliate.selectedAnchorId === selectedGrowthAnchorId) return
+    setSettings((prev) => ({
+      ...prev,
+      foliate: {
+        ...DEFAULT_FOLIATE_SETTINGS,
+        ...(prev.foliate ?? {}),
+        selectedAnchorId: selectedGrowthAnchorId,
+      },
+    }))
+  }, [parametricMode, selectedGrowthAnchorId, foliate.selectedAnchorId])
+
+  useEffect(() => {
+    if (!parametricMode) return
+    const id = foliate.selectedAnchorId
+    if (!id) return
+    if (selectedGrowthAnchorId === id) return
+    const exists = (growthAttachment?.anchors ?? []).some((a) => a.anchorId === id)
+    if (exists) setSelectedGrowthAnchorId(id)
+  }, [parametricMode, foliate.selectedAnchorId, selectedGrowthAnchorId, growthAttachment?.anchors])
+
+  const parametricMotif = useMemo(() => {
+    if (!parametricMode || !surfaceSemantics) return null
+    const singleHost = compositionMode === COMPOSITION_MODES.SINGLE_MOTIF
+    const anchors = growthAttachment?.anchors ?? []
+    const selectedAnchorId =
+      foliate.selectedAnchorId ?? selectedGrowthAnchorId ?? anchors[0]?.anchorId ?? null
+    const params = {
+      ...foliate,
+      singleHost,
+      selectedAnchorId,
+      showConstructionCurves: foliate.showConstructionCurves,
+    }
+    const key = parametricMotifCacheKey(
+      surfaceSemantics.geometryVersion ?? '',
+      [
+        singleHost ? `sel:${selectedAnchorId ?? ''}` : 'all',
+        ...anchors.map((a) => a.anchorId).sort(),
+      ],
+      params,
+    )
+    const cached = parametricMotifCacheRef.current
+    if (cached.key === key && cached.result) return cached.result
+    const result = buildParametricMotifs({
+      semantics: surfaceSemantics,
+      anchors,
+      params,
+    })
+    parametricMotifCacheRef.current = { key, result }
+    return result
+  }, [
+    parametricMode,
+    surfaceSemantics,
+    compositionMode,
+    growthAttachment?.anchors,
+    selectedGrowthAnchorId,
+    foliate.selectedAnchorId,
+    foliate.motifType,
+    foliate.hostKind,
+    foliate.maxMotifs,
+    foliate.motifScale,
+    foliate.scrollTurns,
+    foliate.curlStrength,
+    foliate.symmetryStrength,
+    foliate.branchHierarchy,
+    foliate.creatureInfluence,
+    foliate.randomSeed,
+    foliate.primarySpineCurvature,
+    foliate.voluteRadius,
+    foliate.voluteTightness,
+    foliate.secondaryCurlScale,
+    foliate.branchAttachmentPosition,
+    foliate.negativeSpaceClearance,
+    foliate.motifRotation,
+    foliate.motifOffsetU,
+    foliate.motifOffsetV,
+    foliate.showPrimarySpine,
+    foliate.showPrimaryVolutes,
+    foliate.showSecondaryCurls,
+    foliate.showConstructionCurves,
+  ])
+
+  const motifFramingMetrics = useMemo(() => {
+    const host = parametricMotif?.hosts?.[0]
+    if (!host?.boundaryWorld?.length) return null
+    let minX = Infinity
+    let minY = Infinity
+    let minZ = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    let maxZ = -Infinity
+    for (const p of host.boundaryWorld) {
+      minX = Math.min(minX, p[0])
+      minY = Math.min(minY, p[1])
+      minZ = Math.min(minZ, p[2])
+      maxX = Math.max(maxX, p[0])
+      maxY = Math.max(maxY, p[1])
+      maxZ = Math.max(maxZ, p[2])
+    }
+    // Pad so the motif reads at close range with architectural context
+    const pad = Math.max(0.55, Math.max(host.width, host.height) * 0.85)
+    minX -= pad
+    maxX += pad
+    minY -= pad
+    maxY += pad
+    minZ -= pad * 0.5
+    maxZ += pad * 0.5
+    return {
+      boundingMin: [minX, minY, minZ],
+      boundingMax: [maxX, maxY, maxZ],
+      boundingSize: [maxX - minX, maxY - minY, maxZ - minZ],
+    }
+  }, [parametricMotif])
+
+  useEffect(() => {
+    window.__ggOrnamentSkeleton = () => ({
+      full: ornamentSkeletonFull,
+      revealed: ornamentSkeleton,
+      progress: foliate.growthProgress ?? 1,
+      cacheKey: ornamentSkeletonCacheRef.current?.key ?? null,
+    })
+    window.__ggParametricMotif = () => ({
+      result: parametricMotif,
+      cacheKey: parametricMotifCacheRef.current?.key ?? null,
+      compositionMode,
+    })
+    window.__ggPatchFoliate = (partial) => {
+      setSettings((prev) => ({
+        ...prev,
+        foliate: { ...DEFAULT_FOLIATE_SETTINGS, ...(prev.foliate ?? {}), ...partial },
+      }))
+    }
+    return () => {
+      delete window.__ggOrnamentSkeleton
+      delete window.__ggParametricMotif
+      delete window.__ggPatchFoliate
+    }
+  }, [ornamentSkeletonFull, ornamentSkeleton, foliate.growthProgress, parametricMotif, compositionMode])
 
   const compareAssemblies = useMemo(() => {
     const compareOn =
@@ -980,7 +1256,7 @@ export default function GothicGrammarView() {
   const curveCount = construction.curves?.length ?? 0
   const archMeta = construction.metadata?.arch?.derived
   const resultCurveCount = (construction.curves ?? []).filter((c) => c.role === 'result').length
-  const metrics = assemblyMode
+  const facadeMetrics = assemblyMode
     ? {
         boundingMin: facadeAssembly?.metrics?.boundingMin,
         boundingMax: facadeAssembly?.metrics?.boundingMax,
@@ -999,11 +1275,24 @@ export default function GothicGrammarView() {
       }
     : stoneAssembly?.metrics
 
+  // Fit to Motif uses host bounds; Fit to Facade / default uses full elevation.
+  const metrics =
+    foliateMode &&
+    settings.fitFrameMode === 'motif' &&
+    motifFramingMetrics?.boundingSize
+      ? motifFramingMetrics
+      : facadeMetrics
+
   const perspectiveMode = stoneMode || assemblyMode
 
   return (
     <section className="gothic-lab gothic-grammar-lab" aria-labelledby="gothic-grammar-title">
-      <Canvas className="viewport" gl={{ antialias: true }} resize={{ debounce: 0 }}>
+      <Canvas
+        className="viewport"
+        frameloop="always"
+        gl={{ antialias: true, preserveDrawingBuffer: true }}
+        resize={{ debounce: 0 }}
+      >
         {perspectiveMode ? (
           // Do not pass position — R3F would re-apply it every commit and fight StoneFraming.
           <PerspectiveCamera makeDefault fov={42} near={0.05} far={200} />
@@ -1047,23 +1336,75 @@ export default function GothicGrammarView() {
                 onSelectPatch={(patch) => setSelectedSemanticPatchId(patch?.patchId ?? null)}
               />
             ) : null}
-            {assemblyMode &&
+            {(assemblyMode || foliateMode) &&
             surfaceSemantics &&
-            (assemblySettings.showGrowthSeeds !== false ||
-              assemblySettings.growthPlaceSeedActive === true ||
-              assemblySettings.showGrowthNavGraph === true ||
-              assemblySettings.showGrowthNavPaths === true ||
-              assemblySettings.showGrowthNormals === true ||
-              assemblySettings.showGrowthTangents === true ||
-              assemblySettings.showGrowthCollisionDiagnostics === true) ? (
+            (legacyGrowthMode ||
+            parametricMode ||
+            (!foliateMode &&
+              (assemblySettings.showGrowthSeeds !== false ||
+                assemblySettings.growthPlaceSeedActive === true ||
+                assemblySettings.showGrowthNavGraph === true ||
+                assemblySettings.showGrowthNavPaths === true ||
+                assemblySettings.showGrowthNormals === true ||
+                assemblySettings.showGrowthTangents === true ||
+                assemblySettings.showGrowthCollisionDiagnostics === true))) ? (
               <GrowthAttachmentOverlay
                 semantics={surfaceSemantics}
                 state={growthAttachment}
-                settings={assemblySettings}
+                settings={{
+                  ...assemblySettings,
+                  showGrowthSeeds:
+                    foliateMode
+                      ? foliate.showAttachmentAnchors !== false ||
+                        assemblySettings.growthPlaceSeedActive === true ||
+                        parametricMode
+                      : assemblySettings.showGrowthSeeds !== false,
+                  growthPlaceSeedActive:
+                    assemblySettings.growthPlaceSeedActive === true,
+                }}
                 selectedAnchorId={selectedGrowthAnchorId}
-                onSelectAnchor={handleGrowthSelectAnchor}
+                onSelectAnchor={(id) => {
+                  handleGrowthSelectAnchor(id)
+                  if (parametricMode && id) {
+                    setSettings((prev) => ({
+                      ...prev,
+                      foliate: {
+                        ...DEFAULT_FOLIATE_SETTINGS,
+                        ...(prev.foliate ?? {}),
+                        selectedAnchorId: id,
+                      },
+                    }))
+                  }
+                }}
                 onPlaceOnPatch={handleGrowthPlaceOnPatch}
                 pathPreview={growthPathPreview}
+              />
+            ) : null}
+            {legacyGrowthMode ? (
+              <FoliateOrnamentOverlay
+                skeleton={ornamentSkeleton}
+                showGrowthNodes={foliate.showGrowthNodes === true}
+                showBranchIds={foliate.showBranchIds === true}
+                showSurfaceNormals={foliate.showSurfaceNormals === true}
+                showGrowthDirections={foliate.showGrowthDirections === true}
+                showInvalidSegments={foliate.showInvalidSegments !== false}
+                showMotifDebug={foliate.showMotifDebug === true}
+                inspectMotifIndex={foliate.inspectMotifIndex ?? 0}
+                showLabel
+              />
+            ) : null}
+            {parametricMode ? (
+              <ParametricMotifOverlay
+                result={parametricMotif}
+                showHostBoundary={foliate.showHostBoundary === true}
+                showLocalAxes={foliate.showLocalAxes === true}
+                showConstructionCurves={foliate.showConstructionCurves === true}
+                showControlPoints={foliate.showControlPoints === true}
+                showBranchHierarchy={foliate.showBranchHierarchy === true}
+                showInvalidGeometry={foliate.showInvalidGeometry !== false}
+                showClearanceZones={foliate.showClearanceZones === true}
+                showAnchorLinkDebug={foliate.showAnchorLinkDebug === true}
+                showLabel
               />
             ) : null}
             {stone.showAxes !== false ? <axesHelper args={[1.5]} /> : null}
@@ -1073,7 +1414,7 @@ export default function GothicGrammarView() {
               fitToken={settings.fitToken ?? 0}
               viewPreset={assemblySettings.viewPreset ?? 'three-quarter'}
               controlsRef={controlsRef}
-              frameKey="architectural-assembly"
+              frameKey={foliateMode ? FOLIATE_WORKSPACE_ID : 'architectural-assembly'}
             />
           </>
         ) : stoneMode ? (
@@ -1126,7 +1467,7 @@ export default function GothicGrammarView() {
               </>
             ) : (
               <StoneMeshes
-                assembly={stoneAssembly}
+                assembly={stoneRenderAssembly}
                 displayMode={stone.displayMode}
                 showStructural={stone.showStructural !== false}
                 showMoldings={stone.showMoldings !== false}
@@ -1137,13 +1478,26 @@ export default function GothicGrammarView() {
                 showNetworkIds={stone.showNetworkIds === true}
                 showNetworkWidths={stone.showNetworkWidths !== false}
                 hierarchyColoring={stone.hierarchyColoring === true}
+                graphUnavailable={
+                  stone.inspectLayer === 'network-graph' &&
+                  Boolean(stoneGraphAssembly?.unavailable)
+                }
+                graphFallbackNote={
+                  stone.inspectLayer === 'network-graph' && stoneGraphAssembly?.fallback
+                    ? 'Bar-network graph (active preset had no graph members)'
+                    : null
+                }
               />
             )}
             {stone.showAxes && !stone.presentationClean && !compareAssemblies ? (
               <axesHelper args={[1.2]} />
             ) : null}
             <StoneFraming
-              metrics={metrics}
+              metrics={
+                stone.inspectLayer === 'network-graph' && stoneRenderAssembly?.metrics
+                  ? stoneRenderAssembly.metrics
+                  : metrics
+              }
               resetToken={settings.resetViewToken ?? 0}
               fitToken={settings.fitToken ?? 0}
               viewPreset={stone.viewPreset ?? 'three-quarter'}
@@ -1198,33 +1552,46 @@ export default function GothicGrammarView() {
 
       <aside className="shader-status gothic-status" aria-label="Gothic grammar status">
         <p className="growth-pipeline">
-          Kernel <span>→</span> Arch <span>→</span> Tracery <span>→</span> Solids
-          {assemblyMode ? (
+          {foliateMode ? (
             <>
-              {' '}
-              <span>→</span> Assembly
+              Host <span>→</span> Initiation <span>→</span> Motif Grammar <span>→</span> Construction
             </>
-          ) : null}
+          ) : (
+            <>
+              Kernel <span>→</span> Arch <span>→</span> Tracery <span>→</span> Solids
+              {assemblyMode ? (
+                <>
+                  {' '}
+                  <span>→</span> Assembly
+                </>
+              ) : null}
+            </>
+          )}
         </p>
         <p className="shader-brief">
-          {assemblyMode
-            ? 'Step 13E.2 structural articulation — clustered piers / stepped buttresses + camera persistence. Refs REF-004 · REF-007 · REF-008 · REF-011.'
-            : stoneMode
-              ? stoneAssembly?.meta?.oculusRefinement
-                ? 'Step 13D.8 oculus refinement — tip-to-ring foils, apex clearance, junction scale. Refs REF-006 · REF-011 · REF-009 · REF-013.'
-                : stoneAssembly?.meta?.secondaryTracery
-                  ? 'Step 13D.7 secondary tracery — oculus + quatrefoil + side members. Refs REF-008 · REF-011 · REF-007 · REF-009.'
-                  : stoneAssembly?.meta?.oculusNetwork
-                    ? 'Step 13D.6 oculus network — skeleton + connected oculus strips. Refs REF-007 · REF-008 · REF-011 · REF-009.'
-                    : stoneAssembly?.meta?.skeleton
-                      ? 'Step 13D.5 skeleton-first — stone = unioned centerline strips. Refs REF-007 · REF-008 · REF-011 · REF-009.'
-                      : stoneAssembly?.meta?.elaborate
-                        ? 'Step 13D.4 elaborate grammar — hierarchical zones. Refs REF-008 · REF-011 · REF-009 · REF-007.'
-                        : 'Step 13D stone extrusion + moldings. Structural watertight; decorative separate. Refs REF-008 · REF-011 · REF-009 · REF-012.'
-              : 'Solid/void regions (13C.1). Refs REF-008 · REF-009 · REF-011 · REF-007. Section uses validated planar regions.'}
+          {foliateMode
+            ? 'Step 14A.1.2.1 shared ornament anchors — motifs rooted on Architectural Assembly initiation points. Refs REF-017 · REF-018 · REF-019 · REF-020.'
+            : assemblyMode
+              ? 'Step 13E.2 structural articulation — clustered piers / stepped buttresses + camera persistence. Refs REF-004 · REF-007 · REF-008 · REF-011.'
+              : stoneMode
+                ? stoneAssembly?.meta?.oculusRefinement
+                  ? 'Step 13D.8 oculus refinement — tip-to-ring foils, apex clearance, junction scale. Refs REF-006 · REF-011 · REF-009 · REF-013.'
+                  : stoneAssembly?.meta?.secondaryTracery
+                    ? 'Step 13D.7 secondary tracery — oculus + quatrefoil + side members. Refs REF-008 · REF-011 · REF-007 · REF-009.'
+                    : stoneAssembly?.meta?.oculusNetwork
+                      ? 'Step 13D.6 oculus network — skeleton + connected oculus strips. Refs REF-007 · REF-008 · REF-011 · REF-009.'
+                      : stoneAssembly?.meta?.skeleton
+                        ? 'Step 13D.5 skeleton-first — stone = unioned centerline strips. Refs REF-007 · REF-008 · REF-011 · REF-009.'
+                        : stoneAssembly?.meta?.elaborate
+                          ? 'Step 13D.4 elaborate grammar — hierarchical zones. Refs REF-008 · REF-011 · REF-009 · REF-007.'
+                          : 'Step 13D stone extrusion + moldings. Structural watertight; decorative separate. Refs REF-008 · REF-011 · REF-009 · REF-012.'
+                : 'Solid/void regions (13C.1). Refs REF-008 · REF-009 · REF-011 · REF-007. Section uses validated planar regions.'}
         </p>
-        <Row label="Workspace" value={settings.workspaceMode ?? 'pointed-arch'} />
-        {assemblyMode ? (
+        <Row
+          label="Workspace"
+          value={foliateMode ? 'Foliate Ornament' : settings.workspaceMode ?? 'pointed-arch'}
+        />
+        {assemblyMode && !foliateMode ? (
           <Row
             label="Window source"
             value={
@@ -1244,7 +1611,63 @@ export default function GothicGrammarView() {
                 : display.displayState
           }
         />
-        {assemblyMode ? (
+        {foliateMode ? (
+          <>
+            <Row label="Stage" value="14A.1.2.1" />
+            <Row label="Composition" value={compositionMode} />
+            <Row
+              label="Selected anchor"
+              value={
+                parametricMotif?.diagnostics?.selectedAnchorId ??
+                foliate.selectedAnchorId ??
+                selectedGrowthAnchorId ??
+                '—'
+              }
+            />
+            <Row label="Host region" value={parametricMotif?.hosts?.[0]?.kind ?? '—'} />
+            <Row
+              label="Host component"
+              value={parametricMotif?.hosts?.[0]?.hostComponentId ?? '—'}
+            />
+            <Row label="Motif type" value={foliate.motifType ?? '—'} />
+            <Row
+              label="Attachment"
+              value={
+                parametricMotif?.diagnostics?.emptyReason
+                  ? 'needs-anchor'
+                  : parametricMotif?.diagnostics?.rootOk === false
+                    ? 'root-fail'
+                    : parametricMotif?.diagnostics?.fitOk
+                      ? 'ok'
+                      : parametricMotif
+                        ? 'check'
+                        : '—'
+              }
+            />
+            <Row
+              label="Motifs"
+              value={String(
+                parametricMode
+                  ? parametricMotif?.diagnostics?.motifCount ?? 0
+                  : ornamentSkeleton?.diagnostics?.motifCount ?? 0,
+              )}
+            />
+            <Row
+              label="Invalid"
+              value={String(
+                parametricMode
+                  ? (parametricMotif?.diagnostics?.invalidCurveCount ?? 0) +
+                      (parametricMotif?.diagnostics?.invalidAnchorCount ?? 0)
+                  : ornamentSkeleton?.diagnostics?.invalidSegmentCount ?? 0,
+              )}
+            />
+            <Row
+              label="Shared anchors"
+              value={String(growthAttachment?.anchors?.length ?? 0)}
+            />
+          </>
+        ) : null}
+        {assemblyMode && !foliateMode ? (
           <>
             <Row label="Grammar stage" value="13E.2" />
             <Row label="Bay count" value={String(facadeAssembly?.metrics?.bayCount ?? '—')} />
@@ -1342,8 +1765,10 @@ export default function GothicGrammarView() {
                       : (construction.metadata?.title ?? '—')
           }
         />
-        <Row label="Kernel" value={`${KERNEL_STATUS} · ${KERNEL_VERSION}`} />
-        {archMeta ? (
+        {!foliateMode ? (
+          <Row label="Kernel" value={`${KERNEL_STATUS} · ${KERNEL_VERSION}`} />
+        ) : null}
+        {archMeta && !foliateMode ? (
           <>
             <Row label="Span" value={`${(construction.parameters?.span ?? 0).toFixed(2)} m`} />
             <Row label="Rise" value={`${(construction.parameters?.rise ?? 0).toFixed(2)} m`} />
@@ -1442,6 +1867,8 @@ export default function GothicGrammarView() {
         facadeAssembly={facadeAssembly}
         surfaceSemantics={surfaceSemantics}
         growthAttachment={growthAttachment}
+        ornamentSkeleton={ornamentSkeleton}
+        parametricMotif={parametricMotif}
         onDistributeGrowthSeeds={runAutomaticSeedDistribution}
         onClearGrowthSeeds={clearGrowthSeeds}
         onDeleteSelectedGrowthAnchor={() => {

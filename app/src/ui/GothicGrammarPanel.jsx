@@ -6,7 +6,9 @@ import { ControlPanel, Select, Toggle, Slider } from './Controls.jsx'
 import {
   CONSTRUCTION_MODES,
   PRIMITIVE_TOOLS,
-  WORKSPACE_MODES,
+  WORKSPACE_CATEGORIES,
+  DESIGN_WORKSPACES,
+  TECHNICAL_WORKSPACES,
   DISPLAY_STATES,
   STONE_DISPLAY_MODES,
   STONE_INSPECT_LAYERS,
@@ -20,6 +22,7 @@ import {
   PROFILE_TYPE_OPTIONS,
   DEFAULT_STONE_SETTINGS,
   DEFAULT_ASSEMBLY_SETTINGS,
+  DEFAULT_CONSTRUCTION_OVERLAY,
   ASSEMBLY_TYPES,
   VARIATION_MODES,
   SUPPORT_STYLES,
@@ -28,6 +31,7 @@ import {
   COMPARE_MODES,
   ARCHITECTURE_PRESET_OPTIONS,
   applyArchitecturePreset,
+  applyWorkspaceNavigation,
   resetGothicGrammar,
   ARCH_FAMILY_META,
   EQUILATERAL_RISE_RATIO,
@@ -37,6 +41,10 @@ import {
   FOIL_TYPES,
   GROWTH_DISTRIBUTION_OPTIONS,
   GROWTH_PLACEMENT_MODE_OPTIONS,
+  DEFAULT_FOLIATE_SETTINGS,
+  FOLIATE_WORKSPACE_ID,
+  COMPOSITION_MODES,
+  MOTIF_TYPES,
 } from '../geometry/gothicGrammar/settings.js'
 import { resolveMemberWidths } from '../geometry/gothicGrammar/tracery/memberHierarchy.js'
 import {
@@ -2291,6 +2299,610 @@ function AssemblyControls({
   )
 }
 
+function FoliateOrnamentControls({
+  foliate,
+  onPatch,
+  growthAttachment,
+  ornamentSkeleton,
+  parametricMotif = null,
+  onDistributeGrowthSeeds,
+  onClearGrowthSeeds,
+  onDeleteSelectedGrowthAnchor,
+  selectedGrowthAnchorId,
+  controlTier = 'essential',
+}) {
+  const f = { ...DEFAULT_FOLIATE_SETTINGS, ...(foliate ?? {}) }
+  const set = (partial) => onPatch({ ...f, ...partial })
+  const showAdvanced = controlTier === 'advanced' || controlTier === 'debug'
+  const showDebug = controlTier === 'debug'
+  const mode = f.compositionMode ?? COMPOSITION_MODES.SINGLE_MOTIF
+  const legacy = mode === COMPOSITION_MODES.LEGACY_GROWTH
+  const single = mode === COMPOSITION_MODES.SINGLE_MOTIF
+  const diag = legacy
+    ? ornamentSkeleton?.diagnostics ?? {}
+    : parametricMotif?.diagnostics ?? {}
+  const anchors = growthAttachment?.anchors?.length ?? 0
+  const anchorOptions = (growthAttachment?.anchors ?? []).map((a) => ({
+    id: a.anchorId,
+    label: `${a.anchorId} · ${a.componentId ?? 'comp'}`,
+  }))
+
+  return (
+    <>
+      <p className="control-hint">
+        Parametric Gothic motif laboratory (14A.1.2.1). Motifs root on shared Architectural
+        Assembly initiation points — construction curves only. Refs REF-017 · REF-018 · REF-019 ·
+        REF-020.
+      </p>
+      <Select
+        label="Composition Mode"
+        tip="Single Motif = one selected shared anchor; Full Facade = one motif per valid anchor; Legacy Growth = 14A.1.1 skeleton."
+        value={mode}
+        options={[
+          { id: COMPOSITION_MODES.SINGLE_MOTIF, label: 'Single Motif' },
+          { id: COMPOSITION_MODES.FULL_FACADE, label: 'Full Facade' },
+          { id: COMPOSITION_MODES.LEGACY_GROWTH, label: 'Legacy Growth' },
+        ]}
+        onChange={(compositionMode) => set({ compositionMode })}
+      />
+      {!legacy ? (
+        <>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <button type="button" className="action-button" onClick={() => onDistributeGrowthSeeds?.()}>
+              Distribute Initiation Points
+            </button>
+            <button type="button" className="action-button" onClick={() => onClearGrowthSeeds?.()}>
+              Clear Points
+            </button>
+            <button
+              type="button"
+              className="action-button"
+              disabled={!selectedGrowthAnchorId}
+              onClick={() => onDeleteSelectedGrowthAnchor?.()}
+            >
+              Delete Selected
+            </button>
+          </div>
+          {anchors < 1 ? (
+            <p className="control-hint grammar-invalid-text">
+              No shared initiation points. Place or distribute anchors on eligible stone (same
+              system as Architectural Assembly).
+            </p>
+          ) : null}
+          <Select
+            label="Motif Type"
+            tip="Composition grammar for the selected shared anchor."
+            value={f.motifType ?? MOTIF_TYPES.SYMMETRICAL_SPANDREL_SCROLL}
+            options={[
+              {
+                id: MOTIF_TYPES.SYMMETRICAL_SPANDREL_SCROLL,
+                label: 'Symmetrical Gothic Spandrel Scroll',
+              },
+            ]}
+            onChange={(motifType) => set({ motifType })}
+          />
+          {single ? (
+            <Select
+              label="Selected Anchor"
+              tip="Shared GrowthAttachment anchor id — motif root must coincide with this point."
+              value={
+                f.selectedAnchorId ??
+                selectedGrowthAnchorId ??
+                growthAttachment?.anchors?.[0]?.anchorId ??
+                (anchorOptions[0]?.id ?? 'none')
+              }
+              options={
+                anchorOptions.length
+                  ? anchorOptions
+                  : [{ id: 'none', label: '(no shared anchors)' }]
+              }
+              onChange={(selectedAnchorId) => {
+                if (selectedAnchorId === 'none') return
+                set({ selectedAnchorId })
+              }}
+            />
+          ) : null}
+          <p className="control-hint">
+            Anchor {diag.selectedAnchorId ?? f.selectedAnchorId ?? selectedGrowthAnchorId ?? '—'} ·
+            host {parametricMotif?.hosts?.[0]?.kind ?? '—'} · component{' '}
+            {parametricMotif?.hosts?.[0]?.hostComponentId ?? '—'} · surface{' '}
+            {parametricMotif?.hosts?.[0]?.hostSurfaceId ?? '—'} · status{' '}
+            {diag.emptyReason
+              ? 'needs-anchor'
+              : diag.rootOk === false
+                ? 'root-fail'
+                : diag.fitOk
+                  ? 'ok'
+                  : 'check'}
+          </p>
+          {diag.emptyReason ? (
+            <p className="control-hint grammar-invalid-text">{diag.emptyReason}</p>
+          ) : null}
+          {(diag.invalidAnchors?.length ?? 0) > 0 ? (
+            <p className="control-hint grammar-invalid-text">
+              Invalid hosts:{' '}
+              {diag.invalidAnchors
+                .slice(0, 3)
+                .map((x) => `${x.anchorId} (${x.reason})`)
+                .join(' · ')}
+            </p>
+          ) : null}
+          <Slider
+            label="Motif Scale"
+            tip="Overall scale of the motif inside the host area."
+            value={f.motifScale ?? 1}
+            min={0.4}
+            max={1.4}
+            step={0.01}
+            display={`${Math.round((f.motifScale ?? 1) * 100)}%`}
+            onChange={(motifScale) => set({ motifScale })}
+          />
+          <Slider
+            label="Scroll Turns"
+            tip="Primary volute winding count."
+            value={f.scrollTurns ?? 1.25}
+            min={0.5}
+            max={2.5}
+            step={0.05}
+            display={(f.scrollTurns ?? 1.25).toFixed(2)}
+            onChange={(scrollTurns) => set({ scrollTurns })}
+          />
+          <Slider
+            label="Curl Strength"
+            tip="Spiral tightness / secondary curl intensity."
+            value={f.curlStrength ?? 0.7}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.curlStrength ?? 0.7) * 100)}%`}
+            onChange={(curlStrength) => set({ curlStrength })}
+          />
+          <Slider
+            label="Symmetry Strength"
+            tip="100% = exact local bilateral mirror; 80% soft asymmetry; 0% independent."
+            value={f.symmetryStrength ?? 1}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.symmetryStrength ?? 1) * 100)}%`}
+            onChange={(symmetryStrength) => set({ symmetryStrength })}
+          />
+          <Slider
+            label="Branch Hierarchy"
+            tip="Amount of secondary / tertiary subordinate scrolls."
+            value={f.branchHierarchy ?? 0.65}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.branchHierarchy ?? 0.65) * 100)}%`}
+            onChange={(branchHierarchy) => set({ branchHierarchy })}
+          />
+          <Slider
+            label="Creature Influence"
+            tip="Biomorphic / skeletal morphology (REF-018). 0% traditional order."
+            value={f.creatureInfluence ?? 0.3}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.creatureInfluence ?? 0.3) * 100)}%`}
+            onChange={(creatureInfluence) => set({ creatureInfluence })}
+          />
+          <Slider
+            label="Random Seed"
+            tip="Deterministic variation seed."
+            value={f.randomSeed ?? 42}
+            min={0}
+            max={9999}
+            step={1}
+            display={String(f.randomSeed ?? 42)}
+            onChange={(randomSeed) => set({ randomSeed })}
+          />
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <Toggle
+              label="Primary Spine"
+              tip="Reveal stage: ribbed primary axis."
+              value={f.showPrimarySpine !== false}
+              onChange={(showPrimarySpine) => set({ showPrimarySpine })}
+            />
+            <Toggle
+              label="Primary Volutes"
+              tip="Reveal stage: mirrored primary scrolls."
+              value={f.showPrimaryVolutes !== false}
+              onChange={(showPrimaryVolutes) => set({ showPrimaryVolutes })}
+            />
+            <Toggle
+              label="Secondary Curls"
+              tip="Reveal stage: subordinate curling branches."
+              value={f.showSecondaryCurls !== false}
+              onChange={(showSecondaryCurls) => set({ showSecondaryCurls })}
+            />
+          </div>
+          {showAdvanced ? (
+            <>
+              <Slider
+                label="Primary Spine Curvature"
+                tip="Mild S-curve of the ribbed spine."
+                value={f.primarySpineCurvature ?? 0.35}
+                min={0}
+                max={1}
+                step={0.01}
+                display={`${Math.round((f.primarySpineCurvature ?? 0.35) * 100)}%`}
+                onChange={(primarySpineCurvature) => set({ primarySpineCurvature })}
+              />
+              <Slider
+                label="Volute Radius"
+                tip="Primary scroll outer radius relative to host."
+                value={f.voluteRadius ?? 0.42}
+                min={0.15}
+                max={0.8}
+                step={0.01}
+                display={(f.voluteRadius ?? 0.42).toFixed(2)}
+                onChange={(voluteRadius) => set({ voluteRadius })}
+              />
+              <Slider
+                label="Volute Tightness"
+                tip="How quickly the spiral contracts inward."
+                value={f.voluteTightness ?? 0.75}
+                min={0}
+                max={1}
+                step={0.01}
+                display={`${Math.round((f.voluteTightness ?? 0.75) * 100)}%`}
+                onChange={(voluteTightness) => set({ voluteTightness })}
+              />
+              <Slider
+                label="Secondary Curl Scale"
+                tip="Relative size of secondary curls."
+                value={f.secondaryCurlScale ?? 0.45}
+                min={0.15}
+                max={0.9}
+                step={0.01}
+                display={`${Math.round((f.secondaryCurlScale ?? 0.45) * 100)}%`}
+                onChange={(secondaryCurlScale) => set({ secondaryCurlScale })}
+              />
+              <Slider
+                label="Branch Attachment Position"
+                tip="Where secondary curls leave the spine (0=base, 1=tip)."
+                value={f.branchAttachmentPosition ?? 0.55}
+                min={0.15}
+                max={0.9}
+                step={0.01}
+                display={`${Math.round((f.branchAttachmentPosition ?? 0.55) * 100)}%`}
+                onChange={(branchAttachmentPosition) => set({ branchAttachmentPosition })}
+              />
+              <Slider
+                label="Negative Space Clearance"
+                tip="Margin from host boundary and voids."
+                value={f.negativeSpaceClearance ?? 0.06}
+                min={0.02}
+                max={0.15}
+                step={0.005}
+                display={`${((f.negativeSpaceClearance ?? 0.06) * 100).toFixed(1)} cm`}
+                onChange={(negativeSpaceClearance) => set({ negativeSpaceClearance })}
+              />
+              <Slider
+                label="Motif Rotation"
+                tip="Reserved composition rotation (small)."
+                value={f.motifRotation ?? 0}
+                min={-0.25}
+                max={0.25}
+                step={0.01}
+                display={(f.motifRotation ?? 0).toFixed(2)}
+                onChange={(motifRotation) => set({ motifRotation })}
+              />
+              <Slider
+                label="Motif Offset U"
+                tip="Shift along local U (horizontal) inside host."
+                value={f.motifOffsetU ?? 0}
+                min={-0.5}
+                max={0.5}
+                step={0.01}
+                display={(f.motifOffsetU ?? 0).toFixed(2)}
+                onChange={(motifOffsetU) => set({ motifOffsetU })}
+              />
+              <Slider
+                label="Motif Offset V"
+                tip="Shift along local V (vertical) inside host."
+                value={f.motifOffsetV ?? 0.05}
+                min={-0.4}
+                max={0.4}
+                step={0.01}
+                display={(f.motifOffsetV ?? 0.05).toFixed(2)}
+                onChange={(motifOffsetV) => set({ motifOffsetV })}
+              />
+            </>
+          ) : null}
+          {showDebug ? (
+            <>
+              <Toggle
+                label="Show Host Boundary"
+                tip="Dashed UV ornament area of the selected host."
+                value={f.showHostBoundary === true}
+                onChange={(showHostBoundary) => set({ showHostBoundary })}
+              />
+              <Toggle
+                label="Show Local Axes"
+                tip="Host U / V / N axes at the local origin."
+                value={f.showLocalAxes === true}
+                onChange={(showLocalAxes) => set({ showLocalAxes })}
+              />
+              <Toggle
+                label="Show Construction Curves"
+                tip="Symmetry axis and construction guides."
+                value={f.showConstructionCurves === true}
+                onChange={(showConstructionCurves) => set({ showConstructionCurves })}
+              />
+              <Toggle
+                label="Show Control Points"
+                tip="Bezier / spiral control markers."
+                value={f.showControlPoints === true}
+                onChange={(showControlPoints) => set({ showControlPoints })}
+              />
+              <Toggle
+                label="Show Branch Hierarchy"
+                tip="Label curve roles and hierarchy levels."
+                value={f.showBranchHierarchy === true}
+                onChange={(showBranchHierarchy) => set({ showBranchHierarchy })}
+              />
+              <Toggle
+                label="Show Invalid Geometry"
+                tip="Dashed red for out-of-host / failed curves."
+                value={f.showInvalidGeometry !== false}
+                onChange={(showInvalidGeometry) => set({ showInvalidGeometry })}
+              />
+              <Toggle
+                label="Show Clearance Zones"
+                tip="Void / opening clearance circles in the host."
+                value={f.showClearanceZones === true}
+                onChange={(showClearanceZones) => set({ showClearanceZones })}
+              />
+              <Toggle
+                label="Anchor Link Debug"
+                tip="Source anchor marker, motif root, distance, host axes / boundary."
+                value={f.showAnchorLinkDebug === true}
+                onChange={(showAnchorLinkDebug) => set({ showAnchorLinkDebug })}
+              />
+            </>
+          ) : null}
+          <p className="control-hint">
+            Motifs {diag.motifCount ?? 0} · anchors {diag.anchorCount ?? anchors} · unused{' '}
+            {diag.unusedAnchorCount ?? 0} · curves {diag.curveCount ?? 0} · invalid{' '}
+            {diag.invalidCurveCount ?? 0} · root {diag.rootOk === false ? 'fail' : 'ok'} · fit{' '}
+            {diag.fitOk ? 'ok' : 'check'}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="control-hint">
+            Legacy Growth (14A.1.1) — branching skeleton from initiation anchors. Preserved for
+            comparison.
+          </p>
+          {anchors < 1 ? (
+            <p className="control-hint grammar-invalid-text">
+              No ornament initiation points. Distribute or place anchors on eligible spandrel /
+              arch-shoulder stone.
+            </p>
+          ) : null}
+          {diag.emptyReason ? (
+            <p className="control-hint grammar-invalid-text">{diag.emptyReason}</p>
+          ) : null}
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <button type="button" className="action-button" onClick={() => onDistributeGrowthSeeds?.()}>
+              Distribute Initiation Points
+            </button>
+            <button type="button" className="action-button" onClick={() => onClearGrowthSeeds?.()}>
+              Clear Points
+            </button>
+            <button
+              type="button"
+              className="action-button"
+              disabled={!selectedGrowthAnchorId}
+              onClick={() => onDeleteSelectedGrowthAnchor?.()}
+            >
+              Delete Selected
+            </button>
+          </div>
+          <Slider
+            label="Growth Progress"
+            tip="Reveal the precomputed skeleton (0% = initiation only)."
+            value={f.growthProgress ?? 1}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.growthProgress ?? 1) * 100)}%`}
+            onChange={(growthProgress) => set({ growthProgress })}
+          />
+          <Slider
+            label="Growth Length"
+            tip="Primary motif spine extent along the host (m)."
+            value={f.growthLength ?? 1.15}
+            min={0.2}
+            max={2.5}
+            step={0.05}
+            display={`${(f.growthLength ?? 1.15).toFixed(2)} m`}
+            onChange={(growthLength) => set({ growthLength })}
+          />
+          <Slider
+            label="Branch Density"
+            tip="Number of secondary motif scrolls / offshoots."
+            value={f.branchDensity ?? 0.55}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.branchDensity ?? 0.55) * 100)}%`}
+            onChange={(branchDensity) => set({ branchDensity })}
+          />
+          <Slider
+            label="Curl Strength"
+            tip="Scroll winding / spiral curvature."
+            value={f.curlStrength ?? 0.7}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.curlStrength ?? 0.7) * 100)}%`}
+            onChange={(curlStrength) => set({ curlStrength })}
+          />
+          <Slider
+            label="Symmetry Strength"
+            tip="Motif-level bilateral mirroring."
+            value={f.symmetryStrength ?? 1}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.symmetryStrength ?? 1) * 100)}%`}
+            onChange={(symmetryStrength) => set({ symmetryStrength })}
+          />
+          <Slider
+            label="Creature Influence"
+            tip="Biomorphic irregularity (REF-018)."
+            value={f.creatureInfluence ?? 0.3}
+            min={0}
+            max={1}
+            step={0.01}
+            display={`${Math.round((f.creatureInfluence ?? 0.3) * 100)}%`}
+            onChange={(creatureInfluence) => set({ creatureInfluence })}
+          />
+          <Slider
+            label="Random Seed"
+            tip="Deterministic RNG seed for growth variation."
+            value={f.randomSeed ?? 42}
+            min={0}
+            max={9999}
+            step={1}
+            display={String(f.randomSeed ?? 42)}
+            onChange={(randomSeed) => set({ randomSeed })}
+          />
+          {showAdvanced ? (
+            <>
+              <Slider
+                label="Architectural Attraction"
+                tip="Bias toward arch-shoulder / host tangent directions."
+                value={f.architecturalAttraction ?? 0.65}
+                min={0}
+                max={1}
+                step={0.01}
+                display={`${Math.round((f.architecturalAttraction ?? 0.65) * 100)}%`}
+                onChange={(architecturalAttraction) => set({ architecturalAttraction })}
+              />
+              <Slider
+                label="Branch Angle"
+                tip="Secondary split angle scale."
+                value={f.branchAngle ?? 0.55}
+                min={0}
+                max={1}
+                step={0.01}
+                display={`${Math.round((f.branchAngle ?? 0.55) * 100)}%`}
+                onChange={(branchAngle) => set({ branchAngle })}
+              />
+              <Slider
+                label="Maximum Branch Depth"
+                tip="Hierarchical recursion depth."
+                value={f.maxBranchDepth ?? 3}
+                min={0}
+                max={5}
+                step={1}
+                display={String(f.maxBranchDepth ?? 3)}
+                onChange={(maxBranchDepth) => set({ maxBranchDepth })}
+              />
+              <Slider
+                label="Surface Adherence"
+                tip="How tightly steps project onto eligible stone."
+                value={f.surfaceAdherence ?? 0.85}
+                min={0}
+                max={1}
+                step={0.01}
+                display={`${Math.round((f.surfaceAdherence ?? 0.85) * 100)}%`}
+                onChange={(surfaceAdherence) => set({ surfaceAdherence })}
+              />
+              <Slider
+                label="Growth Step Size"
+                tip="Skeleton sampling step (m)."
+                value={f.growthStepSize ?? 0.055}
+                min={0.03}
+                max={0.2}
+                step={0.01}
+                display={`${(f.growthStepSize ?? 0.055).toFixed(2)} m`}
+                onChange={(growthStepSize) => set({ growthStepSize })}
+              />
+              <Slider
+                label="Minimum Branch Separation"
+                tip="Reject steps that collide with existing skeleton."
+                value={f.minBranchSeparation ?? 0.045}
+                min={0.02}
+                max={0.25}
+                step={0.01}
+                display={`${(f.minBranchSeparation ?? 0.045).toFixed(2)} m`}
+                onChange={(minBranchSeparation) => set({ minBranchSeparation })}
+              />
+              <Slider
+                label="Termination Threshold"
+                tip="Length remainder that ends a branch."
+                value={f.terminationThreshold ?? 0.04}
+                min={0.01}
+                max={0.2}
+                step={0.01}
+                display={`${(f.terminationThreshold ?? 0.04).toFixed(2)} m`}
+                onChange={(terminationThreshold) => set({ terminationThreshold })}
+              />
+            </>
+          ) : null}
+          {showDebug ? (
+            <>
+              <Toggle
+                label="Show Growth Nodes"
+                tip="Draw node spheres along the skeleton."
+                value={f.showGrowthNodes === true}
+                onChange={(showGrowthNodes) => set({ showGrowthNodes })}
+              />
+              <Toggle
+                label="Show Branch IDs"
+                tip="Label branch ids in the viewport."
+                value={f.showBranchIds === true}
+                onChange={(showBranchIds) => set({ showBranchIds })}
+              />
+              <Toggle
+                label="Show Surface Normals"
+                tip="Debug host normals at nodes."
+                value={f.showSurfaceNormals === true}
+                onChange={(showSurfaceNormals) => set({ showSurfaceNormals })}
+              />
+              <Toggle
+                label="Show Growth Directions"
+                tip="Debug tangent growth vectors."
+                value={f.showGrowthDirections === true}
+                onChange={(showGrowthDirections) => set({ showGrowthDirections })}
+              />
+              <Toggle
+                label="Show Invalid Segments"
+                tip="Dashed segments where attachment failed."
+                value={f.showInvalidSegments !== false}
+                onChange={(showInvalidSegments) => set({ showInvalidSegments })}
+              />
+              <Toggle
+                label="Show Attachment Anchors"
+                tip="Initiation point markers from growth attachment."
+                value={f.showAttachmentAnchors !== false}
+                onChange={(showAttachmentAnchors) => set({ showAttachmentAnchors })}
+              />
+              <Toggle
+                label="Motif Debug"
+                tip="Host bounds, primary anchors, local symmetry axes."
+                value={f.showMotifDebug === true}
+                onChange={(showMotifDebug) => set({ showMotifDebug })}
+              />
+            </>
+          ) : null}
+          <p className="control-hint">
+            Motifs {diag.motifCount ?? 0} · anchors {anchors} · nodes{' '}
+            {diag.revealedNodeCount ?? diag.nodeCount ?? 0} · branches{' '}
+            {diag.revealedBranchCount ?? diag.branchCount ?? 0} · rejected{' '}
+            {diag.invalidSegmentCount ?? 0}
+          </p>
+        </>
+      )}
+    </>
+  )
+}
+
 export default function GothicGrammarPanel({
   settings,
   onChange,
@@ -2299,6 +2911,8 @@ export default function GothicGrammarPanel({
   facadeAssembly,
   surfaceSemantics = null,
   growthAttachment = null,
+  ornamentSkeleton = null,
+  parametricMotif = null,
   onDistributeGrowthSeeds = null,
   onClearGrowthSeeds = null,
   onDeleteSelectedGrowthAnchor = null,
@@ -2309,12 +2923,35 @@ export default function GothicGrammarPanel({
   const enabledModes = CONSTRUCTION_MODES.filter((m) => m.enabled)
   const params = settings.exampleParams ?? DEFAULT_EXAMPLE_PARAMS[settings.exampleId] ?? {}
   const workspaceMode = settings.workspaceMode ?? 'pointed-arch'
+  const workspaceCategory = settings.workspaceCategory ?? 'design'
+  const technicalView = settings.technicalView ?? null
   const archMode = workspaceMode === 'pointed-arch' || workspaceMode === 'compare-arches'
   const traceryMode = workspaceMode === 'tracery'
   const stoneMode = workspaceMode === 'stone-3d'
+  const foliateMode = workspaceMode === FOLIATE_WORKSPACE_ID
   const assemblyMode = workspaceMode === 'architectural-assembly'
   const displayModes = archMode || traceryMode
+  const constructionAnatomyModes =
+    workspaceMode === 'pointed-arch' || workspaceMode === 'tracery'
   const showTraceryParams = traceryMode || stoneMode
+  const controlTier = settings.uiControlTier ?? 'essential'
+  const showAdvanced = controlTier === 'advanced' || controlTier === 'debug'
+  const showDebug = controlTier === 'debug'
+  const constructionOverlay = {
+    ...DEFAULT_CONSTRUCTION_OVERLAY,
+    ...(settings.constructionOverlay ?? {}),
+  }
+  const workspaceSelectValue =
+    workspaceCategory === 'technical' && technicalView
+      ? technicalView
+      : workspaceMode
+  const workspaceOptions =
+    workspaceCategory === 'technical'
+      ? TECHNICAL_WORKSPACES.map(({ id, label }) => ({ id, label }))
+      : DESIGN_WORKSPACES.filter((w) => w.enabled !== false).map(({ id, label }) => ({
+          id,
+          label,
+        }))
 
   const setExample = (exampleId) => {
     // Geometry-only: do not bump fitToken (camera persistence — 13E.2).
@@ -2324,23 +2961,67 @@ export default function GothicGrammarPanel({
     })
   }
 
+  const isPerspectiveMode = (mode) =>
+    mode === 'stone-3d' ||
+    mode === 'architectural-assembly' ||
+    mode === FOLIATE_WORKSPACE_ID
+
+  const applyNav = (selectionId, category) => {
+    const prev = settings.workspaceMode ?? 'pointed-arch'
+    const nextSettings = applyWorkspaceNavigation(settings, selectionId, category)
+    if (!nextSettings) return
+    const next = nextSettings.workspaceMode
+    const wasPerspective = isPerspectiveMode(prev)
+    const nextPerspective = isPerspectiveMode(next)
+    const bumpFit = !(wasPerspective && nextPerspective)
+    onChange({
+      ...nextSettings,
+      ...(bumpFit ? { fitToken: (settings.fitToken ?? 0) + 1 } : {}),
+    })
+  }
+
   const setWorkspace = (next, { preserveCamera = false } = {}) => {
     const prev = settings.workspaceMode ?? 'pointed-arch'
-    const wasPerspective = prev === 'stone-3d' || prev === 'architectural-assembly'
-    const nextPerspective = next === 'stone-3d' || next === 'architectural-assembly'
-    // Stone ↔ Assembly share perspective — do not reframe (13E.3.2).
+    const wasPerspective = isPerspectiveMode(prev)
+    const nextPerspective = isPerspectiveMode(next)
+    // Stone ↔ Assembly ↔ Foliate share perspective — do not reframe (13E.3.2 / 14A.1).
     const bumpFit =
       !preserveCamera && !(wasPerspective && nextPerspective)
     patch({
       workspaceMode: next,
+      workspaceCategory: next === 'kernel-examples' ? 'technical' : 'design',
+      technicalView: next === 'kernel-examples' ? 'kernel-examples' : null,
       ...(bumpFit ? { fitToken: (settings.fitToken ?? 0) + 1 } : {}),
+    })
+  }
+
+  const setWorkspaceCategory = (category) => {
+    if (category === workspaceCategory) return
+    if (category === 'technical') {
+      const first = TECHNICAL_WORKSPACES[0]
+      applyNav(first.id, 'technical')
+      return
+    }
+    const designId =
+      DESIGN_WORKSPACES.find((d) => d.id === workspaceMode && d.enabled !== false)?.id ??
+      'pointed-arch'
+    applyNav(designId, 'design')
+  }
+
+  const patchConstructionOverlay = (key, value) => {
+    // Overlay options only — do not bump fitToken / regenerate camera.
+    patch({
+      constructionOverlay: {
+        ...constructionOverlay,
+        [key]: value,
+      },
     })
   }
 
   return (
     <ControlPanel
       title="Gothic Grammar"
-      hint="step 13d.2 · rayonnant refined · baseline compare · bar tracery · presentation / construction / section"
+      hint="step 13e.4.3 · design / technical navigation · construction anatomy overlay"
     >
       <button type="button" className="action-button" onClick={() => onChange(resetGothicGrammar())}>
         Reset View Settings
@@ -2364,11 +3045,22 @@ export default function GothicGrammarPanel({
         <summary>Workspace</summary>
         <div className="section-controls">
           <Select
-            label="Mode"
-            tip="Pointed Arch / Compare (13B). Tracery (13C). Stone / 3D (13D). Architectural Assembly (13E.1). Kernel Examples (13A.1)."
-            value={workspaceMode}
-            options={WORKSPACE_MODES.map(({ id, label }) => ({ id, label }))}
-            onChange={setWorkspace}
+            label="Category"
+            tip="Design workspaces for authoring. Technical / Inspection reuses existing overlays."
+            value={workspaceCategory}
+            options={WORKSPACE_CATEGORIES.map(({ id, label }) => ({ id, label }))}
+            onChange={setWorkspaceCategory}
+          />
+          <Select
+            label="Workspace"
+            tip={
+              workspaceCategory === 'technical'
+                ? 'Kernel · Geometry Graph · Surface Semantics · Growth Navigation · Validation Diagnostics.'
+                : 'Pointed Arch · Compare · Tracery · Stone / 3D · Architectural Assembly.'
+            }
+            value={workspaceSelectValue}
+            options={workspaceOptions}
+            onChange={(id) => applyNav(id, workspaceCategory)}
           />
           {displayModes ? (
             <Select
@@ -2378,8 +3070,104 @@ export default function GothicGrammarPanel({
               options={DISPLAY_STATES.filter(
                 (d) => d.id !== 'section' || workspaceMode === 'tracery',
               ).map(({ id, label }) => ({ id, label }))}
-              onChange={(displayState) => patch({ displayState })}
+              onChange={(displayState) =>
+                patch({
+                  displayState,
+                  // Keep Essential toggle in sync with legacy Construction display.
+                  showConstructionGeometry:
+                    displayState === 'construction'
+                      ? true
+                      : displayState === 'presentation'
+                        ? false
+                        : settings.showConstructionGeometry === true,
+                })
+              }
             />
+          ) : null}
+          {constructionAnatomyModes ? (
+            <Toggle
+              label="Show Construction Geometry"
+              tip="Reveal generator construction circles, centers, axes and guides (13E.4.3)."
+              value={
+                settings.showConstructionGeometry === true ||
+                settings.displayState === 'construction'
+              }
+              onChange={(showConstructionGeometry) =>
+                patch({
+                  showConstructionGeometry,
+                  // Prefer Essential toggle; leave Display as Presentation unless Section.
+                  displayState:
+                    settings.displayState === 'section'
+                      ? 'section'
+                      : showConstructionGeometry
+                        ? settings.displayState === 'construction'
+                          ? 'construction'
+                          : 'presentation'
+                        : settings.displayState === 'construction'
+                          ? 'presentation'
+                          : settings.displayState,
+                })
+              }
+            />
+          ) : null}
+          {constructionAnatomyModes && showAdvanced ? (
+            <>
+              <p className="control-hint">Construction overlay (Advanced)</p>
+              <Toggle
+                label="Construction Circles"
+                tip="Two-centered arch circles, oculus and foil construction circles."
+                value={constructionOverlay.circles !== false}
+                onChange={(circles) => patchConstructionOverlay('circles', circles)}
+              />
+              <Toggle
+                label="Arc Centers"
+                tip="Left / right arc centers and foil lobe centers."
+                value={constructionOverlay.arcCenters !== false}
+                onChange={(arcCenters) => patchConstructionOverlay('arcCenters', arcCenters)}
+              />
+              <Toggle
+                label="Intersections"
+                tip="Springing / apex / cusp intersection markers."
+                value={constructionOverlay.intersections !== false}
+                onChange={(intersections) =>
+                  patchConstructionOverlay('intersections', intersections)
+                }
+              />
+              <Toggle
+                label="Symmetry Axes"
+                tip="Vertical symmetry axis from the arch generator."
+                value={constructionOverlay.symmetryAxes !== false}
+                onChange={(symmetryAxes) =>
+                  patchConstructionOverlay('symmetryAxes', symmetryAxes)
+                }
+              />
+              <Toggle
+                label="Dimension Guides"
+                tip="Span / rise dimension ticks from construction data."
+                value={constructionOverlay.dimensions !== false}
+                onChange={(dimensions) => patchConstructionOverlay('dimensions', dimensions)}
+              />
+              {traceryMode ? (
+                <>
+                  <Toggle
+                    label="Mullion Centerlines"
+                    tip="Central mullion guide from tracery metadata."
+                    value={constructionOverlay.mullionCenterlines !== false}
+                    onChange={(mullionCenterlines) =>
+                      patchConstructionOverlay('mullionCenterlines', mullionCenterlines)
+                    }
+                  />
+                  <Toggle
+                    label="Foil Construction"
+                    tip="Foil lobe circles, enclosing guide and cusp markers."
+                    value={constructionOverlay.foilConstruction !== false}
+                    onChange={(foilConstruction) =>
+                      patchConstructionOverlay('foilConstruction', foilConstruction)
+                    }
+                  />
+                </>
+              ) : null}
+            </>
           ) : null}
           <Select
             label="Construct / Inspect"
@@ -2391,7 +3179,7 @@ export default function GothicGrammarPanel({
           <Select
             label="Control density"
             tip="Essential · Advanced · Debug (13E.3.1). Hides specialized ratios without deleting parameters."
-            value={settings.uiControlTier ?? 'essential'}
+            value={controlTier}
             options={UI_CONTROL_TIERS.map(({ id, label }) => ({ id, label }))}
             onChange={(uiControlTier) => patch({ uiControlTier })}
           />
@@ -2449,6 +3237,75 @@ export default function GothicGrammarPanel({
               assembly={stoneAssembly}
               onPatch={(nextStone) => patch({ stone: nextStone })}
             />
+          </div>
+        </details>
+      ) : null}
+
+      {foliateMode ? (
+        <details className="control-section" open>
+          <summary>Foliate Ornament</summary>
+          <div className="section-controls">
+            <FoliateOrnamentControls
+              foliate={settings.foliate}
+              onPatch={(nextFoliate) => patch({ foliate: nextFoliate })}
+              growthAttachment={growthAttachment}
+              ornamentSkeleton={ornamentSkeleton}
+              parametricMotif={parametricMotif}
+              onDistributeGrowthSeeds={onDistributeGrowthSeeds}
+              onClearGrowthSeeds={onClearGrowthSeeds}
+              onDeleteSelectedGrowthAnchor={onDeleteSelectedGrowthAnchor}
+              selectedGrowthAnchorId={selectedGrowthAnchorId}
+              controlTier={settings.uiControlTier ?? 'essential'}
+            />
+            <Toggle
+              label="Place Initiation Point"
+              tip="Click eligible stone patches — shared with Architectural Assembly."
+              value={settings.assembly?.growthPlaceSeedActive === true}
+              onChange={(growthPlaceSeedActive) =>
+                patch({
+                  assembly: {
+                    ...settings.assembly,
+                    growthPlaceSeedActive,
+                    growthPlacementMode: growthPlaceSeedActive
+                      ? 'manual'
+                      : settings.assembly?.growthPlacementMode,
+                    showGrowthSeeds: true,
+                    growthAllowRestricted: true,
+                  },
+                })
+              }
+            />
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="action-button"
+                onClick={() =>
+                  patch({
+                    fitFrameMode: 'motif',
+                    fitToken: (settings.fitToken ?? 0) + 1,
+                    foliate: {
+                      ...DEFAULT_FOLIATE_SETTINGS,
+                      ...(settings.foliate ?? {}),
+                      fitMotifToken: (settings.foliate?.fitMotifToken ?? 0) + 1,
+                    },
+                  })
+                }
+              >
+                Fit to Motif
+              </button>
+              <button
+                type="button"
+                className="action-button"
+                onClick={() =>
+                  patch({
+                    fitFrameMode: 'facade',
+                    fitToken: (settings.fitToken ?? 0) + 1,
+                  })
+                }
+              >
+                Fit to Facade
+              </button>
+            </div>
           </div>
         </details>
       ) : null}
@@ -2562,6 +3419,23 @@ export default function GothicGrammarPanel({
             </p>
           ) : null}
           {traceryMode || stoneMode ? <RegionInfo construction={construction} /> : null}
+          {showDebug && construction?.metadata?.constructionGeometry ? (
+            <>
+              <p className="control-hint">
+                Construction anatomy · circles:{' '}
+                {construction.metadata.constructionGeometry.constructionCircles?.length ?? 0} ·
+                points:{' '}
+                {construction.metadata.constructionGeometry.constructionPoints?.length ?? 0} ·
+                axes: {construction.metadata.constructionGeometry.symmetryAxes?.length ?? 0}
+              </p>
+              {construction.metadata.constructionGeometry.limitations?.length ? (
+                <p className="control-hint">
+                  Limitations:{' '}
+                  {construction.metadata.constructionGeometry.limitations.join('; ')}
+                </p>
+              ) : null}
+            </>
+          ) : null}
           <p className="control-hint">
             Legacy Gothic Architecture tab remains untouched. This namespace does not import its
             generators.

@@ -11,6 +11,7 @@ import { buildLancetSubdivision } from './lancetSubdivision.js'
 import { buildOculusPlacement } from './oculus.js'
 import { buildComposedWindow, buildFoilExample } from './composedWindow.js'
 import { archFramingBounds } from '../construction/archConstruction.js'
+import { extractTraceryConstructionGeometry } from '../construction/constructionGeometry.js'
 import { buildSolidVoidModel, buildFoilSolidVoid, REGION_TYPES } from './solidVoid.js'
 import { DEFAULT_REGION_PARAMS } from './regionRoles.js'
 
@@ -56,6 +57,10 @@ export function graphToConstruction(graph, display = {}, solidVoid = null) {
   const showDimensions = !sectionMode && display.showDimensions !== false
   const showArchAxis = !sectionMode && display.showArchAxis === true
   const showFamilyLabels = !sectionMode && display.showFamilyLabels !== false
+  const showMullionCenterlines =
+    !sectionMode && display.showMullionCenterlines !== false
+  const showFoilConstruction =
+    !sectionMode && display.showFoilConstruction !== false
 
   const primitives = []
   const derivedPoints = []
@@ -79,9 +84,9 @@ export function graphToConstruction(graph, display = {}, solidVoid = null) {
       primitives,
       curves,
       annotations,
-      showConstruction,
-      showCenters,
-      showPoints,
+      showConstruction: showConstruction && showFoilConstruction,
+      showCenters: showCenters && showFoilConstruction,
+      showPoints: showPoints && showFoilConstruction,
       showResult,
     })
     if (showDimensions && foil.parameters?.size) {
@@ -137,15 +142,24 @@ export function graphToConstruction(graph, display = {}, solidVoid = null) {
   }
 
   if (!sectionMode && mullion?.segment) {
-    if (showResult || showConstruction) {
+    // Final mullion stays a result curve; overlay adds a separate guide (no topology change).
+    if (showResult) {
       curves.push({
         id: 'mullion',
-        role: showConstruction ? 'guide' : 'result',
+        role: 'result',
         samples: sampleSegment(mullion.segment, 1),
-        prominence: showConstruction ? 'secondary' : 'primary',
+        prominence: 'primary',
       })
     }
-    if (showPoints) {
+    if (showConstruction && showMullionCenterlines) {
+      curves.push({
+        id: 'mullion-guide',
+        role: 'guide',
+        samples: sampleSegment(mullion.segment, 1),
+        prominence: 'secondary',
+      })
+    }
+    if (showPoints && showMullionCenterlines) {
       primitives.push({
         id: 'mullion-base',
         type: 'point',
@@ -199,9 +213,9 @@ export function graphToConstruction(graph, display = {}, solidVoid = null) {
       primitives,
       curves,
       annotations,
-      showConstruction,
-      showCenters,
-      showPoints,
+      showConstruction: showConstruction && showFoilConstruction,
+      showCenters: showCenters && showFoilConstruction,
+      showPoints: showPoints && showFoilConstruction,
       showResult,
     })
   }
@@ -229,6 +243,8 @@ export function graphToConstruction(graph, display = {}, solidVoid = null) {
 
   const validation = mergeValidation(graph.validation, solidVoid?.validation)
 
+  const constructionGeometry = extractTraceryConstructionGeometry(graph)
+
   let result = createConstructionResult({
     type: 'tracery',
     parameters: { ...graph.parameters, ...DEFAULT_REGION_PARAMS, ...(solidVoid?.parameters ?? {}) },
@@ -245,6 +261,7 @@ export function graphToConstruction(graph, display = {}, solidVoid = null) {
       graph,
       solidVoid,
       annotations: sectionMode ? [] : annotations,
+      constructionGeometry,
       framingPadY: 0.5,
       mode: graph.metadata?.mode,
       displayState: display.displayState ?? 'presentation',

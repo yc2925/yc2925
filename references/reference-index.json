@@ -1,5 +1,5 @@
 {
-  "numbering_note": "New reference IDs follow the latest 16-image message, not the unavailable earlier chronology. The window typology is now REF-001; the bracket catalog is REF-003.",
+  "numbering_note": "REF-001–REF-016 follow the original 16-image Gothic library message. REF-017–REF-020 are the Gothic foliate ornament set added for Step 14.0 (folder references/gothic-foliate-ornament/).",
   "classification_basis": "Direct visual inspection of all supplied images; no web substitutions or independent historical attribution research.",
   "references": [
     {
@@ -225,6 +225,62 @@
       "historical_style_uncertainty": "Appears to be a speculative digital architectural image; author and process are unknown. It is not evidence of a historical building or a validated structural system.",
       "sha256": "836d1000011cce0f7f9ce5a0220c942ae18e1f6d41df49eff8485e63ad0da097",
       "bytes": 467077
+    },
+    {
+      "id": "REF-017",
+      "original_image_number": "A",
+      "numbering_basis": "Step 14.0 Gothic foliate ornament set — Reference A",
+      "original_filename": "gothic-geometric-patterns.jpg",
+      "filename": "REF-017-gothic-geometric-patterns.jpg",
+      "folder": "gothic-foliate-ornament",
+      "path": "gothic-foliate-ornament/REF-017-gothic-geometric-patterns.jpg",
+      "category": "Gothic geometric patterns and foliate motif plate",
+      "role": "Symmetry, tracery, diaper repetition, crockets, cusps, interlacing panels and hierarchical ornament grammar for stone carving generators.",
+      "historical_style_uncertainty": "Printed collage / pattern plate; source book, date and attributions unverified. Treat as a motif grammar board, not a single building survey.",
+      "sha256": "b138c053d954ba672b0aaf48075dcd6619a8e37d2922878dcce5d5cae521eb1c",
+      "bytes": 135652
+    },
+    {
+      "id": "REF-018",
+      "original_image_number": "B",
+      "numbering_basis": "Step 14.0 Gothic foliate ornament set — Reference B",
+      "original_filename": "biomorphic-creature-sculpture.jpg.jpg",
+      "filename": "REF-018-biomorphic-creature-sculpture.jpg",
+      "folder": "gothic-foliate-ornament",
+      "path": "gothic-foliate-ornament/REF-018-biomorphic-creature-sculpture.jpg",
+      "category": "Biomorphic creature-like sculpture",
+      "role": "Anatomical density, antler-like recursive branching, cavities, skeletal/rib forms, bilateral symmetry and layered relief depth for grotesque stone ornament variation.",
+      "historical_style_uncertainty": "Appears contemporary / speculative assemblage; author, medium and material unverified. Use for biomorphic morphology only — not as botanical vegetation or historical attribution.",
+      "sha256": "0982a822643b79353bbb905db5a67c91222f4af11c4651efae49a06f6d167309",
+      "bytes": 124801
+    },
+    {
+      "id": "REF-019",
+      "original_image_number": "C",
+      "numbering_basis": "Step 14.0 Gothic foliate ornament set — Reference C",
+      "original_filename": "gothic-stone-foliate-carving.jpg",
+      "filename": "REF-019-gothic-stone-foliate-carving.jpg",
+      "folder": "gothic-foliate-ornament",
+      "path": "gothic-foliate-ornament/REF-019-gothic-stone-foliate-carving.jpg",
+      "category": "Architectural stone foliate carving",
+      "role": "Integrated carved ornament emerging from host structure: ribs becoming foliage, perforated tracery, crocket curls, sculptural depth and stone materiality.",
+      "historical_style_uncertainty": "Photographed interior support / canopy; building, date and restoration unknown. Primary evidence for architectural integration of foliate stone, not for literal plant growth.",
+      "sha256": "91ef25a866322dc9dd8b84d658da62501c9e3bc5ce5d0bed8c640357716312e3",
+      "bytes": 132327
+    },
+    {
+      "id": "REF-020",
+      "original_image_number": "D",
+      "numbering_basis": "Step 14.0 Gothic foliate ornament set — Reference D",
+      "original_filename": "symmetrical-grotesque-ornament.jpg.jpg",
+      "filename": "REF-020-symmetrical-grotesque-ornament.jpg",
+      "folder": "gothic-foliate-ornament",
+      "path": "gothic-foliate-ornament/REF-020-symmetrical-grotesque-ornament.jpg",
+      "category": "Symmetrical grotesque ornament",
+      "role": "Mirrored recursion, scrollwork, dense branching, cusped terminals, perforated voids and controlled grotesque density for procedural ornament skeletons.",
+      "historical_style_uncertainty": "High-contrast etched / stippled panels; source and date unidentified. Pattern logic reference — do not copy panels literally or treat as botanical vines.",
+      "sha256": "0e18ef55fe0cb4de8019c10b2df53d80abe37f1815bf6f35e05a31930d10e8b0",
+      "bytes": 243345
     }
   ]
 }

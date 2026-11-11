@@ -39,6 +39,16 @@ import {
 } from './assemblies/assemblyTypes.js'
 import { DEFAULT_SURFACE_SEMANTICS_SETTINGS } from './assemblies/surfaceSemanticsTypes.js'
 import { DEFAULT_GROWTH_ATTACHMENT_SETTINGS } from './assemblies/growthAttachment/types.js'
+import {
+  DEFAULT_FOLIATE_SETTINGS,
+  FOLIATE_WORKSPACE_ID,
+  FOLIATE_WORKSPACE_LABEL,
+  COMPOSITION_MODES,
+} from './assemblies/foliateOrnament/types.js'
+import {
+  MOTIF_TYPES,
+  HOST_KINDS,
+} from './assemblies/foliateOrnament/parametricMotif/types.js'
 
 export {
   ASSEMBLY_TYPES,
@@ -56,14 +66,165 @@ export {
   getArchitecturePreset,
 }
 
+/** Flat list of renderable workspaceMode IDs (backward compatible). */
 export const WORKSPACE_MODES = [
   { id: 'pointed-arch', label: 'Pointed Arch', enabled: true },
   { id: 'compare-arches', label: 'Compare Arch Families', enabled: true },
   { id: 'tracery', label: 'Tracery', enabled: true },
   { id: 'stone-3d', label: 'Stone / 3D', enabled: true },
   { id: 'architectural-assembly', label: 'Architectural Assembly', enabled: true },
+  { id: FOLIATE_WORKSPACE_ID, label: FOLIATE_WORKSPACE_LABEL, enabled: true },
   { id: 'kernel-examples', label: 'Kernel Examples', enabled: true },
 ]
+
+/** 13E.4.3 — two-level navigation. */
+export const WORKSPACE_CATEGORIES = [
+  { id: 'design', label: 'Design' },
+  { id: 'technical', label: 'Technical' },
+]
+
+export const DESIGN_WORKSPACES = [
+  { id: 'pointed-arch', label: 'Pointed Arch', enabled: true },
+  { id: 'compare-arches', label: 'Compare Arch Families', enabled: true },
+  { id: 'tracery', label: 'Tracery', enabled: true },
+  { id: 'stone-3d', label: 'Stone / 3D', enabled: true },
+  { id: 'architectural-assembly', label: 'Architectural Assembly', enabled: true },
+  // Internal id kept for saved-settings compatibility (Step 14A.1).
+  { id: FOLIATE_WORKSPACE_ID, label: FOLIATE_WORKSPACE_LABEL, enabled: true },
+]
+
+/**
+ * Technical entries reuse host workspace modes + inspect overlays.
+ * `id` is the navigation key; `hostMode` is the actual workspaceMode.
+ */
+export const TECHNICAL_WORKSPACES = [
+  {
+    id: 'kernel-examples',
+    label: 'Kernel',
+    hostMode: 'kernel-examples',
+    tip: '2D kernel primitives and examples (13A.1).',
+  },
+  {
+    id: 'geometry-graph',
+    label: 'Geometry Graph',
+    hostMode: 'stone-3d',
+    tip: 'Network / skeleton graph inspect layer on Stone / 3D.',
+    apply: { stone: { inspectLayer: 'network-graph' } },
+  },
+  {
+    id: 'surface-semantics',
+    label: 'Surface Semantics',
+    hostMode: 'architectural-assembly',
+    tip: 'Component / surface / growth-eligibility overlay on Assembly.',
+    apply: {
+      assembly: {
+        inspectLayer: 'surface-semantics',
+        showSemanticOverlay: true,
+      },
+    },
+  },
+  {
+    id: 'growth-navigation',
+    label: 'Growth Navigation',
+    hostMode: 'architectural-assembly',
+    tip: 'Seed anchors, frames, and navigation graph diagnostics.',
+    apply: {
+      assembly: {
+        showGrowthSeeds: true,
+        showGrowthNavGraph: true,
+        showGrowthNavPaths: true,
+        showGrowthNormals: true,
+      },
+    },
+  },
+  {
+    id: 'validation-diagnostics',
+    label: 'Validation Diagnostics',
+    hostMode: 'architectural-assembly',
+    tip: 'Debug-tier metrics and validation status on Assembly.',
+    apply: { uiControlTier: 'debug' },
+  },
+]
+
+export const DEFAULT_CONSTRUCTION_OVERLAY = Object.freeze({
+  circles: true,
+  arcCenters: true,
+  intersections: true,
+  symmetryAxes: true,
+  dimensions: true,
+  mullionCenterlines: true,
+  foilConstruction: true,
+})
+
+/** Map a Design/Technical selection → workspaceMode + patches (no camera side effects). */
+export function resolveWorkspaceNavigation(selectionId, category = 'design') {
+  if (category === 'technical') {
+    const tech = TECHNICAL_WORKSPACES.find((t) => t.id === selectionId)
+    if (tech) {
+      return {
+        workspaceCategory: 'technical',
+        technicalView: tech.id,
+        workspaceMode: tech.hostMode,
+        apply: tech.apply ?? null,
+      }
+    }
+  }
+  const design = DESIGN_WORKSPACES.find((d) => d.id === selectionId && d.enabled !== false)
+  if (design) {
+    return {
+      workspaceCategory: 'design',
+      technicalView: null,
+      workspaceMode: design.id,
+      apply: null,
+    }
+  }
+  // Backward compat: raw workspaceMode id
+  const raw = WORKSPACE_MODES.find((m) => m.id === selectionId)
+  if (raw) {
+    const isTech = selectionId === 'kernel-examples'
+    return {
+      workspaceCategory: isTech ? 'technical' : 'design',
+      technicalView: isTech ? 'kernel-examples' : null,
+      workspaceMode: raw.id,
+      apply: null,
+    }
+  }
+  return null
+}
+
+export function applyWorkspaceNavigation(settings, selectionId, category = 'design') {
+  const resolved = resolveWorkspaceNavigation(selectionId, category)
+  if (!resolved) return settings
+  const next = {
+    ...settings,
+    workspaceCategory: resolved.workspaceCategory,
+    technicalView: resolved.technicalView,
+    workspaceMode: resolved.workspaceMode,
+  }
+  const apply = resolved.apply
+  if (apply?.stone) {
+    next.stone = { ...(settings.stone ?? {}), ...apply.stone }
+  }
+  if (apply?.assembly) {
+    next.assembly = { ...(settings.assembly ?? {}), ...apply.assembly }
+  }
+  if (apply?.uiControlTier) {
+    next.uiControlTier = apply.uiControlTier
+  }
+  // Design Stone / 3D should show solid stone, not a leftover Technical graph inspect layer.
+  if (
+    resolved.workspaceCategory === 'design' &&
+    resolved.workspaceMode === 'stone-3d' &&
+    !apply?.stone?.inspectLayer
+  ) {
+    next.stone = {
+      ...(settings.stone ?? {}),
+      ...(next.stone ?? {}),
+      inspectLayer: 'combined',
+    }
+  }
+  return next
+}
 
 export const ASSEMBLY_VIEW_PRESETS = [
   { id: 'front', label: 'Front Elevation' },
@@ -301,6 +462,10 @@ export const DEFAULT_STONE_SETTINGS = Object.freeze({
 /**
  * Resolve display toggles from presentation / construction state.
  * Optional manual overrides remain available for kernel-examples.
+ *
+ * Step 13E.4.3 — Show Construction Geometry (Essential) + Advanced overlay
+ * flags drive anatomy overlays without regenerating geometry or moving the camera.
+ * Legacy displayState === 'construction' remains equivalent to anatomy ON.
  */
 export function resolveDisplayFlags(settings) {
   const displayState = settings.displayState ?? 'presentation'
@@ -309,6 +474,12 @@ export function resolveDisplayFlags(settings) {
     settings.workspaceMode === 'pointed-arch' ||
     settings.workspaceMode === 'compare-arches' ||
     settings.workspaceMode === 'tracery'
+  const overlay = {
+    ...DEFAULT_CONSTRUCTION_OVERLAY,
+    ...(settings.constructionOverlay ?? {}),
+  }
+  const anatomyOn =
+    settings.showConstructionGeometry === true || displayState === 'construction'
 
   if (isKernel) {
     return {
@@ -324,6 +495,8 @@ export function resolveDisplayFlags(settings) {
       showFamilyLabels: false,
       showResult: settings.showResult !== false,
       showArchAxis: false,
+      showConstructionGeometry: false,
+      constructionOverlay: { ...overlay },
       includeConstructionInFrame: settings.showConstruction !== false,
     }
   }
@@ -343,26 +516,34 @@ export function resolveDisplayFlags(settings) {
       showResult: true,
       showArchAxis: false,
       showSection: true,
+      showConstructionGeometry: false,
+      constructionOverlay: { ...overlay },
+      showMullionCenterlines: false,
+      showFoilConstruction: false,
       includeConstructionInFrame: false,
     }
   }
 
-  if (displayState === 'construction' && isArchOrTracery) {
+  if (anatomyOn && isArchOrTracery) {
     return {
-      displayState,
+      displayState: displayState === 'construction' ? 'construction' : displayState,
       showGrid: settings.showGrid !== false,
       showAxes: false,
       showOrigin: false,
-      showPoints: true,
-      showConstruction: true,
-      showCenters: true,
+      showPoints: overlay.intersections !== false,
+      showConstruction: overlay.circles !== false,
+      showCenters: overlay.arcCenters !== false,
       showLabels: settings.showLabels === true,
-      showDimensions: true,
+      showDimensions: overlay.dimensions !== false,
       showFamilyLabels:
         settings.workspaceMode === 'compare-arches' || settings.workspaceMode === 'tracery',
       showResult: true,
-      showArchAxis: true,
+      showArchAxis: overlay.symmetryAxes !== false,
       showSection: false,
+      showConstructionGeometry: true,
+      constructionOverlay: { ...overlay },
+      showMullionCenterlines: overlay.mullionCenterlines !== false,
+      showFoilConstruction: overlay.foilConstruction !== false,
       includeConstructionInFrame: false,
     }
   }
@@ -383,6 +564,10 @@ export function resolveDisplayFlags(settings) {
     showResult: true,
     showArchAxis: false,
     showSection: false,
+    showConstructionGeometry: false,
+    constructionOverlay: { ...overlay },
+    showMullionCenterlines: false,
+    showFoilConstruction: false,
     includeConstructionInFrame: false,
   }
 }
@@ -419,6 +604,8 @@ export const UI_CONTROL_TIERS = [
 export const DEFAULT_GOTHIC_GRAMMAR = Object.freeze({
   constructionMode: 'construct',
   workspaceMode: 'pointed-arch',
+  workspaceCategory: 'design',
+  technicalView: null,
   displayState: 'presentation',
   uiControlTier: 'essential',
   exampleId: EXAMPLE_IDS[0].id,
@@ -427,6 +614,7 @@ export const DEFAULT_GOTHIC_GRAMMAR = Object.freeze({
   tracery: { ...DEFAULT_TRACERY_SETTINGS },
   stone: { ...DEFAULT_STONE_SETTINGS },
   assembly: { ...DEFAULT_ASSEMBLY_SETTINGS },
+  foliate: { ...DEFAULT_FOLIATE_SETTINGS },
   // Display (presentation defaults; resolveDisplayFlags is source of truth for arch modes)
   showGrid: true,
   showAxes: false,
@@ -437,6 +625,9 @@ export const DEFAULT_GOTHIC_GRAMMAR = Object.freeze({
   showLabels: false,
   showDimensions: true,
   showResult: true,
+  /** 13E.4.3 — Essential construction anatomy overlay (Pointed Arch / Tracery). */
+  showConstructionGeometry: false,
+  constructionOverlay: { ...DEFAULT_CONSTRUCTION_OVERLAY },
   background: '#070707',
   resetViewToken: 0,
   fitToken: 0,
@@ -450,6 +641,7 @@ export function resetGothicGrammar() {
     tracery: { ...DEFAULT_TRACERY_SETTINGS },
     stone: { ...DEFAULT_STONE_SETTINGS },
     assembly: { ...DEFAULT_ASSEMBLY_SETTINGS },
+    foliate: { ...DEFAULT_FOLIATE_SETTINGS },
     resetViewToken: 0,
     fitToken: 0,
   }
@@ -478,8 +670,21 @@ export function createGrammarSettings(overrides = {}) {
       ...DEFAULT_ASSEMBLY_SETTINGS,
       ...(overrides.assembly ?? {}),
     },
+    foliate: {
+      ...DEFAULT_FOLIATE_SETTINGS,
+      ...(overrides.foliate ?? {}),
+    },
     ...overrides,
   }
+}
+
+export {
+  DEFAULT_FOLIATE_SETTINGS,
+  FOLIATE_WORKSPACE_ID,
+  FOLIATE_WORKSPACE_LABEL,
+  COMPOSITION_MODES,
+  MOTIF_TYPES,
+  HOST_KINDS,
 }
 
 export {

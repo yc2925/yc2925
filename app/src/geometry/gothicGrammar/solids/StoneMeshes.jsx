@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { Html } from '@react-three/drei'
 import { MESH_GROUPS } from './stoneAssembly.js'
 import NetworkGraphOverlay from './NetworkGraphOverlay.jsx'
 import SectionOverlay from './SectionOverlay.jsx'
@@ -145,9 +146,17 @@ export default function StoneMeshes({
   showNetworkIds = false,
   showNetworkWidths = true,
   hierarchyColoring = false,
+  graphUnavailable = false,
+  graphFallbackNote = null,
 }) {
   if (!assembly?.ok && !assembly?.structural && !assembly?.solidVoid) {
-    return null
+    return (
+      <group name={MESH_GROUPS.STRUCTURAL_STONE}>
+        <Html center style={{ pointerEvents: 'none' }}>
+          <div className="grammar-invalid-banner">Stone geometry unavailable</div>
+        </Html>
+      </group>
+    )
   }
 
   const structural = assembly.structural
@@ -175,6 +184,8 @@ export default function StoneMeshes({
     (layer === 'combined' || layer === 'moldings' || layer === 'wireframe-debug')
   const wantNormals = showNormals || layer === 'normals'
   const diagnostic = layer === 'structural' || layer === 'moldings' || layer === 'normals'
+  const showGraphMissing =
+    networkMode && (graphUnavailable || (!network && !graphFallbackNote))
 
   return (
     <group name={MESH_GROUPS.STRUCTURAL_STONE}>
@@ -211,6 +222,18 @@ export default function StoneMeshes({
         hierarchyColoring={hierarchyColoring === true}
       />
       <SectionOverlay solidVoid={solidVoid} visible={sectionMode && Boolean(solidVoid)} />
+      {showGraphMissing ? (
+        <Html center style={{ pointerEvents: 'none' }}>
+          <div className="grammar-warning-banner">
+            Graph unavailable for this preset
+          </div>
+        </Html>
+      ) : null}
+      {networkMode && graphFallbackNote ? (
+        <Html position={[0, -0.55, 0.08]} center style={{ pointerEvents: 'none' }}>
+          <div className="grammar-warning-banner">{graphFallbackNote}</div>
+        </Html>
+      ) : null}
     </group>
   )
 }

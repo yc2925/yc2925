@@ -56,6 +56,21 @@ Prioritize:
 
 Preserve negative space and structural clarity.
 
+### Gothic foliate ornament (Step 14+)
+
+Primary artistic goal for ornament work: **procedural Gothic stone
+foliate / grotesque carving**, not vegetation.
+
+- Growth algorithms = computational strategy only.
+- Final material = carved / perforated / relief stone.
+- May be biomorphic, skeletal, alien or creature-like.
+- Must stay architecturally integrated and hierarchical.
+- Do **not** produce ivy, vines, leaves, or plant colonization.
+
+References: REF-017–REF-020 (see `references/VISUAL_DIRECTION.md`
+and `Docs/42-gothic-foliate-ornament/`). Reuse existing surface
+semantics and growth-attachment seeds as ornament initiation points.
+
 ## Implementation Requirements
 
 Before writing code:
