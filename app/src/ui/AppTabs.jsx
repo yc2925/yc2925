@@ -17,6 +17,7 @@ export const APP_TABS = [
   { id: 'gothicGrammar', label: 'Gothic Grammar' },
   { id: 'ornament', label: 'Ornament System' },
   { id: 'agents', label: 'Agent Simulation' },
+  { id: 'curveSandbox', label: 'Curve Sandbox' },
 ]
 
 export const PRIMARY_TAB_ID = 'gothicGrammar'
