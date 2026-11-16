@@ -1,6 +1,6 @@
 # Gothic reference library
 
-16 supplied JPEG originals (REF-001–REF-016), copied byte-for-byte and renamed descriptively, plus four Gothic foliate ornament references (REF-017–REF-020) under `gothic-foliate-ornament/`. No recompression, cropping, substitutes or duplicate placements are included.
+16 supplied JPEG originals (REF-001–REF-016), copied byte-for-byte and renamed descriptively, plus four Gothic foliate ornament references (REF-017–REF-020) under `gothic-foliate-ornament/`, and nine futuristic Gothic world references (REF-021–REF-029) under `futuristic-gothic-world/`. No recompression, cropping, substitutes or duplicate placements are included.
 
 ## Numbering and navigation
 REF-001 through REF-016 follow the image order in the latest user message. The earlier conversation order is unknown and is not reconstructed. In this numbering the English window typology is REF-001 and the bracket/corbel catalog is REF-003.
@@ -17,6 +17,11 @@ All requested folders are present, including empty ones. Empty folders mark coll
 - Stone molding profiles and architectural sections: REF-008, 010; relief in REF-013.
 - Material and lighting: REF-004, 005, 009, 013, 016.
 - Gothic foliate / grotesque stone ornament: REF-017, 018, 019, 020 (use together; not vegetation).
+- Curve-driven world — skeleton-to-rock transition: REF-023, 027, 028 (rock accreting on an orthogonal frame; floors and openings preserved).
+- Geological strata and spires: REF-025; porosity gradient: REF-022.
+- Skeleton / wireframe inspection presentation: REF-021, 022, 024, 026, 029.
+- Repeated bays along a spine: REF-029 (with REF-004 for the Gothic version).
+- Exploded / district composition: REF-026; inhabitable scale: REF-023, 027.
 
 ## Extract on macOS
 Download gothic-reference-library.zip to Downloads. In Terminal:
@@ -52,3 +57,12 @@ Read VISUAL_DIRECTION.md first, then choose reference IDs for a specific feature
 - [REF-018 — Biomorphic creature sculpture](gothic-foliate-ornament/REF-018-biomorphic-creature-sculpture.jpg): biomorphic-creature-sculpture.jpg.jpg
 - [REF-019 — Gothic stone foliate carving](gothic-foliate-ornament/REF-019-gothic-stone-foliate-carving.jpg): gothic-stone-foliate-carving.jpg
 - [REF-020 — Symmetrical grotesque ornament](gothic-foliate-ornament/REF-020-symmetrical-grotesque-ornament.jpg): symmetrical-grotesque-ornament.jpg.jpg
+- [REF-021 — CT scan of a statue's internal armature](futuristic-gothic-world/REF-021-ct-scan-statue-internal-armature.jpg): 1.jpg (chat attachment)
+- [REF-022 — Sliced contour wireframe, grid-to-cell mass](futuristic-gothic-world/REF-022-sliced-contour-wireframe-cellular-mass.jpg): 2.jpg
+- [REF-023 — Stone tower with biomorphic rock accretion](futuristic-gothic-world/REF-023-stone-tower-with-biomorphic-rock-accretion.jpg): 3.jpg
+- [REF-024 — Wire-mesh classical columns at night](futuristic-gothic-world/REF-024-wire-mesh-corinthian-columns-night.jpg): 4.jpg
+- [REF-025 — Stepped stratified rock spires](futuristic-gothic-world/REF-025-stepped-stratified-rock-spires.jpg): 5.jpg
+- [REF-026 — Suspended wireframe architectural fragments](futuristic-gothic-world/REF-026-suspended-wireframe-architectural-fragments.jpg): 6.jpg
+- [REF-027 — Eroded inhabited tower section](futuristic-gothic-world/REF-027-eroded-inhabited-tower-section.jpg): 7.jpg
+- [REF-028 — Concretion-encrusted block mass](futuristic-gothic-world/REF-028-concretion-encrusted-block-mass.jpg): 8.jpg
+- [REF-029 — Glowing wireframe colonnade](futuristic-gothic-world/REF-029-glowing-wireframe-colonnade.jpg): 9.jpg

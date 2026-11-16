@@ -1,5 +1,5 @@
 {
-  "numbering_note": "REF-001–REF-016 follow the original 16-image Gothic library message. REF-017–REF-020 are the Gothic foliate ornament set added for Step 14.0 (folder references/gothic-foliate-ornament/).",
+  "numbering_note": "REF-001–REF-016 follow the original 16-image Gothic library message. REF-017–REF-020 are the Gothic foliate ornament set added for Step 14.0 (folder references/gothic-foliate-ornament/). REF-021–REF-029 are the futuristic Gothic world set for the curve-driven world update (folder references/futuristic-gothic-world/).",
   "classification_basis": "Direct visual inspection of all supplied images; no web substitutions or independent historical attribution research.",
   "references": [
     {
@@ -281,6 +281,278 @@
       "historical_style_uncertainty": "High-contrast etched / stippled panels; source and date unidentified. Pattern logic reference — do not copy panels literally or treat as botanical vines.",
       "sha256": "0e18ef55fe0cb4de8019c10b2df53d80abe37f1815bf6f35e05a31930d10e8b0",
       "bytes": 243345
+    },
+    {
+      "id": "REF-021",
+      "original_image_number": 1,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "1.jpg (chat attachment)",
+      "filename": "REF-021-ct-scan-statue-internal-armature.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-021-ct-scan-statue-internal-armature.jpg",
+      "category": "Radiograph / CT scan of a carved devotional figure showing internal armature",
+      "reference_groups": [
+        "E",
+        "C"
+      ],
+      "role": "Reveal the hidden skeleton inside a sculpted mass: rods, dowels and joints running through a translucent body. Basis for an X-ray skeleton-inspection render mode and for the rule that the skeleton lives inside the rock.",
+      "historical_style_uncertainty": "Appears to be a conservation imaging plate (numbered arrows mark dowels, nails, joints); object, collection, date and imaging method unverified. Figurative, not architectural.",
+      "analysis": {
+        "architectural_morphology": "Not a building; a figure whose outer carved surface hides a straight-rod internal armature joined at nodes.",
+        "spatial_composition": "Four panels: full figure, head, chest, base — whole-to-detail inspection sequence.",
+        "material_characteristics": "Translucent density map; denser elements (metal pins) brighter than wood/plaster mass.",
+        "rock_formation": "Analogy only: mass accreted around a rigid internal frame.",
+        "structural_hierarchy": "Long primary rods through the body, short secondary dowels at joints, pins at terminals.",
+        "scale": "Human-figure scale; panels zoom to sub-detail.",
+        "silhouette": "Soft draped outer envelope; hard straight members inside.",
+        "atmosphere": "White-on-black additive translucency.",
+        "procedural_implications": "Render skeleton members as bright additive lines visible through semi-transparent lithic mass; members never leave the mass envelope; annotate nodes/members in debug overlay."
+      },
+      "sha256": "ebf56cd245d94f9c0fbb340d4c4affd40306d05190f04e88288b66e7fb799ebf",
+      "bytes": 40742
+    },
+    {
+      "id": "REF-022",
+      "original_image_number": 2,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "2.jpg (chat attachment)",
+      "filename": "REF-022-sliced-contour-wireframe-cellular-mass.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-022-sliced-contour-wireframe-cellular-mass.jpg",
+      "category": "Stacked contour-slice wireframe of a mass transitioning from grid to cells",
+      "reference_groups": [
+        "E",
+        "B"
+      ],
+      "role": "Represent volumes as stacked section lines; show a porosity gradient where a regular grid dissolves into rounded cells along one axis.",
+      "historical_style_uncertainty": "Graphic plate with partial text 'CHNITTWABE' (likely Schnittwabe), 'Roter Kanon 224' and CJK characters; author, process and data source unknown; likely digital.",
+      "analysis": {
+        "architectural_morphology": "Slab-like mass with ragged stepped top edge; interior lattice.",
+        "spatial_composition": "Single frontal object, left-to-right gradient from orthogonal grid to cellular/bubble voids.",
+        "material_characteristics": "Immaterial — luminous scan lines; reads as a measured section.",
+        "rock_formation": "Cellular voids grow in size and roundness toward one edge, like porous stone or honeycomb weathering.",
+        "structural_hierarchy": "Dense fine horizontal slices; a few stronger vertical seams subdivide the mass.",
+        "scale": "Unscaled diagram.",
+        "silhouette": "Rectangular overall with stepped/eroded top and bubbled right edge.",
+        "atmosphere": "Dark field, pale glowing lines, faint data annotations.",
+        "procedural_implications": "(1) Contour-slice inspection mode: draw iso-lines of the lithic SDF at fixed height intervals. (2) Porosity as a field with a directional gradient parameter, not uniform noise. (3) Keep a regular structural lattice visible where porosity is low."
+      },
+      "sha256": "11acd84a06bb00923aab47ebedc6bdeebf359b7d382b0aacf865d59d1246d8c3",
+      "bytes": 80598
+    },
+    {
+      "id": "REF-023",
+      "original_image_number": 3,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "3.jpg (chat attachment)",
+      "filename": "REF-023-stone-tower-with-biomorphic-rock-accretion.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-023-stone-tower-with-biomorphic-rock-accretion.jpg",
+      "category": "Inhabitable stone tower with orthogonal frame consumed by bulbous rock accretion",
+      "reference_groups": [
+        "B",
+        "C",
+        "D"
+      ],
+      "role": "Primary reference for the skeleton-to-lithic transition: rectilinear slabs, piers and stairs on one side; layered bulbous rock masses fusing over the other side while floors and openings stay readable.",
+      "historical_style_uncertainty": "Appears to be a contemporary speculative digital render; author unknown. Grass tufts are incidental — do not add vegetation.",
+      "analysis": {
+        "architectural_morphology": "Multi-storey tower of floor slabs, piers, cantilevered balconies and an external stair.",
+        "spatial_composition": "Asymmetric: clean frame on the left, rock mass dominant on the right and top.",
+        "material_characteristics": "Warm pale limestone; masonry coursing on frame; rock shows concentric layered rinds.",
+        "rock_formation": "Rounded lobes with onion-like strata, cavities and perforations; accretes onto frame members and bridges between floors.",
+        "structural_hierarchy": "Frame (slabs, piers) is primary; rock is secondary mass that never fully erases slab edges.",
+        "scale": "Human figure at base — tower roughly 8–10 storeys.",
+        "silhouette": "Rectilinear lower/left profile breaking into irregular eroded crown with circular void.",
+        "atmosphere": "Neutral daylight on white background; inspection-like presentation.",
+        "procedural_implications": "Directional accretion weight (side bias); protected negative-space volumes for floors, stairs and openings; lobe-based implicit surface with layered banding; per-structure rock coverage 0→1."
+      },
+      "sha256": "3dc0a1293152e00aa50a692708882b3330f40ecb4c9df78c0fc627ead45c591b",
+      "bytes": 81236
+    },
+    {
+      "id": "REF-024",
+      "original_image_number": 4,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "4.jpg (chat attachment)",
+      "filename": "REF-024-wire-mesh-corinthian-columns-night.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-024-wire-mesh-corinthian-columns-night.jpg",
+      "category": "Wire-mesh sculpture of classical columns and entablature at night",
+      "reference_groups": [
+        "A",
+        "E"
+      ],
+      "role": "Skeleton-as-lattice presentation: columns as stacked horizontal rings, entablature as layered mesh planes; luminous wire on black.",
+      "historical_style_uncertainty": "Photograph of a wire-mesh installation (classical Corinthian order, not Gothic); location and artist unverified. Use for representation and member hierarchy only, not for Gothic grammar.",
+      "analysis": {
+        "architectural_morphology": "Two column shafts with capitals carrying a heavy entablature fragment.",
+        "spatial_composition": "Low angle, columns rising into dark sky.",
+        "material_characteristics": "Transparent welded mesh catching light.",
+        "rock_formation": "None.",
+        "structural_hierarchy": "Shaft → capital → architrave → cornice, clearly layered.",
+        "scale": "Monumental; full-size column order.",
+        "silhouette": "Vertical shafts with flared capitals and cantilevered cornice.",
+        "atmosphere": "Night, warm white light on black.",
+        "procedural_implications": "Render lathe/sweep members as ring stacks (cross-sections at intervals) in skeleton mode; expose section spacing as a display parameter."
+      },
+      "sha256": "f9281c97499549cef4e703e0e38efadf7f2b1be17deef85d95505c29cd831b46",
+      "bytes": 134890
+    },
+    {
+      "id": "REF-025",
+      "original_image_number": 5,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "5.jpg (chat attachment)",
+      "filename": "REF-025-stepped-stratified-rock-spires.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-025-stepped-stratified-rock-spires.jpg",
+      "category": "Terraced, stratified rock spires",
+      "reference_groups": [
+        "B",
+        "A"
+      ],
+      "role": "Geological morphology of stacked offset slabs forming sharp vertical spires — a lithic analogue of Gothic pinnacles.",
+      "historical_style_uncertainty": "Isolated digital model or cut-out; origin unknown. Possibly a voxel/terrace-quantized render.",
+      "analysis": {
+        "architectural_morphology": "Clustered pointed spires of different heights; no openings.",
+        "spatial_composition": "Dense cluster with one leaning slab wall on the left.",
+        "material_characteristics": "Grey weathered stone, lighter fractured faces.",
+        "rock_formation": "Horizontal strata quantised into terraces; each layer offset inward as height increases.",
+        "structural_hierarchy": "Tall central spires, lower flanking spires — hierarchical like pinnacle groups.",
+        "scale": "Unscaled.",
+        "silhouette": "Jagged, steeply pointed, stepped edges.",
+        "atmosphere": "Neutral, white background.",
+        "procedural_implications": "Strata parameter: quantise the lithic SDF in height (layer thickness + per-layer inset/offset); spire intensity maps to taper rate along skeleton verticals."
+      },
+      "sha256": "384e05739bd7f30a62372961ca768daae6923189b06bf93d53f9038b1bbc9c0f",
+      "bytes": 27833
+    },
+    {
+      "id": "REF-026",
+      "original_image_number": 6,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "6.jpg (chat attachment)",
+      "filename": "REF-026-suspended-wireframe-architectural-fragments.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-026-suspended-wireframe-architectural-fragments.jpg",
+      "category": "Suspended mesh installation of architectural fragments around a dome",
+      "reference_groups": [
+        "D",
+        "E",
+        "A"
+      ],
+      "role": "Exploded spatial composition: arches, piers, dome and panels suspended apart yet aligned to shared axes. Basis for an exploded/inspection view and for composing districts from separable components.",
+      "historical_style_uncertainty": "Photograph of an exhibition installation; Renaissance/classical vocabulary, not Gothic; artist and venue unverified.",
+      "analysis": {
+        "architectural_morphology": "Central domed drum on arcades, with detached arches, frames and panels orbiting it.",
+        "spatial_composition": "Radial, centred on the dome; fragments pulled outward along axes.",
+        "material_characteristics": "Fine translucent mesh, glowing in darkness.",
+        "rock_formation": "None.",
+        "structural_hierarchy": "Dome > drum > arcade > detached components.",
+        "scale": "Room-filling installation.",
+        "silhouette": "Fragmented, floating, legible through alignment.",
+        "atmosphere": "Dark hall, cool white light, reflective floor.",
+        "procedural_implications": "Exploded-view parameter offsets structure components along their local frames; outliner hierarchy maps to separable component groups."
+      },
+      "sha256": "cc65b41679b8b9944265fa4baf82d705c3ef5ed09eab08bbecb8ddb937a12474",
+      "bytes": 49236
+    },
+    {
+      "id": "REF-027",
+      "original_image_number": 7,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "7.jpg (chat attachment)",
+      "filename": "REF-027-eroded-inhabited-tower-section.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-027-eroded-inhabited-tower-section.jpg",
+      "category": "Section/elevation of an eroded inhabited stone tower",
+      "reference_groups": [
+        "B",
+        "D",
+        "C"
+      ],
+      "role": "Shows how erosion and rock accretion coexist with habitable floors and circulation: cavities cut through masonry walls while slabs, stairs and doorways stay usable.",
+      "historical_style_uncertainty": "Appears to be a screen capture of a contemporary speculative render (mouse cursor visible); author unknown. Incidental grass tufts — do not add vegetation.",
+      "analysis": {
+        "architectural_morphology": "Masonry tower with floor slabs, internal stair and doorways; walls perforated by large irregular voids.",
+        "spatial_composition": "Frontal section; vertical circulation spine in the middle stays clear.",
+        "material_characteristics": "Cut limestone coursing plus rounded layered rock concretions.",
+        "rock_formation": "Lobed, concentric-layered masses clustered at edges of voids; erosion holes of many sizes.",
+        "structural_hierarchy": "Floors and core are intact; erosion and accretion are confined to wall zones.",
+        "scale": "Several human figures; roughly 6 storeys.",
+        "silhouette": "Stepped rectangular outline broken by eroded edges.",
+        "atmosphere": "Neutral daylight, white background.",
+        "procedural_implications": "Subtractive erosion field masked by protected volumes (floors, circulation core, doorways); accretion concentrated on void rims (curvature-weighted); human-scale reference for slab spacing (~3–4 m)."
+      },
+      "sha256": "0f1af10d3c5149c5360659977d72198124a70aa7e0c14f7347a934ab983e74f4",
+      "bytes": 98451
+    },
+    {
+      "id": "REF-028",
+      "original_image_number": 8,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "8.jpg (chat attachment)",
+      "filename": "REF-028-concretion-encrusted-block-mass.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-028-concretion-encrusted-block-mass.jpg",
+      "category": "Isometric block mass encrusted with dripping concretions",
+      "reference_groups": [
+        "B",
+        "C"
+      ],
+      "role": "Rock as accretion on a rectilinear skeleton: clean blocks with seam lines, clustered lobes concentrated at edges and dripping downward into pendant columns.",
+      "historical_style_uncertainty": "Contemporary digital render; author unknown.",
+      "analysis": {
+        "architectural_morphology": "Two raised blocks bridged at the top, carried on clustered legs; small free-standing piers.",
+        "spatial_composition": "Portal-like frame with an opening beneath; satellite fragments.",
+        "material_characteristics": "Warm pale porous stone; fine seam lines on block faces.",
+        "rock_formation": "Lobed concretions densest at top edges and undersides; stacked-disc columns; gravity-biased drips and pendants.",
+        "structural_hierarchy": "Blocks primary; legs as stacked lumps; concretions secondary.",
+        "scale": "Unscaled; reads as monumental.",
+        "silhouette": "Boxy core with soft lumpy fringe and hanging drips.",
+        "atmosphere": "Neutral daylight, white background, isometric.",
+        "procedural_implications": "Accretion density weighted by edge proximity and a downward gravity bias; legs as stacked ring/blob sequences along skeleton members; keep flat faces partly clean (cohesion vs. roughness)."
+      },
+      "sha256": "789c540d76eaa70fd0abbf7898aec3660c2d0b2a80a565af9ab175244a83bafa",
+      "bytes": 128248
+    },
+    {
+      "id": "REF-029",
+      "original_image_number": 9,
+      "numbering_basis": "Curve-driven Gothic world update — image order in that message",
+      "original_filename": "9.jpg (chat attachment)",
+      "filename": "REF-029-glowing-wireframe-colonnade.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-029-glowing-wireframe-colonnade.jpg",
+      "category": "Glowing wireframe colonnade in perspective",
+      "reference_groups": [
+        "A",
+        "E",
+        "D"
+      ],
+      "role": "Repeated-bay rhythm along a spine with a continuous entablature; cool luminous wireframe presentation.",
+      "historical_style_uncertainty": "Appears to be a digital (possibly AI-generated) image of a classical colonnade; not Gothic and not evidence of any building. Aesthetic and compositional guidance only.",
+      "analysis": {
+        "architectural_morphology": "Double row of columns carrying entablatures, receding to a central vanishing point.",
+        "spatial_composition": "Symmetric axial corridor; bays repeat at constant spacing.",
+        "material_characteristics": "Immaterial blue light lines.",
+        "rock_formation": "None.",
+        "structural_hierarchy": "Column + entablature bay as the repeated unit.",
+        "scale": "Monumental.",
+        "silhouette": "Regular rectangular frame rhythm.",
+        "atmosphere": "Black field, cyan glow, ground reflections.",
+        "procedural_implications": "Structural Spine → repeated bays at arc-length spacing; skeleton preview drawn as glowing lines; spacing/height parameters must visibly change bay rhythm."
+      },
+      "sha256": "5ffef5f6323b6501d763d99fc2ab7c7adb0d4e137ac97f726453160b2594b174",
+      "bytes": 58802
     }
-  ]
+  ],
+  "reference_group_legend": {
+    "A": "Gothic architectural grammar / structural skeleton",
+    "B": "Geological morphology",
+    "C": "Biomorphic ornament",
+    "D": "Urban composition",
+    "E": "Lighting and atmosphere"
+  }
 }

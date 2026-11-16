@@ -61,5 +61,41 @@ Architectural Host
 
 Detail: `Docs/42-gothic-foliate-ornament/`.
 
+## Curve-driven futuristic Gothic world (REF-021–REF-029)
+
+Pipeline: user-drawn curve → Gothic skeleton → lithic formation → detail → world. **The rocks become the architecture**: rock is accreted, carved and stratified *around a Gothic skeleton*, never scattered beside it.
+
+Important: none of REF-021–029 is Gothic. REF-024, 026 and 029 are classical/Renaissance and are used only for skeleton presentation, member hierarchy and bay rhythm. Gothic grammar (pointed arches, ribs, bays, pinnacles, tracery) still comes from REF-001–REF-020, especially REF-004, 006, 007, 008, 011, 012.
+
+| Group | Meaning | References |
+|---|---|---|
+| A | Gothic grammar / structural skeleton | REF-004, 007, 011, 012 (Gothic); REF-024, 026, 029 (skeleton hierarchy & bay rhythm only); REF-025 (spire hierarchy) |
+| B | Geological morphology | REF-022, 023, 025, 027, 028 |
+| C | Biomorphic ornament | REF-021, 023, 027, 028 with REF-017–020 |
+| D | Urban composition | REF-023, 026, 027, 029 |
+| E | Lighting and atmosphere | REF-021, 022, 024, 026, 029 (luminous lines on black); REF-023, 027, 028 (neutral daylight inspection) |
+
+### Rules derived from the references
+
+1. **Skeleton inside the mass** (REF-021, 023, 028) — skeleton members are always enclosed by or attached to rock; rock never floats free of its skeleton. Expose *skeleton adherence* and *formation thickness*.
+2. **Accretion, not scatter** (REF-023, 027, 028) — rock forms as fused lobes on an implicit surface, densest at edges, void rims and undersides, with an optional gravity (drip) bias and a directional side bias. Lobes show concentric layered banding.
+3. **Protected negative space** (REF-023, 027) — floors, stairs, circulation cores, arches and openings are protected volumes that erosion and accretion may not fill. Architectural order must stay legible.
+4. **Strata and spires** (REF-025) — optional height quantisation of the lithic field (layer thickness, per-layer inset) produces terraced pinnacle clusters; spire intensity = taper along skeleton verticals.
+5. **Porosity as a gradient** (REF-022, 027) — porosity is a field with a direction and falloff, not uniform noise; a regular lattice remains where porosity is low.
+6. **Repeated bays along a spine** (REF-029, with Gothic REF-004) — a Structural Spine curve is sampled by arc length into bays; spacing, height and rib density visibly change the rhythm. Vary typology along the curve (curvature, height, ends) so the same window is not repeated everywhere.
+7. **Human scale** (REF-023, 027) — storey height ≈ 3–4 m; keep a scale figure option in the world.
+
+### Presentation modes
+
+- *Skeleton / X-ray* (REF-021, 024, 029): luminous additive lines on black, skeleton visible through semi-transparent rock.
+- *Contour slices* (REF-022): iso-height lines of the lithic field.
+- *Exploded* (REF-026): components offset along their local frames.
+- *Clean inspection* (REF-023, 027, 028): neutral daylight, pale stone, no fog.
+- *World*: dark stone, fog and depth (combine with REF-009/015 monochrome and REF-016 speculative assemblage).
+
+### Explicit negatives (in addition to the foliate list)
+
+No randomly scattered boulders along members; no grass, moss or plants (incidental in REF-023/027); no copying the classical orders of REF-024/029 as Gothic; no noise strong enough to erase slabs, arches or openings.
+
 ## Brief for Cursor
-For each generated feature, name the reference IDs, the observed feature and the parameters that reproduce it. Distinguish observed geometry from inferred dimensions. Build the simple geometric skeleton first, then add thickness, moldings and optional ornament. Provide controls to inspect curves, surfaces and final solids separately. Never claim a historical attribution or exact reconstruction based solely on these images. For foliate ornament work, cite REF-017–REF-020 and keep stone / architectural integration primary.
+For each generated feature, name the reference IDs, the observed feature and the parameters that reproduce it. Distinguish observed geometry from inferred dimensions. Build the simple geometric skeleton first, then add thickness, moldings and optional ornament. Provide controls to inspect curves, surfaces and final solids separately. Never claim a historical attribution or exact reconstruction based solely on these images. For foliate ornament work, cite REF-017–REF-020 and keep stone / architectural integration primary. For curve-driven world work, also cite REF-021–REF-029 and say which group (A–E) each one informs.
