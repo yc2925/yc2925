@@ -18,6 +18,7 @@ export const APP_TABS = [
   { id: 'ornament', label: 'Ornament System' },
   { id: 'agents', label: 'Agent Simulation' },
   { id: 'curveSandbox', label: 'Curve Sandbox' },
+  { id: 'curveWorld', label: 'Curve World (Step 47)' },
 ]
 
 export const PRIMARY_TAB_ID = 'gothicGrammar'

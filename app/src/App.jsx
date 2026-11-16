@@ -17,6 +17,7 @@ import GothicGrammarView from "./views/GothicGrammarView.jsx";
 import OrnamentSystemView from "./views/OrnamentSystemView.jsx";
 import AgentSimulationView from "./views/AgentSimulationView.jsx";
 import CurveSandboxView from "./views/CurveSandboxView.jsx";
+import WorldView from "./views/WorldView.jsx";
 
 import AppTabs, { APP_TABS } from "./ui/AppTabs.jsx";
 import ParticlesPanel from "./ui/ParticlesPanel.jsx";
@@ -194,6 +195,7 @@ function App() {
       {tab === "ornament" ? <OrnamentSystemView /> : null}
       {tab === "agents" ? <AgentSimulationView /> : null}
       {tab === "curveSandbox" ? <CurveSandboxView /> : null}
+      {tab === "curveWorld" ? <WorldView /> : null}
 
       <header className="app-header">
         <p className="app-kicker">yc2925</p>

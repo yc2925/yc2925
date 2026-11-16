@@ -27,7 +27,8 @@
     "validate:construction-overlay": "node scripts/validate-construction-overlay.mjs",
     "validate:workspace-rendering": "node scripts/validate-workspace-rendering.mjs",
     "validate:ornament-growth": "node scripts/validate-ornament-growth.mjs",
-    "validate:ornament-motifs": "node scripts/validate-ornament-motifs.mjs"
+    "validate:ornament-motifs": "node scripts/validate-ornament-motifs.mjs",
+    "validate:world": "node scripts/validate-world.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

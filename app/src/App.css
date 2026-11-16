@@ -1520,12 +1520,341 @@
   color: var(--text-dim);
 }
 
-@media (max-width: 640px) {
+/*
+ * Narrow windows: stack the canvas and panel instead of overlaying them,
+ * so the panel never covers control points. Top padding clears the
+ * header + two-row firebase actions (top: 88px, 2 × 26px rows).
+ */
+@media (max-width: 720px) {
+  .curve-sandbox {
+    display: flex;
+    flex-direction: column;
+    padding: 156px 16px 16px;
+    box-sizing: border-box;
+    gap: 12px;
+  }
+
+  .curve-sandbox-svg {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+  }
+
   .curve-sandbox-panel {
-    top: auto;
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
+    position: static;
     width: auto;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+  }
+
+  .curve-sandbox-panel h2,
+  .curve-sandbox-panel p {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Curve-Driven Gothic World (Step 47) */
+.world-app {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 280px;
+  grid-template-rows: 30px minmax(0, 1fr);
+  grid-template-areas:
+    'stages stages stages'
+    'dock viewport panel';
+  padding: 104px 16px 16px;
+  box-sizing: border-box;
+  gap: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: 11px/1.35 var(--sans);
+}
+
+.world-app.is-dock-wide {
+  grid-template-columns: minmax(420px, 46%) minmax(0, 1fr) 280px;
+}
+
+.world-app button,
+.world-app select,
+.world-app input[type='text'] {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: 10px/1 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.world-app input[type='text'] {
+  text-transform: none;
+  color: var(--text);
+}
+
+.world-app button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.world-app button.is-active {
+  border-color: var(--signal);
+  color: var(--text);
+}
+
+.world-app button:disabled {
+  opacity: 0.35;
+}
+
+.world-stages {
+  grid-area: stages;
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+
+.world-stages > button {
+  height: 30px;
+  margin-right: -1px;
+}
+
+.world-stage-index {
+  margin-right: 6px;
+  color: var(--text-mute);
+  font-family: var(--mono);
+}
+
+.world-stages-spacer {
+  flex: 1;
+}
+
+.world-dock {
+  grid-area: dock;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+}
+
+.world-dock-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.world-dock-field {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.world-editor-canvas.is-draw {
+  cursor: crosshair;
+}
+
+.world-editor-canvas.is-navigate {
+  cursor: grab;
+}
+
+.world-dock-hint {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  margin: 0;
+  color: var(--text-mute);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.world-outliner {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.world-outliner-head,
+.world-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.world-outliner ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.world-outliner li {
+  border-bottom: 1px solid var(--line);
+}
+
+.world-outliner li.is-selected {
+  box-shadow: inset 2px 0 0 var(--signal);
+}
+
+.world-outliner-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+}
+
+.world-outliner-row.is-root {
+  color: var(--text-dim);
+}
+
+.world-app .world-outliner-name {
+  flex: 1;
+  border: 0;
+  text-align: left;
+  color: var(--text);
+  text-transform: none;
+  font-size: 11px;
+}
+
+.world-app .world-icon-btn {
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+}
+
+.world-outliner-child {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 8px 3px 20px;
+  color: var(--text-dim);
+}
+
+.world-outliner-child .is-warn,
+.world-outliner-child .is-error,
+.world-outliner-child .is-stale,
+.world-outliner-child .is-generating {
+  color: var(--signal);
+}
+
+.world-outliner-child .is-final {
+  color: var(--text);
+}
+
+.world-viewport {
+  grid-area: viewport;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+}
+
+.world-panel {
+  grid-area: panel;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--signal-dark);
+  background: var(--bg-panel);
+}
+
+.world-panel-scope {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--text-dim);
+}
+
+.world-panel-scope strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.world-param {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px 8px;
+}
+
+.world-param-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+}
+
+.world-param.is-override .world-param-label {
+  color: var(--text);
+}
+
+.world-param-value {
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.world-param input[type='range'] {
+  width: 100%;
+  accent-color: var(--signal);
+}
+
+.world-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.world-stats {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 3px 8px;
+  margin: 0;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--text-dim);
+}
+
+.world-stats dd {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+@media (max-width: 1100px) {
+  .world-app {
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-rows: 30px minmax(0, 1fr) 260px;
+    grid-template-areas:
+      'stages stages'
+      'dock viewport'
+      'dock panel';
+  }
+}
+
+@media (max-width: 720px) {
+  .world-app {
+    overflow: auto;
+    padding-top: 156px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 60vh auto;
+    grid-template-areas: 'stages' 'dock' 'viewport' 'panel';
+  }
+
+  .world-stages {
+    flex-wrap: wrap;
   }
 }
