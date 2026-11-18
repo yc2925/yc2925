@@ -1,45 +1,47 @@
 /**
- * Lithic formation parameters (Step 47, Phase C1). Units: metres.
- * References: REF-023 / 027 / 028 (accretion on a frame, protected openings,
- * edge + gravity bias), REF-025 (strata), REF-022 (porosity gradient),
- * REF-021 (skeleton inside the mass).
+ * Carved-stone masonry parameters (Step 47, round 2).
+ * The twelve stone controls from round 1 keep their names, ranges and order;
+ * the round-2 material / carving controls follow them.
+ * References: REF-030 (voussoir coursing), REF-004 (drums, bosses, capitals),
+ * REF-007 / REF-012 (pinnacles, crockets), REF-018 / REF-020 (grotesques).
  */
 
 export const DEFAULT_LITHIC_PARAMS = Object.freeze({
-  formationThickness: 1.7, // skeleton capsule radius multiplier
-  rockDensity: 0.6, // accretion lobes per metre of member (× hierarchy)
-  rockSize: 1.3, // mean lobe radius
-  sizeVariation: 0.5,
-  elongation: 1.7, // lobe stretch along its member
-  adherence: 0.7, // 1 = lobes centred on members, 0 = loose
-  cohesion: 0.9, // smooth-union blend radius (fusion of lobes into mass)
-  gravity: 0.45, // downward drip / underside bias (REF-028)
-  roughness: 0.22,
-  erosion: 0.2,
-  layering: 0, // strata strength (REF-025)
-  layerHeight: 1.4,
-  porosity: 0, // upward porosity gradient (REF-022)
-  negativeSpace: 1, // 1 = protected openings fully preserved
+  density: 1, // fraction of stone slots that receive a stone
+  stoneSize: 0.85, // mean block face size (m)
+  sizeGrading: 0.4, // bigger stones low, smaller high
+  sizeVariation: 0.2,
+  thickness: 0.6, // course height / face size
+  irregularity: 0.25, // chipped arrises (render prototypes)
+  gap: 0.02, // joint gap (m)
+  courseRegularity: 0.8, // 1 = neat coursed ashlar, 0 = random rubble
+  tiltJitter: 1, // degrees of hand-set tilt
+  formationWidth: 1, // stone section / member radius
+  wallDepth: 1, // stones through the wall
+  gravel: 0.35, // loose stone at the base
+  stoneMix: 0.35, // 0 limestone · 1 sandstone
+  weathering: 0.5, // darkening toward the ground
+  dressing: 0.75, // 0 rough-hewn, pitched faces · 1 finely dressed ashlar
+  carvingScale: 1, // size of carved pieces (bosses, keystones, pinnacles, grotesques…)
 })
 
 export const LITHIC_PARAM_SPECS = Object.freeze([
-  { key: 'formationThickness', label: 'Formation thickness', min: 0.6, max: 4, step: 0.05, tier: 'essential' },
-  { key: 'rockDensity', label: 'Rock density', min: 0, max: 2, step: 0.05, tier: 'essential' },
-  { key: 'rockSize', label: 'Rock size', min: 0.4, max: 4, step: 0.05, unit: 'm', tier: 'essential' },
-  { key: 'cohesion', label: 'Material cohesion', min: 0.05, max: 3, step: 0.05, unit: 'm', tier: 'essential' },
-  { key: 'gravity', label: 'Gravity / drip', min: 0, max: 1, step: 0.01, tier: 'essential' },
-  { key: 'layering', label: 'Geological layering', min: 0, max: 1, step: 0.01, tier: 'essential' },
-  { key: 'erosion', label: 'Erosion', min: 0, max: 1, step: 0.01, tier: 'essential' },
-  { key: 'porosity', label: 'Porosity', min: 0, max: 1, step: 0.01, tier: 'essential' },
-  { key: 'sizeVariation', label: 'Size variation', min: 0, max: 1, step: 0.01, tier: 'advanced' },
-  { key: 'elongation', label: 'Elongation', min: 1, max: 4, step: 0.05, tier: 'advanced' },
-  { key: 'adherence', label: 'Skeleton adherence', min: 0, max: 1, step: 0.01, tier: 'advanced' },
-  { key: 'roughness', label: 'Surface roughness', min: 0, max: 1, step: 0.01, tier: 'advanced' },
-  { key: 'layerHeight', label: 'Layer height', min: 0.4, max: 5, step: 0.05, unit: 'm', tier: 'advanced' },
-  { key: 'negativeSpace', label: 'Negative-space preservation', min: 0, max: 1, step: 0.01, tier: 'advanced' },
+  // Round-1 stone controls (same labels, ranges and order).
+  { key: 'density', label: 'Stone density', min: 0.3, max: 1, step: 0.01, tier: 'essential', help: 'Fraction of stone positions that are filled — lower reads as ruined, gappy masonry.' },
+  { key: 'stoneSize', label: 'Stone size', min: 0.2, max: 2, step: 0.02, unit: 'm', tier: 'essential', help: 'Mean face size of each stone (blocks, drums, voussoirs, tracery bar length).' },
+  { key: 'sizeGrading', label: 'Size range (base → top)', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'How much larger stones are at the bottom than at the top of the structure.' },
+  { key: 'sizeVariation', label: 'Size variation', min: 0, max: 0.8, step: 0.01, tier: 'essential', help: 'Random stone-to-stone size difference (block lengths within a course vary too).' },
+  { key: 'thickness', label: 'Stone thickness', min: 0.2, max: 1, step: 0.01, tier: 'essential', help: 'Stone depth along the member: thin slabs / voussoirs (low) or chunky blocks (high). Also the course height.' },
+  { key: 'irregularity', label: 'Irregularity', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'How chipped and jagged each stone’s edges and facets are.' },
+  { key: 'gap', label: 'Joint gap', min: 0, max: 0.2, step: 0.005, unit: 'm', tier: 'essential', help: 'Open joint between neighbouring stones (no mortar).' },
+  { key: 'courseRegularity', label: 'Course regularity', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Neat staggered courses (1) versus random rubble placement (0).' },
+  { key: 'tiltJitter', label: 'Tilt jitter', min: 0, max: 20, step: 0.5, unit: '°', tier: 'essential', help: 'Random tilt of each stone so the work looks hand-built.' },
+  { key: 'formationWidth', label: 'Formation width', min: 1, max: 5, step: 0.05, tier: 'essential', help: 'Width of the stone section around each structural member, relative to the member thickness (capitals, bases and keystones grow with it; tracery bars stay slender).' },
+  { key: 'wallDepth', label: 'Wall thickness (stones)', min: 1, max: 5, step: 1, tier: 'essential', help: 'How many stones deep the masonry is.' },
+  { key: 'gravel', label: 'Gravel', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Amount of loose gravel and fallen stones around the base.' },
+  // Round-2 material and carving controls.
+  { key: 'stoneMix', label: 'Limestone ↔ sandstone', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Share of structures built in warm sandstone (#8f867a, #6f5d3f, #5b513f, #372e20) instead of pale limestone (#b7b2ad, #a8a4a0, #928e8a, #7a7772).' },
+  { key: 'weathering', label: 'Weathering', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Grime and damp: stones darken toward the ground into #525050 / #363331.' },
+  { key: 'dressing', label: 'Dressing', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Tooling of the blocks: rough-hewn pitched faces (0) to finely dressed ashlar with crisp chamfers (1).' },
+  { key: 'carvingScale', label: 'Carving scale', min: 0.4, max: 2, step: 0.01, tier: 'essential', help: 'Size of the carved pieces: keystones, bosses, capitals, pinnacles, crockets, finials, grotesques.' },
 ])
-
-export const LITHIC_QUALITY = Object.freeze({
-  preview: { cellSize: 0.6, maxCells: 2.5e6 },
-  final: { cellSize: 0.28, maxCells: 1.6e7 },
-})

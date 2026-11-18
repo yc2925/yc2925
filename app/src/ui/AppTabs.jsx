@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
  * Order preserved for LAB menu generation.
  */
 export const APP_TABS = [
+  { id: 'curveWorld', label: 'World' },
   { id: 'particles', label: 'Particles' },
   { id: 'noise2d', label: 'Noise 2D' },
   { id: 'noise3d', label: 'Noise 3D' },
@@ -18,10 +19,9 @@ export const APP_TABS = [
   { id: 'ornament', label: 'Ornament System' },
   { id: 'agents', label: 'Agent Simulation' },
   { id: 'curveSandbox', label: 'Curve Sandbox' },
-  { id: 'curveWorld', label: 'Curve World (Step 47)' },
 ]
 
-export const PRIMARY_TAB_ID = 'gothicGrammar'
+export const PRIMARY_TAB_ID = 'curveWorld'
 
 export const LAB_TABS = APP_TABS.filter((item) => item.id !== PRIMARY_TAB_ID)
 

@@ -23,20 +23,3 @@ export function stableHash(value) {
   }
   return (h >>> 0).toString(36)
 }
-
-/** Signature of everything that shapes a curve's skeleton. */
-export function skeletonSignature(curve, skeletonParams, seed) {
-  return stableHash({
-    t: curve.curveType,
-    c: curve.closed,
-    p: curve.controlPoints,
-    pl: curve.constructionPlane,
-    r: curve.curveRole,
-    s: skeletonParams,
-    seed,
-  })
-}
-
-export function lithicSignature(skelSig, lithicParams, seed, quality) {
-  return stableHash({ skelSig, l: lithicParams, seed, q: quality })
-}

@@ -546,6 +546,35 @@
       },
       "sha256": "5ffef5f6323b6501d763d99fc2ab7c7adb0d4e137ac97f726453160b2594b174",
       "bytes": 58802
+    },
+    {
+      "id": "REF-030",
+      "original_image_number": "feedback round 1 (dry-stone image)",
+      "numbering_basis": "Step 47 feedback — dry-stone arch reference",
+      "original_filename": "10.jpg (chat attachment)",
+      "filename": "REF-030-dry-stone-voussoir-arch.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-030-dry-stone-voussoir-arch.jpg",
+      "category": "Dry-stone voussoir arch on a mountain ridge",
+      "reference_groups": [
+        "B",
+        "A"
+      ],
+      "role": "Primary reference for lithic stacking: discrete rough stones without mortar; radial voussoirs on end around the arch, flat staggered courses in the piers and base, bigger stones low, gravel around the base.",
+      "historical_style_uncertainty": "Contemporary photograph of a built dry-stone arch (round, not pointed); location and builder unverified. Use for stacking logic and stone character, not for Gothic proportion.",
+      "analysis": {
+        "architectural_morphology": "Free-standing near-semicircular arch springing from two thick rubble piers on a stone sill.",
+        "spatial_composition": "Frontal frame; the opening frames a distant ridge; strong figure/ground.",
+        "material_characteristics": "Weathered schist / gneiss / granite: grey, tan, rust and greenish tones; rough split faces; no mortar.",
+        "rock_formation": "Each stone is a discrete faceted slab or block. Ring stones stand on end, long axis radial to the arch centre, thin edges outward; piers laid in rough horizontal courses with staggered joints; small gaps and shadows between stones.",
+        "structural_hierarchy": "Large flat base/sill stones → coursed piers → voussoir ring; size decreases with height.",
+        "scale": "Human-passable opening (~2–2.5 m); stones 0.2–0.8 m.",
+        "silhouette": "Jagged outer extrados from protruding stone ends; clean inner intrados.",
+        "atmosphere": "Bright alpine daylight, blue sky, hard shadows.",
+        "procedural_implications": "Stones are placed one by one in slots along the skeleton path: thin axis along the path tangent (voussoirs on a curve, flat courses on a vertical pier), cross-section filled with staggered stones, size graded by height, small gap parameter, tilt jitter, separate faceted hulls, gravel scatter at ground contacts."
+      },
+      "sha256": "0e138b5ad25e58d3dad680d839108890ee1b2334f4c2dc814b2537dafdfbea0e",
+      "bytes": 284519
     }
   ],
   "reference_group_legend": {

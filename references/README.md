@@ -22,6 +22,8 @@ All requested folders are present, including empty ones. Empty folders mark coll
 - Skeleton / wireframe inspection presentation: REF-021, 022, 024, 026, 029.
 - Repeated bays along a spine: REF-029 (with REF-004 for the Gothic version).
 - Exploded / district composition: REF-026; inhabitable scale: REF-023, 027.
+- Dry-stone stacking (discrete stones, voussoirs, coursing, gravel): REF-030.
+- X-ray wire-mesh presentation (scrim, additive layering, exploded fragments, light rings): REF-026.
 
 ## Extract on macOS
 Download gothic-reference-library.zip to Downloads. In Terminal:
@@ -66,3 +68,4 @@ Read VISUAL_DIRECTION.md first, then choose reference IDs for a specific feature
 - [REF-027 — Eroded inhabited tower section](futuristic-gothic-world/REF-027-eroded-inhabited-tower-section.jpg): 7.jpg
 - [REF-028 — Concretion-encrusted block mass](futuristic-gothic-world/REF-028-concretion-encrusted-block-mass.jpg): 8.jpg
 - [REF-029 — Glowing wireframe colonnade](futuristic-gothic-world/REF-029-glowing-wireframe-colonnade.jpg): 9.jpg
+- [REF-030 — Dry-stone voussoir arch](futuristic-gothic-world/REF-030-dry-stone-voussoir-arch.jpg): 10.jpg (chat attachment)

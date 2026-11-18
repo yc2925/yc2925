@@ -1,172 +1,86 @@
 /**
- * Derived geometry per structure (Step 47).
+ * Derived geometry per structure (Step 47, feedback round 1).
  *
- * - Skeleton: recomputed synchronously, cached by skeleton signature
- *   (live preview on every edit — cheap).
- * - Lithic: debounced preview job in a Web Worker; explicit "Refine" posts a
- *   final-quality job. Results are keyed by lithic signature, so only
- *   structures whose curve/params/seed changed regenerate. The last valid
- *   mesh is kept while a new one is generating or if a job fails.
+ * Skeleton (curve member + Gothic grammar) and carved-stone layout are both fast
+ * (~1–20 ms), so they run synchronously and are cached by signature:
+ * only curves whose resolved points, role, parameters or seed changed are
+ * rebuilt. Linked endpoints are resolved first, so moving a shared point
+ * regenerates every curve connected to it — and nothing else.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { resolveStructureParams } from '../model/project.js'
-import { lithicSignature, skeletonSignature } from '../model/signature.js'
-import { buildSpineSkeleton } from '../skeleton/spine.js'
+import { useMemo } from 'react'
+import { resolveCurvePoints, resolveStructureParams } from '../model/project.js'
+import { stableHash } from '../model/signature.js'
+import { buildCurveSkeleton } from '../skeleton/members.js'
+import { buildStones } from '../lithic/stones.js'
 
-const DEBOUNCE_MS = 400
+// Module-level caches (one world view at a time); entries not used by the
+// current project are pruned after every rebuild.
+const skelCache = new Map()
+const stoneCache = new Map()
 
 export function useStructureGeneration(project) {
-  const skeletonCache = useRef(new Map())
-
-  const structures = useMemo(() => {
-    const out = []
-    const used = new Set()
+  return useMemo(() => {
+    const structures = []
+    const usedSkel = new Set()
+    // Incoming links: which end points of each curve other curves attach to
+    // (a column whose top carries an arch is "linked" at its top too).
+    const incoming = new Map()
+    for (const id of project.order) {
+      const c = project.curves[id]
+      for (const l of [c?.links?.start, c?.links?.end]) if (l) incoming.set(`${l.curveId}|${l.pointId}`, true)
+    }
+    const usedStone = new Set()
     for (const curveId of project.order) {
       const curve = project.curves[curveId]
       if (!curve) continue
-      const structureId = curve.generatedStructureIds[0]
+      const resolved = resolveCurvePoints(project, curve)
       const params = resolveStructureParams(project, curveId)
-      const skelSig = skeletonSignature(curve, params.skeleton, params.seed)
-      let skeleton = skeletonCache.current.get(skelSig)
+      const cps = curve.controlPoints
+      const links = {
+        start: curve.links?.start ?? (cps.length && incoming.has(`${curveId}|${cps[0].id}`) ? { incoming: true } : null),
+        end: curve.links?.end ?? (cps.length && incoming.has(`${curveId}|${cps[cps.length - 1].id}`) ? { incoming: true } : null),
+      }
+      const skelSig = stableHash({
+        p: resolved.map((q) => [q.x, q.y, q.z]),
+        t: curve.curveType,
+        c: curve.closed,
+        r: curve.curveRole,
+        l: [Boolean(links.start), Boolean(links.end), Boolean(links.start?.incoming), Boolean(links.end?.incoming)],
+        s: params.skeleton,
+        seed: params.seed,
+      })
+      let skeleton = skelCache.get(skelSig)
       if (!skeleton) {
         const t0 = performance.now()
-        skeleton = buildSpineSkeleton(curve, params.skeleton)
+        skeleton = buildCurveSkeleton(curve, resolved, params.skeleton, params.seed, links)
         skeleton.buildMs = performance.now() - t0
-        skeletonCache.current.set(skelSig, skeleton)
+        skelCache.set(skelSig, skeleton)
       }
-      used.add(skelSig)
-      out.push({
-        structureId,
+      usedSkel.add(skelSig)
+      const stoneSig = stableHash({ skelSig, l: params.lithic, seed: params.seed })
+      let lithic = stoneCache.get(stoneSig)
+      if (!lithic) {
+        const t0 = performance.now()
+        lithic = buildStones(skeleton, params.lithic, params.seed)
+        lithic.buildMs = performance.now() - t0
+        stoneCache.set(stoneSig, lithic)
+      }
+      usedStone.add(stoneSig)
+      structures.push({
+        structureId: curve.generatedStructureIds[0],
         curveId,
         curve,
+        resolved,
         params,
         skelSig,
+        stoneSig,
         skeleton,
-        previewSig: lithicSignature(skelSig, params.lithic, params.seed, 'preview'),
-        finalSig: lithicSignature(skelSig, params.lithic, params.seed, 'final'),
+        lithic,
       })
     }
-    for (const key of skeletonCache.current.keys()) if (!used.has(key)) skeletonCache.current.delete(key)
-    return out
+    for (const k of skelCache.keys()) if (!usedSkel.has(k)) skelCache.delete(k)
+    for (const k of stoneCache.keys()) if (!usedStone.has(k)) stoneCache.delete(k)
+    return structures
   }, [project])
-
-  // ---- lithic worker
-  const workerRef = useRef(null)
-  const jobSeq = useRef(0)
-  const pending = useRef(new Map()) // structureId → { jobId, sig, quality }
-  const [lithic, setLithic] = useState({}) // structureId → { sig, quality, mesh, stats, status, error }
-
-  useEffect(() => {
-    const worker = new Worker(new URL('../lithic/lithic.worker.js', import.meta.url), { type: 'module' })
-    workerRef.current = worker
-    worker.onmessage = (event) => {
-      const msg = event.data
-      const job = pending.current.get(msg.structureId)
-      if (!job || job.jobId !== msg.jobId) return // superseded
-      pending.current.delete(msg.structureId)
-      setLithic((prev) => {
-        const old = prev[msg.structureId] ?? {}
-        if (!msg.ok) {
-          if (msg.cancelled) return prev
-          return { ...prev, [msg.structureId]: { ...old, status: 'error', error: msg.error } }
-        }
-        return {
-          ...prev,
-          [msg.structureId]: {
-            sig: job.sig,
-            quality: msg.quality,
-            mesh: { positions: msg.positions, normals: msg.normals, indices: msg.indices },
-            stats: msg.stats,
-            status: 'ready',
-            error: null,
-          },
-        }
-      })
-    }
-    return () => {
-      worker.terminate()
-      workerRef.current = null
-    }
-  }, [])
-
-  const post = useCallback((s, quality) => {
-    const worker = workerRef.current
-    if (!worker || s.skeleton.members.length === 0) return
-    const jobId = ++jobSeq.current
-    const sig = quality === 'final' ? s.finalSig : s.previewSig
-    pending.current.set(s.structureId, { jobId, sig, quality })
-    setLithic((prev) => ({ ...prev, [s.structureId]: { ...(prev[s.structureId] ?? {}), status: 'generating', error: null } }))
-    worker.postMessage({
-      jobId,
-      structureId: s.structureId,
-      skeleton: {
-        members: s.skeleton.members,
-        protected: s.skeleton.protected,
-        bounds: s.skeleton.bounds,
-        sourcePolyline: s.skeleton.sourcePolyline,
-      },
-      params: s.params.lithic,
-      seed: s.params.seed,
-      quality,
-    })
-  }, [])
-
-  // Debounced preview regeneration for structures whose signature changed.
-  useEffect(() => {
-    const ids = new Set(structures.map((s) => s.structureId))
-    setLithic((prev) => {
-      const next = {}
-      let changed = false
-      for (const [id, v] of Object.entries(prev)) {
-        if (ids.has(id)) next[id] = v
-        else changed = true
-      }
-      return changed ? next : prev
-    })
-    const stale = structures.filter((s) => {
-      const cur = lithic[s.structureId]
-      const job = pending.current.get(s.structureId)
-      const upToDate = cur && (cur.sig === s.previewSig || cur.sig === s.finalSig)
-      const queued = job && (job.sig === s.previewSig || job.sig === s.finalSig)
-      return !upToDate && !queued && s.skeleton.members.length > 0
-    })
-    if (!stale.length) return undefined
-    const t = window.setTimeout(() => stale.forEach((s) => post(s, 'preview')), DEBOUNCE_MS)
-    return () => window.clearTimeout(t)
-    // `lithic` intentionally read without being a dependency: results arriving
-    // must not retrigger scheduling of the same signature.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [structures, post])
-
-  const refine = useCallback(
-    (structureId) => {
-      const s = structures.find((x) => x.structureId === structureId)
-      if (s) post(s, 'final')
-    },
-    [structures, post],
-  )
-  const regenerate = useCallback(
-    (structureId) => {
-      const s = structures.find((x) => x.structureId === structureId)
-      if (s) post(s, 'preview')
-    },
-    [structures, post],
-  )
-
-  const statusOf = useCallback(
-    (s) => {
-      const cur = lithic[s.structureId]
-      if (!s.skeleton.members.length) return 'empty'
-      if (cur?.status === 'error') return 'error'
-      if (pending.current.has(s.structureId)) return 'generating'
-      if (!cur?.mesh) return 'queued'
-      if (cur.sig === s.finalSig) return 'final'
-      if (cur.sig === s.previewSig) return 'preview'
-      return 'stale'
-    },
-    [lithic],
-  )
-
-  return { structures, lithic, refine, regenerate, statusOf }
 }

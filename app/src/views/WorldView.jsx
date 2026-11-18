@@ -26,28 +26,29 @@ const MODES = [
   { id: 'navigate', label: 'Pan', key: 'H' },
 ]
 
-export default function WorldView() {
+export default function WorldView({ labNoise = null }) {
   const store = useWorldProject()
   const { project, dispatch, endGesture, undo, redo, canUndo, canRedo } = store
-  const { structures, lithic, refine, regenerate, statusOf } = useStructureGeneration(project)
+  const structures = useStructureGeneration(project)
   const [stage, setStage] = useState('curves')
   const [mode, setMode] = useState('draw')
   const [grid, setGrid] = useState(1)
   const [curveType, setCurveType] = useState('catmullRom')
   const [xray, setXray] = useState(false)
+  const [view, setView] = useState('top')
+  const [stabilizer, setStabilizer] = useState(0.45)
   const [dockWide, setDockWide] = useState(false)
-  const [rawUi, setUi] = useState({ selectedCurveId: null, selectedPoint: null, drawingCurveId: null })
-  // A curve removed by undo / delete can no longer be drawn or selected.
+  const [rawUi, setUi] = useState({ selectedCurveId: null, selectedPoint: null, hover: null })
+  // A curve or point removed by undo / delete can no longer be selected.
+  const selCurve = rawUi.selectedCurveId ? project.curves[rawUi.selectedCurveId] : null
   const ui = {
     ...rawUi,
-    drawingCurveId: rawUi.drawingCurveId && project.curves[rawUi.drawingCurveId] ? rawUi.drawingCurveId : null,
-    selectedCurveId: rawUi.selectedCurveId && project.curves[rawUi.selectedCurveId] ? rawUi.selectedCurveId : null,
+    selectedCurveId: selCurve ? rawUi.selectedCurveId : null,
+    selectedPoint: selCurve && rawUi.selectedPoint != null && rawUi.selectedPoint < selCurve.controlPoints.length ? rawUi.selectedPoint : null,
   }
   const viewportRef = useRef(null)
 
   const selected = structures.find((s) => s.curveId === ui.selectedCurveId) ?? null
-
-  const finishDrawing = useCallback(() => setUi((u) => ({ ...u, drawingCurveId: null })), [])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -65,12 +66,9 @@ export default function WorldView() {
         redo()
         return
       }
-      if (e.key === 'Enter' || e.key === 'Escape') finishDrawing()
       if (e.key === 'd' || e.key === 'D') setMode('draw')
-      if (e.key === 'v' || e.key === 'V') {
-        finishDrawing()
-        setMode('edit')
-      }
+      if (e.key === 'v' || e.key === 'V') setMode('edit')
+      if (e.key === 'f' || e.key === 'F') setView((v) => (v === 'top' ? 'front' : 'top'))
       if (e.key === 'h' || e.key === 'H') setMode('navigate')
       if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selectedCurveId) {
         e.preventDefault()
@@ -79,17 +77,24 @@ export default function WorldView() {
           setUi((u) => ({ ...u, selectedPoint: null }))
         } else {
           dispatch({ type: 'deleteCurve', curveId: ui.selectedCurveId })
-          setUi({ selectedCurveId: null, selectedPoint: null, drawingCurveId: null })
+          setUi({ selectedCurveId: null, selectedPoint: null, hover: null })
         }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [undo, redo, dispatch, ui.selectedCurveId, ui.selectedPoint, finishDrawing])
+  }, [undo, redo, dispatch, ui.selectedCurveId, ui.selectedPoint])
 
   const fit = useCallback((s) => {
     if (s?.skeleton?.bounds && Number.isFinite(s.skeleton.bounds.min.x)) viewportRef.current?.fit(s.skeleton.bounds)
   }, [])
+  const fitAll = useCallback(() => {
+    const boxes = structures.map((s) => s.skeleton.bounds).filter(Boolean)
+    if (!boxes.length) return
+    const min = { x: Math.min(...boxes.map((b) => b.min.x)), y: Math.min(...boxes.map((b) => b.min.y)), z: Math.min(...boxes.map((b) => b.min.z)) }
+    const max = { x: Math.max(...boxes.map((b) => b.max.x)), y: Math.max(...boxes.map((b) => b.max.y)), z: Math.max(...boxes.map((b) => b.max.z)) }
+    viewportRef.current?.fit({ min, max })
+  }, [structures])
 
   return (
     <div className={`world-app${dockWide ? ' is-dock-wide' : ''}`}>
@@ -101,11 +106,11 @@ export default function WorldView() {
           </button>
         ))}
         <span className="world-stages-spacer" />
-        <button type="button" className={xray ? 'is-active' : undefined} onClick={() => setXray((x) => !x)} title="Show the skeleton through translucent stone (REF-021)">
+        <button type="button" className={xray ? 'is-active' : undefined} onClick={() => setXray((x) => !x)} title="X-ray: wire-mesh scrim on black — see through stones to the skeleton inside (REF-026)">
           X-ray
         </button>
-        <button type="button" onClick={() => fit(selected ?? structures[structures.length - 1])} disabled={!structures.length}>
-          Fit selected
+        <button type="button" title="Frame the selected structure — or the whole world when nothing is selected" onClick={() => (selected ? fit(selected) : fitAll())} disabled={!structures.length}>
+          {selected ? 'Fit selected' : 'Fit world'}
         </button>
       </nav>
 
@@ -117,19 +122,20 @@ export default function WorldView() {
               type="button"
               className={mode === m.id ? 'is-active' : undefined}
               title={`${m.label} (${m.key})`}
-              onClick={() => {
-                if (m.id !== 'draw') finishDrawing()
-                setMode(m.id)
-              }}
+              onClick={() => setMode(m.id)}
             >
               {m.label}
             </button>
           ))}
-          <select value={curveType} onChange={(e) => setCurveType(e.target.value)} aria-label="New curve type">
+          <select value={view} onChange={(e) => setView(e.target.value)} aria-label="Editor view" title="Top: plan (X/Y). Front: elevation (X/height) — draw or drag points in height (F)">
+            <option value="top">Top</option>
+            <option value="front">Front</option>
+          </select>
+          <select value={curveType} onChange={(e) => setCurveType(e.target.value)} aria-label="New curve type" title="Type given to newly drawn curves">
             <option value="catmullRom">Spline</option>
             <option value="polyline">Polyline</option>
           </select>
-          <select value={grid} onChange={(e) => setGrid(Number(e.target.value))} aria-label="Grid snap">
+          <select value={grid} onChange={(e) => setGrid(Number(e.target.value))} aria-label="Grid snap" title="Snap control points to a grid">
             <option value={0}>Snap off</option>
             <option value={0.5}>Snap 0.5 m</option>
             <option value={1}>Snap 1 m</option>
@@ -144,12 +150,19 @@ export default function WorldView() {
           <button type="button" onClick={() => setDockWide((w) => !w)} title="Expand / shrink editor">
             {dockWide ? '◧' : '◨'}
           </button>
+          <label className={`world-stabilizer${mode === 'draw' ? '' : ' is-disabled'}`} title="Line stabilizer (Draw mode): the pen trails the cursor on a string of this length, smoothing hand jitter (0 = off)">
+            <span>Stabilizer</span>
+            <input type="range" min={0} max={1} step={0.05} value={stabilizer} disabled={mode !== 'draw'} onChange={(e) => setStabilizer(Number(e.target.value))} />
+            <span className="world-param-value">{stabilizer === 0 ? 'off' : stabilizer < 0.35 ? 'light' : stabilizer < 0.7 ? 'medium' : 'strong'}</span>
+          </label>
         </div>
         <div className="world-dock-field">
           <CurveEditor
             project={project}
             structures={structures}
             mode={mode}
+            view={view}
+            stabilizer={stabilizer}
             grid={grid}
             ui={ui}
             setUi={setUi}
@@ -159,24 +172,25 @@ export default function WorldView() {
           />
           <p className="world-dock-hint">
             {mode === 'draw'
-              ? ui.drawingCurveId
-                ? 'Click to add points · Enter / double-click to finish'
-                : 'Click on the ground to start a curve'
+              ? 'Drag to draw · drag point → point to connect'
               : mode === 'edit'
-                ? 'Drag points · click a curve to select · Delete removes point/curve'
+                ? view === 'top'
+                  ? 'Drag point · ⇧drag = height · dbl-click curve = add point · Del'
+                  : 'Drag point in X / height · dbl-click curve = add point'
                 : 'Drag to pan · wheel to zoom'}
           </p>
         </div>
-        <Outliner structures={structures} statusOf={statusOf} ui={ui} setUi={setUi} dispatch={dispatch} />
+        <Outliner structures={structures} ui={ui} setUi={setUi} dispatch={dispatch} />
       </section>
 
       <section className="world-viewport" aria-label="3D world">
         <WorldViewport
           ref={viewportRef}
           structures={structures}
-          lithic={lithic}
           stage={stage}
           xray={xray}
+          presentation={project.world.presentation}
+          terrain={project.world.terrain}
           selectedCurveId={ui.selectedCurveId}
           onSelect={(curveId) => setUi((u) => ({ ...u, selectedCurveId: curveId, selectedPoint: null }))}
         />
@@ -186,12 +200,11 @@ export default function WorldView() {
         stage={stage}
         project={project}
         structure={selected}
-        lithicState={selected ? lithic[selected.structureId] : null}
-        statusOf={statusOf}
+        ui={ui}
+        setUi={setUi}
         dispatch={dispatch}
-        refine={refine}
-        regenerate={regenerate}
         onFit={fit}
+        labNoise={labNoise}
       />
     </div>
   )

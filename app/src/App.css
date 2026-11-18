@@ -1858,3 +1858,84 @@
     flex-wrap: wrap;
   }
 }
+
+/* Curve World — feedback round 1 additions */
+.world-stabilizer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 100%;
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.world-stabilizer input {
+  flex: 1;
+  accent-color: var(--signal);
+}
+
+.world-outliner-role {
+  margin-left: 6px;
+  color: var(--text-mute);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.world-section {
+  border-top: 1px solid var(--line);
+}
+
+.world-section-head {
+  padding: 6px 8px 2px;
+  color: var(--text-mute);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.world-num-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.world-num {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-dim);
+  font-size: 10px;
+}
+
+.world-app .world-num input {
+  width: 100%;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: 10px var(--mono);
+  box-sizing: border-box;
+}
+
+.world-app .world-param-reset {
+  height: 14px;
+  margin-left: 4px;
+  padding: 0 3px;
+  border: 0;
+  color: var(--signal);
+  font-size: 10px;
+}
+
+.world-param select,
+.world-param input[type='text'] {
+  width: 100%;
+}
+
+.world-stabilizer.is-disabled {
+  opacity: 0.35;
+}

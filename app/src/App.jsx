@@ -29,7 +29,7 @@ import { DEFAULT_NOISE } from "./noise/settings.js";
 import "./App.css";
 
 function App() {
-  const [tab, setTab] = useState("gothicGrammar");
+  const [tab, setTab] = useState("curveWorld");
   const [particles, setParticles] = useState(DEFAULT_PARTICLES);
   const [noise, setNoise] = useState(DEFAULT_NOISE);
 
@@ -195,11 +195,10 @@ function App() {
       {tab === "ornament" ? <OrnamentSystemView /> : null}
       {tab === "agents" ? <AgentSimulationView /> : null}
       {tab === "curveSandbox" ? <CurveSandboxView /> : null}
-      {tab === "curveWorld" ? <WorldView /> : null}
+      {tab === "curveWorld" ? <WorldView labNoise={noise} /> : null}
 
       <header className="app-header">
-        <p className="app-kicker">yc2925</p>
-        <h1>Procedural World Building</h1>
+        <h1>LITHIC CODE</h1>
 
         <AppTabs
           tab={tab}

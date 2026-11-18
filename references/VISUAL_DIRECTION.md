@@ -85,6 +85,12 @@ Important: none of REF-021–029 is Gothic. REF-024, 026 and 029 are classical/R
 6. **Repeated bays along a spine** (REF-029, with Gothic REF-004) — a Structural Spine curve is sampled by arc length into bays; spacing, height and rib density visibly change the rhythm. Vary typology along the curve (curvature, height, ends) so the same window is not repeated everywhere.
 7. **Human scale** (REF-023, 027) — storey height ≈ 3–4 m; keep a scale figure option in the world.
 
+### Feedback round 1 (REF-026, REF-030)
+
+- **Lithic = dry-stone stacking (REF-030)**, replacing the fused SDF mass: discrete faceted stones placed one by one along each skeleton member; thin axis along the member tangent (voussoirs radial on curves, flat courses on piers); staggered joints; larger stones low; gaps; tilt jitter; gravel at ground contacts; mixed grey / tan / rust / green.
+- **X-ray = wire-mesh scrim (REF-026)**: semi-transparent white mesh on pure black, additive layering so overlaps glow, fresnel edges, exploded suspended fragments, thin horizontal light rings.
+- **Skeleton = the drawn curves themselves** (no repeated arch arrays) plus procedural branching.
+
 ### Presentation modes
 
 - *Skeleton / X-ray* (REF-021, 024, 029): luminous additive lines on black, skeleton visible through semi-transparent rock.
