@@ -575,6 +575,35 @@
       },
       "sha256": "0e138b5ad25e58d3dad680d839108890ee1b2334f4c2dc814b2537dafdfbea0e",
       "bytes": 284519
+    },
+    {
+      "id": "REF-031",
+      "original_image_number": "World stage feedback (scan image)",
+      "numbering_basis": "Step 47 — World stage atmosphere reference",
+      "original_filename": "16.jpg (chat attachment)",
+      "filename": "REF-031-photogrammetry-point-cloud-survey-tree.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-031-photogrammetry-point-cloud-survey-tree.jpg",
+      "category": "Photogrammetry point-cloud survey of a tree with annotated capture stations",
+      "reference_groups": [
+        "E",
+        "B"
+      ],
+      "role": "Primary reference for the World stage 'scan' look: the built world shown as a dense point cloud on pure black, with survey stations (photo frames, dots, traverse lines, monospace metadata labels).",
+      "historical_style_uncertainty": "Contemporary social-media image of a photogrammetry / survey visualisation; author and site unverified. Use only for rendering mood and annotation language, not for architecture.",
+      "analysis": {
+        "architectural_morphology": "Not architectural: a multi-stemmed tree and ground patch reconstructed as points.",
+        "spatial_composition": "Subject centred and vertical; ground scan forms a ragged slab that dissolves into black; annotation frames scattered around and over the subject, linked by thin straight lines.",
+        "material_characteristics": "Pale grey-white points carrying baked daylight shading; colour survives only where strong (lime moss on the ground, red survey paint on the trunk).",
+        "rock_formation": "n/a — read as: surfaces become stochastic point samples; density thins toward the top and edges; stray floater points form a faint halo.",
+        "structural_hierarchy": "Subject (dense) → ground patch (dense near base, sparse outward) → overlay (frames, lines, labels).",
+        "scale": "Single tree (~8–12 m); labels and frames are screen-space and constant size.",
+        "silhouette": "Soft, granular edges from point sampling; no hard outlines.",
+        "atmosphere": "Nocturnal, forensic, archival: pure black void, no sky, data annotations as the only graphic language.",
+        "procedural_implications": "Sample every stone surface by area into points (density per m²), bake simple lighting into point colour, desaturate toward scan grey, thin coverage with height and noise holes, scatter floaters along normals; ground as jittered-grid points with a ragged radial falloff and lichen/moss patches near bases; survey stations placed by golden-angle around the structures, each rendering a photograph of the solid model from its position, linked by a traverse, with procedural id/time/date/coordinate labels and red paint marks at their targets."
+      },
+      "sha256": "721f54bf94b205e6e332fd601cfa2880c5201ff717bbddec29b273b7214603b5",
+      "bytes": 150795
     }
   ],
   "reference_group_legend": {

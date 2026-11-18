@@ -89,6 +89,13 @@ Important: none of REF-021–029 is Gothic. REF-024, 026 and 029 are classical/R
 
 - **Lithic = dry-stone stacking (REF-030)**, replacing the fused SDF mass: discrete faceted stones placed one by one along each skeleton member; thin axis along the member tangent (voussoirs radial on curves, flat courses on piers); staggered joints; larger stones low; gaps; tilt jitter; gravel at ground contacts; mixed grey / tan / rust / green.
 - **X-ray = wire-mesh scrim (REF-026)**: semi-transparent white mesh on pure black, additive layering so overlaps glow, fresnel edges, exploded suspended fragments, thin horizontal light rings.
+
+### World stage = point-cloud survey scan (REF-031, group E)
+
+- The built world rendered as a photogrammetry point cloud on pure black: every stone surface sampled by area into points, daylight baked into point colour and desaturated toward scan grey; coverage thins toward the top and in noise holes; stray floater points form a faint halo.
+- Ground = ragged radial scan patch, dense at the structures and dissolving into sparse points.
+- Survey overlay: stations around the structures, each showing a photograph rendered from the solid model at its position, linked by a thin traverse line, with monospace id / time / date / coordinate labels and red survey paint at each target.
+- Ground lichen tint is the one opt-in exception to the "no moss" negative below (slider, default 0).
 - **Skeleton = the drawn curves themselves** (no repeated arch arrays) plus procedural branching.
 
 ### Presentation modes

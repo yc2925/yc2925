@@ -42,7 +42,36 @@ export const DEFAULT_PRESENTATION = Object.freeze({
   exposure: 1.35,
   xrayExposure: 1, // X-ray glow gain: minimal light → blown-out over-exposure
   fog: 0.25, // atmospheric depth fog in the World view (0 = clear)
+  // Point Cloud view (REF-031): photogrammetry survey of the built world.
+  pointDensity: 45, // points per m² of stone surface
+  pointSize: 1,
+  colorFidelity: 0.3, // 0 scan grey · 1 true stone palette
+  scanNoise: 0.35, // depth noise + floating stray points
+  coverage: 0.45, // thinning toward the top + noise holes
+  scanRadius: 60, // m, ground scan patch
+  groundDensity: 10, // points per m² of ground
+  lichen: 0, // opt-in ground lichen (VISUAL_DIRECTION negative: off by default)
+  stations: 7, // survey stations (photo frames + labels)
+  thumbSize: 84, // px, photo frame height
+  markers: 0.5, // red survey paint at station targets
+  surveySeed: 3,
 })
+
+/** Point Cloud view controls (REF-031). */
+export const SCAN_SPECS = Object.freeze([
+  { key: 'pointDensity', label: 'Point density', min: 5, max: 150, step: 1, unit: 'pts/m²', tier: 'essential', help: 'Points sampled per square metre of stone surface (area-weighted on every stone).' },
+  { key: 'pointSize', label: 'Point size', min: 0.3, max: 3, step: 0.05, tier: 'essential', help: 'Size of each point relative to the sample spacing (perspective-scaled, at least one pixel).' },
+  { key: 'colorFidelity', label: 'Colour fidelity', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Scan grey (0) to the true limestone / sandstone palette (1). Daylight shading stays baked into each point.' },
+  { key: 'scanNoise', label: 'Scan noise', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Depth jitter along the surface normal plus stray floater points that form a faint halo.' },
+  { key: 'coverage', label: 'Coverage falloff', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'How much the scan thins toward the top of the structures and breaks into noise holes.' },
+  { key: 'scanRadius', label: 'Ground scan radius', min: 20, max: 300, step: 5, unit: 'm', tier: 'essential', help: 'Radius of the scanned ground patch around the structures; beyond it the points dissolve into sparse dust.' },
+  { key: 'groundDensity', label: 'Ground density', min: 1, max: 40, step: 0.5, unit: 'pts/m²', tier: 'advanced', help: 'Ground points per square metre inside the scan patch.' },
+  { key: 'lichen', label: 'Ground lichen', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Green lichen patches on the ground that gather at the structure bases (REF-031 moss). Off by default.' },
+  { key: 'stations', label: 'Survey stations', min: 0, max: 12, step: 1, tier: 'essential', help: 'Capture stations around the structures: a photograph rendered from each position, linked by the survey traverse, with id / time / date / coordinates.' },
+  { key: 'markers', label: 'Survey paint', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Red survey paint sprayed on the stones each station aims at (size and strength).' },
+  { key: 'thumbSize', label: 'Photo size', min: 40, max: 180, step: 2, unit: 'px', tier: 'advanced', help: 'On-screen height of the station photographs.' },
+  { key: 'surveySeed', label: 'Survey seed', min: 1, max: 999, step: 1, tier: 'advanced', help: 'Re-draws the station positions, targets and capture times.' },
+])
 
 export const PRESENTATION_SPECS = Object.freeze([
   { key: 'explode', label: 'Explode', min: 0, max: 30, step: 0.5, unit: 'm', tier: 'essential', help: 'Pushes fragments (members, tracery motifs, carved pieces, stone courses) apart from the structure centre, suspended in space (REF-026).' },

@@ -21,6 +21,8 @@ import { DEFAULT_TERRAIN_PARAMS, TERRAIN_PARAM_SPECS, PRESENTATION_SPECS } from 
 import { computePieceOffsets } from '../src/world/compose/geometry.js'
 import { buildPointedArch } from '../src/geometry/gothicGrammar/primitives/index.js'
 import { Quaternion, Vector3 } from 'three'
+import { buildGroundPoints, buildStonePoints, surfacePool, surveyStations, SCAN_RED, MAX_STONE_POINTS, MAX_GROUND_POINTS } from '../src/world/compose/scanCloud.js'
+import { DEFAULT_PRESENTATION, SCAN_SPECS } from '../src/world/compose/worldParams.js'
 
 let failures = 0
 const check = (cond, msg) => {
@@ -307,6 +309,70 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check(PRESENTATION_SPECS.every((s) => s.help) && SKELETON_PARAM_SPECS.every((s) => s.help) && LITHIC_PARAM_SPECS.every((s) => s.help) && TERRAIN_PARAM_SPECS.every((s) => s.help), 'every parameter has a tooltip')
   const p = createEmptyProject()
   check(resolveStructureParams(p, 'none').skeleton.thickness === DEFAULT_SKELETON_PARAMS.thickness, 'world defaults resolve')
+}
+
+
+// ---------------------------------------------------------------- World scan look (REF-031)
+{
+  const skel = buildCurveSkeleton({ curveId: 'scan', curveType: 'catmullRom', curveRole: 'rib' }, liftToPointedArch(ARCH, 1.1), {}, 42, {})
+  const { stones } = buildStones(skel, {}, 42)
+  const protos = createStonePrototypes(0.25, 0.75)
+  const pool = surfacePool(protos[0])
+  const box = pool.pos.every((v) => Math.abs(v) <= 0.5 + 1e-4)
+  check(pool.count === 2000 && pool.area > 0.5 && box, `surface pool: 2000 area-weighted samples on the unit-box prototype (area ${pool.area.toFixed(2)})`)
+  const base = { density: 30, fidelity: 0.3, noise: 0, coverage: 0, yTop: skel.bounds.max.y, markers: [] }
+  const a = buildStonePoints(stones, protos, null, base)
+  const b = buildStonePoints(stones, protos, null, { ...base, density: 60 })
+  check(a.count > 1000 && Math.abs(b.count / a.count - 2) < 0.15, `stone points scale with density (${a.count} → ${b.count})`)
+  check(a.position.every(Number.isFinite) && a.color.every((c) => Number.isFinite(c) && c >= 0), 'stone points finite, colours non-negative')
+  const again = buildStonePoints(stones, protos, null, base)
+  check(again.count === a.count && again.position[100] === a.position[100], 'stone points are deterministic')
+  // Every point lies on (near) a stone: within the stone's half-diagonal of its centre.
+  let off = 0
+  for (let i = 0; i < a.count; i += 97) {
+    const p = [a.position[i * 3], a.position[i * 3 + 1], a.position[i * 3 + 2]]
+    if (!stones.some((st) => Math.hypot(p[0] - st.p[0], p[1] - st.p[1], p[2] - st.p[2]) <= Math.hypot(...st.s) * 0.5 + 0.05)) off += 1
+  }
+  check(off === 0, `noise 0: every sampled point lies on a stone (${off} off)`)
+  const thin = buildStonePoints(stones, protos, null, { ...base, coverage: 1 })
+  check(thin.count < a.count * 0.8, `coverage falloff thins the cloud (${a.count} → ${thin.count})`)
+  const hi = (r) => { let n = 0, s = 0; for (let i = 0; i < r.count; i++) if (r.position[i * 3 + 1] > base.yTop * 0.7) { n++ } ; return n }
+  check(hi(thin) / thin.count < hi(a) / a.count, 'coverage thins the top more than the base')
+  const st = surveyStations({ bounds: skel.bounds, count: 7, seed: 3, stones: stones.map((s) => ({ p: s.p, kind: s.kind, paletteIndex: s.paletteIndex, curve: 'Curve 001' })) })
+  check(st.length === 7 && st.every((s) => s.pos.every(Number.isFinite) && !('time' in s) && !('date' in s)), 'survey stations: 7, no invented time / date fields')
+  check(st.every((s) => stones.some((x) => x.p[0] === s.target[0] && x.p[1] === s.target[1] && x.kind === s.kind && PALETTE_HEX[x.paletteIndex] === s.color)), 'every station reports a real target stone (position, kind, palette colour)')
+  check(st.every((s) => Math.abs(s.range - Math.hypot(s.pos[0] - s.target[0], s.pos[1] - s.target[1], s.pos[2] - s.target[2])) < 1e-9), 'station range = measured camera → target distance')
+  {
+    const big = []
+    for (let k = 0; k < 40; k++) big.push(...stones.map((x) => ({ ...x, p: [x.p[0] + k * 40, x.p[1], x.p[2]] })))
+    const t0 = performance.now()
+    const r = buildStonePoints(big, protos, null, { ...base, density: 150 })
+    check(r.count <= MAX_STONE_POINTS * 1.01 && performance.now() - t0 < 3000, `point budget holds for a huge structure (${big.length} stones → ${r.count} points, ${(performance.now() - t0).toFixed(0)} ms)`)
+  }
+  const red = buildStonePoints(stones, protos, null, { ...base, markers: st.map((s) => ({ c: s.target, r: 1.5, k: 1 })) })
+  let reds = 0
+  for (let i = 0; i < red.count; i++) if (red.color[i * 3] > 3 * red.color[i * 3 + 1] + 0.05) reds += 1
+  check(reds > 20 && SCAN_RED === '#ff2a2a', `survey paint marks the station targets red (${reds} points)`)
+  const height = createTerrainHeight(DEFAULT_TERRAIN_PARAMS)
+  const g = buildGroundPoints({ height, centre: { x: 0, z: 0 }, radius: 60, density: 4, lichen: 0, fidelity: 0.3, noise: 0, seed: 7 })
+  let inner = 0, outer = 0
+  for (let i = 0; i < g.count; i++) {
+    const r = Math.hypot(g.position[i * 3], g.position[i * 3 + 2])
+    if (r < 20) inner++
+    else if (r > 80 && r < 100) outer++
+    if (Math.abs(g.position[i * 3 + 1] - height(g.position[i * 3], g.position[i * 3 + 2])) > 0.05) inner = -1e9
+  }
+  const dIn = inner / (Math.PI * 400), dOut = outer / (Math.PI * (100 ** 2 - 80 ** 2))
+  check(dIn > 3 && dOut < dIn * 0.1, `ground scan: dense centre (${dIn.toFixed(2)}/m²), sparse beyond the radius (${dOut.toFixed(2)}/m²), points on the terrain`)
+  const greens = (r) => { let n = 0; for (let i = 0; i < r.count; i++) if (r.color[i * 3 + 1] > r.color[i * 3] * 1.3) n++; return n }
+  const gl = buildGroundPoints({ height, centre: { x: 0, z: 0 }, radius: 60, density: 4, lichen: 0.8, fidelity: 0.3, noise: 0, seed: 7 })
+  check(greens(g) === 0 && greens(gl) > 100, `lichen is opt-in (0 green points by default, ${greens(gl)} at 0.8)`)
+  {
+    const t0 = performance.now()
+    const r = buildGroundPoints({ height, centre: { x: 0, z: 0 }, radius: 300, density: 40, lichen: 0.5, fidelity: 0.3, noise: 0.35, seed: 7 })
+    check(r.count <= MAX_GROUND_POINTS * 1.15, `ground budget holds at max radius × density (${r.count} points, ${(performance.now() - t0).toFixed(0)} ms)`)
+  }
+  check(!('look' in DEFAULT_PRESENTATION) && DEFAULT_PRESENTATION.lichen === 0 && SCAN_SPECS.every((s) => s.help && s.key in DEFAULT_PRESENTATION), 'point cloud is its own view (no look switch); every scan control has a default and a tooltip')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')

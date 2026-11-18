@@ -35,6 +35,20 @@ export default function WorldView({ labNoise = null }) {
   const [grid, setGrid] = useState(1)
   const [curveType, setCurveType] = useState('catmullRom')
   const [xray, setXray] = useState(false)
+  const [pointCloud, setPointCloud] = useState(false)
+  // Point cloud and X-ray are World-stage view modes, mutually exclusive.
+  const togglePointCloud = () => {
+    setXray(false)
+    setPointCloud((p) => !p)
+  }
+  const toggleXray = () => {
+    setPointCloud(false)
+    setXray((x) => !x)
+  }
+  const inWorld = stage === 'world'
+  // Effective stage for the viewport / panel: the point cloud renders as its own view.
+  const viewStage = inWorld && pointCloud ? 'pointcloud' : stage
+  const viewXray = inWorld && xray
   const [view, setView] = useState('top')
   const [stabilizer, setStabilizer] = useState(0.45)
   const [dockWide, setDockWide] = useState(false)
@@ -106,9 +120,16 @@ export default function WorldView({ labNoise = null }) {
           </button>
         ))}
         <span className="world-stages-spacer" />
-        <button type="button" className={xray ? 'is-active' : undefined} onClick={() => setXray((x) => !x)} title="X-ray: wire-mesh scrim on black — see through stones to the skeleton inside (REF-026)">
+        {inWorld ? (
+          <>
+        <button type="button" className={pointCloud ? 'is-active' : undefined} onClick={togglePointCloud} title="Point cloud: the built world as a photogrammetry survey scan on black, with survey stations (REF-031)">
+          Point cloud
+        </button>
+        <button type="button" className={xray ? 'is-active' : undefined} onClick={toggleXray} title="X-ray: wire-mesh scrim on black — see through stones to the skeleton inside (REF-026)">
           X-ray
         </button>
+          </>
+        ) : null}
         <button type="button" title="Frame the selected structure — or the whole world when nothing is selected" onClick={() => (selected ? fit(selected) : fitAll())} disabled={!structures.length}>
           {selected ? 'Fit selected' : 'Fit world'}
         </button>
@@ -187,8 +208,8 @@ export default function WorldView({ labNoise = null }) {
         <WorldViewport
           ref={viewportRef}
           structures={structures}
-          stage={stage}
-          xray={xray}
+          stage={viewStage}
+          xray={viewXray}
           presentation={project.world.presentation}
           terrain={project.world.terrain}
           selectedCurveId={ui.selectedCurveId}
@@ -197,7 +218,7 @@ export default function WorldView({ labNoise = null }) {
       </section>
 
       <ParamPanel
-        stage={stage}
+        stage={viewStage}
         project={project}
         structure={selected}
         ui={ui}

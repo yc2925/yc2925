@@ -9,11 +9,15 @@
  * X-ray toggle: everything as additive wire-mesh scrim on pure black,
  * stones outlined facet by facet; X-ray exposure scales the additive glow
  * from minimal light to blown-out.
+ * Point Cloud stage (REF-031): stones and ground as a photogrammetry point
+ * cloud on black; survey stations photograph the (hidden) solid model.
+ * Clouds are built off the render path (deferred, debounced) within a
+ * world-wide point budget, so slider drags never block or exhaust memory.
  * Explode separates fragments in every stage.
  * Own camera: edits never move it; "Fit selected" is explicit.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Line, OrbitControls } from '@react-three/drei'
@@ -21,6 +25,8 @@ import { buildMemberGeometry, computePieceOffsets, createStonePrototypes } from 
 import { createScrimMaterial } from './scrimMaterial.js'
 import { createTerrainHeight } from './terrain.js'
 import { createStoneMaterial } from './stoneMaterial.js'
+import { baseProximity, buildGroundPoints, buildStonePoints, stationKey, stoneSurfaceArea, surveyStations, WORLD_STONE_POINTS } from './scanCloud.js'
+import { LAYER_SOLID, ScanLayerSetup, ScanPoints, SurveyOverlay } from './ScanLayer.jsx'
 
 const SIGNAL = '#ff2020'
 
@@ -86,7 +92,7 @@ const tmpP = new THREE.Vector3()
 const tmpS = new THREE.Vector3()
 const tmpC = new THREE.Color()
 
-function StoneBatch({ geometry, stones, offsets, material, selected }) {
+function StoneBatch({ geometry, stones, offsets, material, selected, layers = 0 }) {
   const ref = useRef(null)
   useLayoutEffect(() => {
     const mesh = ref.current
@@ -107,10 +113,10 @@ function StoneBatch({ geometry, stones, offsets, material, selected }) {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     mesh.computeBoundingSphere()
   }, [stones, offsets, selected])
-  return <instancedMesh ref={ref} args={[geometry, material, Math.max(1, stones.length)]} castShadow receiveShadow frustumCulled={false} />
+  return <instancedMesh ref={ref} args={[geometry, material, Math.max(1, stones.length)]} castShadow receiveShadow frustumCulled={false} layers={layers} />
 }
 
-function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected }) {
+function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected, layers = 0 }) {
   const byProto = useMemo(() => {
     const groups = prototypes.map(() => [])
     for (const st of lithic.stones) groups[st.proto % prototypes.length].push(st)
@@ -119,7 +125,8 @@ function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected })
   return byProto.map((stones, k) =>
     stones.length ? (
       <StoneBatch
-        key={`${k}-${stones.length}-${scrim ? 'x' : 's'}`}
+        key={`${k}-${stones.length}-${scrim ? 'x' : 's'}-${layers}`}
+        layers={layers}
         geometry={prototypes[k]}
         stones={stones}
         offsets={offsets}
@@ -168,7 +175,7 @@ function useFadingGroundMaterial(bg) {
   return material
 }
 
-function Terrain({ params, scrim, xray, bg }) {
+function Terrain({ params, scrim, xray, bg, scan }) {
   const geometry = useMemo(() => {
     const size = TERRAIN_HALF * 2
     const seg = 256
@@ -188,6 +195,8 @@ function Terrain({ params, scrim, xray, bg }) {
   }, [params])
   useEffect(() => () => geometry.dispose(), [geometry])
   const ground = useFadingGroundMaterial(bg)
+  // Scan look: the solid ground is only photographed by the survey stations.
+  if (scan) return <mesh geometry={geometry} material={ground} receiveShadow layers={LAYER_SOLID} />
   return (
     <group>
       <mesh geometry={geometry} material={ground} receiveShadow renderOrder={-2} visible={!xray} />
@@ -226,9 +235,29 @@ const CameraRig = forwardRef(function CameraRig(_, ref) {
 })
 
 
+// --------------------------------------------------------------- deferred builds
+
+/**
+ * Run an expensive build after the deps settle (debounced), outside render;
+ * keeps showing the previous result meanwhile. Disabled → released at once.
+ */
+function useDeferredBuild(enabled, build, deps, delay = 90) {
+  const [value, setValue] = useState(null)
+  useEffect(() => {
+    if (!enabled) {
+      setValue(null)
+      return undefined
+    }
+    const id = setTimeout(() => setValue(build()), delay)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, ...deps])
+  return enabled ? value : null
+}
+
 // --------------------------------------------------------------- structure
 
-function Structure({ s, stage, xray, explode, prototypesFor, materials, selected, onSelect }) {
+function Structure({ s, stage, xray, explode, prototypesFor, materials, selected, onSelect, scan, order = 0 }) {
   const center = useMemo(() => structureCenter(s.skeleton), [s.skeleton])
   const memberOffsets = useMemo(
     () =>
@@ -246,6 +275,17 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
   const prototypes = prototypesFor(s.params.lithic.irregularity, s.params.lithic.dressing)
   const showStones = stage === 'lithic' || stage === 'world'
   const scrimMode = xray || stage === 'skeleton'
+  // Survey paint only from stations whose target lies on this structure.
+  const b = s.skeleton.bounds
+  const markers = scan && b ? scan.markers.filter((m) => m.c[0] >= b.min.x - 4 && m.c[0] <= b.max.x + 4 && m.c[2] >= b.min.z - 4 && m.c[2] <= b.max.z + 4 && m.c[1] <= b.max.y + 4) : []
+  const markersKey = markers.map((m) => m.c.map((v) => v.toFixed(2)).join(',') + m.r.toFixed(2)).join(';')
+  const optsKey = scan ? [scan.density, scan.fidelity, scan.noise, scan.coverage, scan.yTop.toFixed(1)].join('|') : ''
+  const cloud = useDeferredBuild(
+    !!scan,
+    () => buildStonePoints(s.lithic.stones, prototypes, stoneOffsets, { ...scan, markers }),
+    [s.lithic, prototypes, stoneOffsets, optsKey, markersKey],
+    90 + order * 40,
+  )
   return (
     <group
       onClick={(e) => {
@@ -253,7 +293,7 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
         onSelect(s.curveId)
       }}
     >
-      {s.skeleton.sourcePolyline.length >= 2 ? (
+      {s.skeleton.sourcePolyline.length >= 2 && (!scan || selected) ? (
         <Line points={s.skeleton.sourcePolyline.map((p) => [p.x, p.y + 0.05, p.z])} color={selected ? SIGNAL : '#9a9a9a'} lineWidth={selected ? 2 : 1.25} transparent opacity={stage === 'curves' ? 1 : selected ? 0.8 : 0.3} />
       ) : null}
       {stage === 'curves' ? <CenterLines skeleton={s.skeleton} selected={selected} /> : null}
@@ -261,8 +301,9 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
         <MemberTubes skeleton={s.skeleton} offsets={memberOffsets} scrim={materials.tubeScrim} />
       ) : null}
       {showStones ? (
-        <Stones lithic={s.lithic} prototypes={prototypes} offsets={stoneOffsets} scrim={scrimMode ? materials.stoneScrim : null} solidMaterial={materials.stoneSolid} selected={selected} />
+        <Stones lithic={s.lithic} prototypes={prototypes} offsets={stoneOffsets} scrim={scrimMode ? materials.stoneScrim : null} solidMaterial={materials.stoneSolid} selected={selected && !scan} layers={scan ? LAYER_SOLID : 0} />
       ) : null}
+      {cloud && scan ? <ScanPoints data={cloud} worldSize={(scan.pointSize * 1.1) / Math.sqrt(scan.density)} /> : null}
     </group>
   )
 }
@@ -270,8 +311,9 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
 const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xray, presentation, terrain, selectedCurveId, onSelect }, ref) {
   const rig = useRef(null)
   useImperativeHandle(ref, () => ({ fit: (b) => rig.current?.fit(b) }))
+  const pointCloud = stage === 'pointcloud'
   const scrimMode = xray || stage === 'skeleton'
-  const world = stage === 'world'
+  const world = stage === 'world' || pointCloud
 
   const materials = useMemo(
     () => ({
@@ -289,7 +331,79 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
   }, [materials, presentation.xrayExposure])
 
 
-  const bg = scrimMode ? '#000000' : world ? '#2a2c30' : '#1a1b1d'
+  const scanLook = pointCloud && !scrimMode
+  const bg = scrimMode || scanLook ? '#000000' : world ? '#2a2c30' : '#1a1b1d'
+
+  // ---- scan look (REF-031)
+  const visible = useMemo(() => structures.filter((s) => s.curve.visibility && s.skeleton.bounds), [structures])
+  const sceneBounds = useMemo(() => {
+    if (!visible.length) return null
+    const b = { min: { x: Infinity, y: Infinity, z: Infinity }, max: { x: -Infinity, y: -Infinity, z: -Infinity } }
+    for (const s of visible)
+      for (const k of ['x', 'y', 'z']) {
+        b.min[k] = Math.min(b.min[k], s.skeleton.bounds.min[k])
+        b.max[k] = Math.max(b.max[k], s.skeleton.bounds.max[k])
+      }
+    return b
+  }, [visible])
+  const P = presentation
+  // Stations move only when the scene bounds, stone count, count or seed change.
+  const stoneCount = visible.reduce((n, s) => n + s.lithic.stones.length, 0)
+  const sKey = scanLook ? stationKey(sceneBounds, P.stations ?? 0, P.surveySeed ?? 1, stoneCount) : 'off'
+  const visibleRef = useRef(visible)
+  visibleRef.current = visible
+  const stations = useMemo(
+    () =>
+      scanLook
+        ? surveyStations({
+            bounds: sceneBounds,
+            count: P.stations ?? 0,
+            seed: P.surveySeed ?? 1,
+            stones: visibleRef.current.flatMap((s) => s.lithic.stones.map((st) => ({ p: st.p, kind: st.kind, paletteIndex: st.paletteIndex, curve: s.curve.name }))),
+          })
+        : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sKey],
+  )
+  // World-wide point budget: density drops (quantised, so edits rarely rebuild everything) when the total surface is large.
+  const density = useMemo(() => {
+    const want = P.pointDensity ?? 45
+    if (!scanLook) return want
+    const area = visible.reduce((a, s) => a + stoneSurfaceArea(s.lithic.stones, prototypesFor(s.params.lithic.irregularity, s.params.lithic.dressing)), 0)
+    const cap = WORLD_STONE_POINTS / Math.max(1, area)
+    if (cap >= want) return want
+    const q = Math.pow(10, Math.floor(Math.log10(cap)) - 1)
+    return Math.max(0.5, Math.floor(cap / q) * q)
+  }, [scanLook, visible, P.pointDensity])
+  const scanOpts = useMemo(
+    () =>
+      scanLook
+        ? {
+            density,
+            pointSize: P.pointSize ?? 1,
+            fidelity: P.colorFidelity ?? 0.3,
+            noise: P.scanNoise ?? 0.35,
+            coverage: P.coverage ?? 0.45,
+            yTop: sceneBounds?.max.y ?? 30,
+            markers: (P.markers ?? 0) > 0 ? stations.map((st) => ({ c: st.target, r: 0.5 + 1.8 * P.markers, k: P.markers })) : [],
+          }
+        : null,
+    [scanLook, density, P.pointSize, P.colorFidelity, P.scanNoise, P.coverage, P.markers, sceneBounds, stations],
+  )
+  const groundCloud = useDeferredBuild(scanLook, () => {
+    const centre = sceneBounds ? { x: (sceneBounds.min.x + sceneBounds.max.x) / 2, z: (sceneBounds.min.z + sceneBounds.max.z) / 2 } : { x: 0, z: 0 }
+    return buildGroundPoints({
+      height: createTerrainHeight(terrain),
+      centre,
+      radius: P.scanRadius ?? 60,
+      density: P.groundDensity ?? 10,
+      lichen: P.lichen ?? 0,
+      fidelity: P.colorFidelity ?? 0.3,
+      noise: P.scanNoise ?? 0.35,
+      near: baseProximity(visible.map((s) => s.lithic.stones)),
+      seed: terrain.seed,
+    })
+  }, [sKey, terrain, P.scanRadius, P.groundDensity, P.lichen, P.colorFidelity, P.scanNoise], 60)
 
   return (
     <Canvas className="world-viewport-canvas" shadows camera={{ position: [70, 55, 95], fov: 42, near: 0.5, far: 5000 }} onPointerMissed={() => onSelect(null)} gl={{ antialias: true }}>
@@ -315,8 +429,11 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
       <directionalLight position={[-60, -40, -50]} intensity={0.55} color="#cfd6dc" />
       <OrbitControls makeDefault enableDamping={false} />
       <CameraRig ref={rig} />
+      <ScanLayerSetup />
 
-      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} bg={bg} /> : null}
+      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} bg={bg} scan={scanLook} /> : null}
+      {groundCloud ? <ScanPoints data={groundCloud} worldSize={(P.pointSize ?? 1) * 0.7 / Math.sqrt(P.groundDensity ?? 10)} /> : null}
+      {scanLook && stations.length ? <SurveyOverlay stations={stations} thumbSize={P.thumbSize ?? 84} contentKey={visible} /> : null}
       {!world && !scrimMode ? <gridHelper args={[200, 20, '#4a4a4a', '#2c2c2c']} position-y={0.01} /> : null}
       {!world && !scrimMode ? (
         <mesh rotation-x={-Math.PI / 2} position-y={-0.02} receiveShadow>
@@ -325,18 +442,20 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
         </mesh>
       ) : null}
 
-      {structures.map((s) =>
+      {structures.map((s, i) =>
         s.curve.visibility ? (
           <Structure
             key={s.structureId}
             s={s}
-            stage={stage}
+            stage={pointCloud ? 'world' : stage}
+            order={i}
             xray={xray}
             explode={presentation.explode}
             prototypesFor={prototypesFor}
             materials={materials}
             selected={s.curveId === selectedCurveId}
             onSelect={onSelect}
+            scan={scanOpts}
           />
         ) : null,
       )}

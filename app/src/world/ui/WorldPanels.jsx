@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { SKELETON_PARAM_SPECS, ROLE_RULES } from '../skeleton/params.js'
 import { LITHIC_PARAM_SPECS } from '../lithic/params.js'
-import { PRESENTATION_SPECS, TERRAIN_PARAM_SPECS } from '../compose/worldParams.js'
+import { PRESENTATION_SPECS, SCAN_SPECS, TERRAIN_PARAM_SPECS } from '../compose/worldParams.js'
 import { terrainFromNoiseLayer } from '../compose/terrain.js'
 import { liftToPointedArch } from '../curves/archLift.js'
 
@@ -159,7 +159,7 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
   const point = curve && ui.selectedPoint != null ? structure.resolved[ui.selectedPoint] : null
   const movePoint = (patch) => dispatch({ type: 'movePoint', curveId: curve.curveId, index: ui.selectedPoint, point: { ...point, ...patch } }, { coalesce: `num-${curve.curveId}-${ui.selectedPoint}` })
 
-  const title = { curves: 'Curve', skeleton: 'Gothic skeleton', lithic: 'Lithic formation', world: 'World & terrain' }[stage]
+  const title = { curves: 'Curve', skeleton: 'Gothic skeleton', lithic: 'Lithic formation', world: 'World & terrain', pointcloud: 'Point cloud' }[stage]
   return (
     <aside className="world-panel">
       <div className="world-panel-head">
@@ -170,7 +170,12 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
         </select>
       </div>
 
-      {stage === 'curves' ? (
+      {stage === 'pointcloud' ? (
+        <>
+          <p className="world-panel-scope">Photogrammetry survey of the built world (REF-031). Stations report measured data only: target stone, camera position and range.</p>
+          <ParamRows specs={SCAN_SPECS} values={world.presentation} tier={tier} onChange={setPresentation} />
+        </>
+      ) : stage === 'curves' ? (
         curve ? (
           <>
             <label className="world-param" title="Display name in the outliner">
