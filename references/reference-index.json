@@ -604,6 +604,64 @@
       },
       "sha256": "721f54bf94b205e6e332fd601cfa2880c5201ff717bbddec29b273b7214603b5",
       "bytes": 150795
+    },
+    {
+      "id": "REF-032",
+      "original_image_number": "World environment feedback",
+      "numbering_basis": "Step 47 — World environment / terrain reference",
+      "original_filename": "18.jpg (chat attachment)",
+      "filename": "REF-032-fog-bound-radial-concrete-monument.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-032-fog-bound-radial-concrete-monument.jpg",
+      "category": "Radial concrete monument in snow and fog",
+      "reference_groups": [
+        "E",
+        "A"
+      ],
+      "role": "Primary reference for the World environment: overcast white haze, soft shadowless light, dark monolithic structure read as silhouette against a pale fog that swallows the background.",
+      "historical_style_uncertainty": "Appears to be the Monument to the Revolution at Kosmaj, Serbia (1970s); identification and photographer unverified. Use only for atmosphere and lighting, not for form.",
+      "analysis": {
+        "architectural_morphology": "Radial cluster of tapering prismatic concrete blades springing from a common core.",
+        "spatial_composition": "Frontal, symmetric, subject fills frame; background trees dissolve into fog within tens of metres.",
+        "material_characteristics": "Board-marked weathered concrete, dark grey-brown; snow on the ground and on upward faces.",
+        "rock_formation": "n/a",
+        "structural_hierarchy": "Central core → radiating blades → ground.",
+        "scale": "Monumental (~20–30 m).",
+        "silhouette": "Sharp, dark, star-like against a near-white sky.",
+        "atmosphere": "Overcast winter fog: near-uniform pale sky, very low contrast, no hard shadows, depth expressed only by haze.",
+        "procedural_implications": "Pale horizon-matched fog colour, a near-uniform sky dome, strong hemisphere (sky) light with a weak key, ground and distance blending into the same fog colour."
+      },
+      "sha256": "3b79995ad93de03508dc3954401dea8145078e77db2f0b5bcac068a4999cc1a6",
+      "bytes": 120917
+    },
+    {
+      "id": "REF-033",
+      "original_image_number": "World environment feedback",
+      "numbering_basis": "Step 47 — World environment / terrain reference",
+      "original_filename": "19.jpg (chat attachment)",
+      "filename": "REF-033-scaffolded-monolith-on-rubble-ground.jpg",
+      "folder": "futuristic-gothic-world",
+      "path": "futuristic-gothic-world/REF-033-scaffolded-monolith-on-rubble-ground.jpg",
+      "category": "Rendered monolith with scaffolding on rubble ground",
+      "reference_groups": [
+        "B",
+        "E"
+      ],
+      "role": "Primary reference for the terrain surface: grey rubble and scree, rocky lumps and pebbles, eroded crusts, pale dusty flats; studio-like dark gradient sky.",
+      "historical_style_uncertainty": "Contemporary 3D render / digital artwork; author unverified. Use for ground material and lighting mood, not for the scaffolding object.",
+      "analysis": {
+        "architectural_morphology": "n/a (rock monolith wrapped in tube scaffolding).",
+        "spatial_composition": "Monolith centred on a raised rubble mound; flat pale dust floor in the foreground.",
+        "material_characteristics": "Grey limestone-like rubble, darker rock in crevices and on steep faces, fine pale dust settling on flats, scattered pebbles.",
+        "rock_formation": "Lumpy outcrops and scree on slopes; dust accumulates where the ground is flat.",
+        "structural_hierarchy": "Monolith → rubble mound → dust floor.",
+        "scale": "Monolith ~10 m; pebbles centimetres to decimetres.",
+        "silhouette": "Jagged rock against a dark gradient.",
+        "atmosphere": "Black-to-grey gradient sky, soft overhead light, studio stillness.",
+        "procedural_implications": "World-space noise shader: slope selects rock (dark, rough, bumped) vs flat (pale dust); pebble thresholds of high-frequency noise; bump from the same noise height; detail fades with distance; dark-zenith gradient sky at the low end of the sky-tone control."
+      },
+      "sha256": "3c9cfc28e6c8b60dd63f3e6300f30f9cf88d162eb499e8f1943dbcfcee70f96b",
+      "bytes": 123220
     }
   ],
   "reference_group_legend": {

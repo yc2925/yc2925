@@ -82,7 +82,7 @@ export default function WorldView({ labNoise = null }) {
       }
       if (e.key === 'd' || e.key === 'D') setMode('draw')
       if (e.key === 'v' || e.key === 'V') setMode('edit')
-      if (e.key === 'f' || e.key === 'F') setView((v) => (v === 'top' ? 'front' : 'top'))
+      if (e.key === 'f' || e.key === 'F') setView((v) => (v === 'top' ? 'front' : v === 'front' ? 'side' : 'top'))
       if (e.key === 'h' || e.key === 'H') setMode('navigate')
       if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selectedCurveId) {
         e.preventDefault()
@@ -122,6 +122,14 @@ export default function WorldView({ labNoise = null }) {
         <span className="world-stages-spacer" />
         {inWorld ? (
           <>
+        <button
+          type="button"
+          className={project.world.presentation.terrainGrid !== false ? 'is-active' : undefined}
+          onClick={() => dispatch({ type: 'setWorldParam', group: 'presentation', key: 'terrainGrid', value: project.world.presentation.terrainGrid === false })}
+          title="Show or hide the wire grid on the terrain (World view and X-ray)"
+        >
+          Grid
+        </button>
         <button type="button" className={pointCloud ? 'is-active' : undefined} onClick={togglePointCloud} title="Point cloud: the built world as a photogrammetry survey scan on black, with survey stations (REF-031)">
           Point cloud
         </button>
@@ -148,9 +156,10 @@ export default function WorldView({ labNoise = null }) {
               {m.label}
             </button>
           ))}
-          <select value={view} onChange={(e) => setView(e.target.value)} aria-label="Editor view" title="Top: plan (X/Y). Front: elevation (X/height) — draw or drag points in height (F)">
+          <select value={view} onChange={(e) => setView(e.target.value)} aria-label="Editor view" title="Top: plan (X/Z). Front: elevation (X/height). Side: elevation (Z/height). Draw or drag points in every view; F cycles the views">
             <option value="top">Top</option>
             <option value="front">Front</option>
+            <option value="side">Side</option>
           </select>
           <select value={curveType} onChange={(e) => setCurveType(e.target.value)} aria-label="New curve type" title="Type given to newly drawn curves">
             <option value="catmullRom">Spline</option>

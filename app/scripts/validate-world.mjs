@@ -23,6 +23,9 @@ import { buildPointedArch } from '../src/geometry/gothicGrammar/primitives/index
 import { Quaternion, Vector3 } from 'three'
 import { buildGroundPoints, buildStonePoints, surfacePool, surveyStations, SCAN_RED, MAX_STONE_POINTS, MAX_GROUND_POINTS } from '../src/world/compose/scanCloud.js'
 import { DEFAULT_PRESENTATION, SCAN_SPECS } from '../src/world/compose/worldParams.js'
+import { prominentSubjects, structureProminence } from '../src/world/compose/prominence.js'
+import { worldEnvironment } from '../src/world/compose/groundMaterial.js'
+import { ENVIRONMENT_SPECS, TERRAIN_SURFACE_SPECS } from '../src/world/compose/worldParams.js'
 
 let failures = 0
 const check = (cond, msg) => {
@@ -373,6 +376,33 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
     check(r.count <= MAX_GROUND_POINTS * 1.15, `ground budget holds at max radius × density (${r.count} points, ${(performance.now() - t0).toFixed(0)} ms)`)
   }
   check(!('look' in DEFAULT_PRESENTATION) && DEFAULT_PRESENTATION.lichen === 0 && SCAN_SPECS.every((s) => s.help && s.key in DEFAULT_PRESENTATION), 'point cloud is its own view (no look switch); every scan control has a default and a tooltip')
+}
+
+
+// ---------------------------------------------------------------- X-ray subjects (prominence)
+{
+  const mk = (id, span, rise, role = 'rib') => {
+    const pts = [0, 0.25, 0.5, 0.75, 1].map((u) => ({ x: -span / 2 + span * u, y: 0, z: id.length * 30 }))
+    return { curveId: id, skeleton: buildCurveSkeleton({ curveId: id, curveType: 'catmullRom', curveRole: role }, liftToPointedArch(pts, rise), {}, 7, {}) }
+  }
+  const list = [mk('big', 40, 1.2), mk('mid', 20, 1.1), mk('flat', 12, 0.2)]
+  const sc = structureProminence(list)
+  check(sc.get('big') === 1 && sc.get('big') > sc.get('mid') && sc.get('mid') > sc.get('flat'), `prominence ranks taller / larger / richer structures higher (${[...sc.values()].map((v) => v.toFixed(2)).join(', ')})`)
+  check(prominentSubjects(sc, 1).size === 1 && prominentSubjects(sc, 1).has('big') && prominentSubjects(sc, 0).size === 3, 'subject threshold: 1 → only the most prominent, 0 → all')
+}
+
+
+// ---------------------------------------------------------------- environment + ground surface (REF-032, REF-033)
+{
+  const lum = (h) => { const v = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }
+  const fogEnv = worldEnvironment(1)
+  const studio = worldEnvironment(0)
+  check(lum(fogEnv.horizon) > 0.75 && Math.abs(lum(fogEnv.zenith) - lum(fogEnv.horizon)) < 0.1 && fogEnv.key < fogEnv.hemi, `sky tone 1 = pale near-uniform overcast, sky light dominates the key (horizon ${fogEnv.horizon})`)
+  check(lum(studio.zenith) < 0.05 && lum(studio.horizon) > lum(studio.zenith) && studio.key > studio.hemi, `sky tone 0 = dark studio gradient with a strong key (zenith ${studio.zenith})`)
+  const h0 = createTerrainHeight(DEFAULT_TERRAIN_PARAMS)
+  const h1 = createTerrainHeight({ ...DEFAULT_TERRAIN_PARAMS, rubble: 1, dust: 0, relief: 1, surfaceScale: 5 })
+  check([[300, 120], [180, -260]].every(([x, z]) => h0(x, z) === h1(x, z)), 'ground surface controls never change the terrain height')
+  check([...TERRAIN_SURFACE_SPECS].every((sp) => sp.help && sp.key in DEFAULT_TERRAIN_PARAMS) && ENVIRONMENT_SPECS.every((sp) => sp.help && sp.key in DEFAULT_PRESENTATION), 'environment + surface controls have defaults and tooltips')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')

@@ -21,6 +21,12 @@ export const DEFAULT_TERRAIN_PARAMS = Object.freeze({
   persistence: 0.5, // roughness: gain per octave
   lacunarity: 2,
   seed: 7,
+  // Ground surface shader (REF-033): no effect on height.
+  groundPalette: 'pale', // 'pale' stone greys · 'dark' black and greys, minimal white
+  rubble: 0.6,
+  dust: 0.35,
+  relief: 0.6,
+  surfaceScale: 1.5,
 })
 
 export const TERRAIN_PARAM_SPECS = Object.freeze([
@@ -37,11 +43,29 @@ export const TERRAIN_PARAM_SPECS = Object.freeze([
   { key: 'seed', label: 'Terrain seed', min: 1, max: 999, step: 1, tier: 'advanced', help: NOISE_TIPS.seed },
 ])
 
+/** Ground surface shader controls (REF-033) — colour and relief only, never the height. */
+export const TERRAIN_SURFACE_SPECS = Object.freeze([
+  { key: 'groundPalette', label: 'Ground palette', options: [{ id: 'pale', label: 'Pale stone' }, { id: 'dark', label: 'Dark (black & greys)' }], tier: 'essential', help: 'Colour palette of the ground: pale stone greys with light dust, or a dark palette of near-black earth and rock, mid greys and only a little pale dust.' },
+  { key: 'rubble', label: 'Rubble & rock', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Dark bumped rock on steep ground and in outcrops, plus scattered pebbles (REF-033).' },
+  { key: 'dust', label: 'Dust cover', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Pale dust settling on flat ground in patches (REF-033 dust floor; reads as snow under the overcast sky).' },
+  { key: 'relief', label: 'Surface relief', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Strength of the bump relief of rocks, crusts and pebbles (shading only).' },
+  { key: 'surfaceScale', label: 'Surface detail size', min: 0.3, max: 6, step: 0.1, unit: 'm', tier: 'advanced', help: 'Size of rock grain, pebbles and crust features.' },
+])
+
+/** World environment controls (REF-032 ↔ REF-033). */
+export const ENVIRONMENT_SPECS = Object.freeze([
+  { key: 'skyTone', label: 'Sky tone', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Environment and lighting: 0 = dark studio gradient with a strong overhead key (REF-033), 1 = white overcast fog with soft shadowless sky light (REF-032). The fog, the ground fade and the sky horizon always share one colour.' },
+])
+
 export const DEFAULT_PRESENTATION = Object.freeze({
   explode: 0, // m of separation between fragments
   exposure: 1.35,
-  xrayExposure: 1, // X-ray glow gain: minimal light → blown-out over-exposure
+  xrayExposure: 1, // X-ray glow of the main subjects: minimal light → blown-out over-exposure
+  xrayBackground: 0.75, // X-ray level of everything that is not a main subject
+  xraySubjects: 0.6, // prominence threshold for X-ray main subjects (1 = only the most prominent)
   fog: 0.25, // atmospheric depth fog in the World view (0 = clear)
+  skyTone: 0.85, // 0 dark studio (REF-033) · 1 white overcast fog (REF-032)
+  terrainGrid: true, // wire grid on the terrain (World view + X-ray)
   // Point Cloud view (REF-031): photogrammetry survey of the built world.
   pointDensity: 45, // points per m² of stone surface
   pointSize: 1,
@@ -77,5 +101,7 @@ export const PRESENTATION_SPECS = Object.freeze([
   { key: 'explode', label: 'Explode', min: 0, max: 30, step: 0.5, unit: 'm', tier: 'essential', help: 'Pushes fragments (members, tracery motifs, carved pieces, stone courses) apart from the structure centre, suspended in space (REF-026).' },
   { key: 'exposure', label: 'Exposure', min: 0.5, max: 3, step: 0.05, tier: 'essential', help: 'Overall brightness of the 3D view.' },
   { key: 'fog', label: 'Fog', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Depth fog in the World view, normal and X-ray: distant structures and terrain fade into the background (0 = clear, 1 = dense).' },
-  { key: 'xrayExposure', label: 'X-ray exposure', min: 0.05, max: 8, step: 0.05, tier: 'essential', help: 'Brightness of the X-ray wire-mesh glow: near-dark minimal light (low) to extreme over-exposure where overlapping mesh burns out to white (high). The normal view uses Exposure.' },
+  { key: 'xrayExposure', label: 'X-ray subject exposure', min: 0.05, max: 8, step: 0.05, tier: 'essential', help: 'X-ray glow of the main subjects only — the most prominent architecture curves (see Subject threshold) — from near-dark (low) to burnt-out white (high). Everything else keeps the X-ray background level.' },
+  { key: 'xraySubjects', label: 'X-ray subject threshold', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Which structures count as main subjects. Prominence = 0.5 height + 0.3 plan extent + 0.2 tracery / carving, relative to the most prominent structure; structures at or above the threshold are highlighted (0 = all, 1 = only the most prominent).' },
+  { key: 'xrayBackground', label: 'X-ray background level', min: 0.1, max: 1.5, step: 0.05, tier: 'essential', help: 'X-ray glow of everything that is not a main subject — the less prominent structures, terrain, gravel, plinths and footings. They stay visible, just darker than the subjects (1 = the normal X-ray look).' },
 ])

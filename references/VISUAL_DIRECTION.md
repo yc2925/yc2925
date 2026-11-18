@@ -96,6 +96,11 @@ Important: none of REF-021–029 is Gothic. REF-024, 026 and 029 are classical/R
 - Ground = ragged radial scan patch, dense at the structures and dissolving into sparse points.
 - Survey overlay: stations around the structures, each showing a photograph rendered from the solid model at its position, linked by a thin traverse line, with monospace id / time / date / coordinate labels and red survey paint at each target.
 - Ground lichen tint is the one opt-in exception to the "no moss" negative below (slider, default 0).
+
+### World environment and terrain (REF-032, REF-033, group E / B)
+
+- **Environment (REF-032):** overcast fog. A pale, near-uniform sky dome whose horizon colour equals the fog colour; strong sky (hemisphere) light and a weak key, so there are no hard shadows; distance dissolves into haze. A sky-tone control runs from this white haze to the dark studio gradient of REF-033.
+- **Terrain surface (REF-033):** grey rubble and scree. Steep ground reads as darker bumped rock, flat ground collects pale dust, with scattered pebbles; all of it is world-space noise in the ground shader, with detail fading with distance. The architecture's own shaders are unchanged.
 - **Skeleton = the drawn curves themselves** (no repeated arch arrays) plus procedural branching.
 
 ### Presentation modes

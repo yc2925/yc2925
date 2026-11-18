@@ -19,10 +19,13 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Line, OrbitControls } from '@react-three/drei'
 import { buildMemberGeometry, computePieceOffsets, createStonePrototypes } from './geometry.js'
 import { createScrimMaterial } from './scrimMaterial.js'
+import { prominentSubjects, structureProminence } from './prominence.js'
+import { createGroundMaterial, createSkyMaterial, updateGroundMaterial, worldEnvironment } from './groundMaterial.js'
+import { TERRAIN_PARAM_SPECS } from './worldParams.js'
 import { createTerrainHeight } from './terrain.js'
 import { createStoneMaterial } from './stoneMaterial.js'
 import { baseProximity, buildGroundPoints, buildStonePoints, stationKey, stoneSurfaceArea, surveyStations, WORLD_STONE_POINTS } from './scanCloud.js'
@@ -145,37 +148,39 @@ const TERRAIN_HALF = 1600
 const FADE_START = 520
 const FADE_END = 1500
 
-/** Solid ground that blends into the background colour with distance (after tone mapping). */
-function useFadingGroundMaterial(bg) {
-  const material = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({ color: '#26282b', roughness: 1 })
-    m.userData.bg = { value: new THREE.Color() }
-    m.onBeforeCompile = (shader) => {
-      shader.uniforms.uBg = m.userData.bg
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGroundXZ = (modelMatrix * vec4(transformed, 1.0)).xz;')
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;\nuniform vec3 uBg;')
-        .replace(
-          '#include <colorspace_fragment>',
-          `#include <colorspace_fragment>
-          gl_FragColor.rgb = mix(gl_FragColor.rgb, uBg, smoothstep(${FADE_START.toFixed(1)}, ${FADE_END.toFixed(1)}, length(vGroundXZ)));`,
-        )
-    }
-    m.customProgramCacheKey = () => 'yc2925-ground-fade-v1'
-    return m
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+// Only these keys change the terrain height (surface keys only change the shader).
+const HEIGHT_KEYS = TERRAIN_PARAM_SPECS.map((sp) => sp.key).concat('plateau')
+const heightKey = (params) => HEIGHT_KEYS.map((k) => params[k]).join('|')
+
+/** Rubble / dust ground (REF-033) that dissolves into the horizon colour with distance. */
+function useGroundMaterial(params, horizon) {
+  const material = useMemo(() => createGroundMaterial({ fade: [FADE_START, FADE_END] }), [])
   useEffect(() => {
-    // Raw sRGB values (no linear conversion): the mix happens after colorspace_fragment.
-    material.userData.bg.value.setStyle(bg, THREE.LinearSRGBColorSpace)
-  }, [material, bg])
+    updateGroundMaterial(material, params, horizon)
+  }, [material, params, horizon])
   useEffect(() => () => material.dispose(), [material])
   return material
 }
 
-function Terrain({ params, scrim, xray, bg, scan }) {
+/** Gradient sky dome centred on the camera; horizon = fog colour (REF-032 ↔ REF-033). */
+function SkyDome({ horizon, zenith }) {
+  const material = useMemo(() => createSkyMaterial(), [])
+  useEffect(() => {
+    material.uniforms.uHorizon.value.setStyle(horizon, THREE.LinearSRGBColorSpace)
+    material.uniforms.uZenith.value.setStyle(zenith, THREE.LinearSRGBColorSpace)
+  }, [material, horizon, zenith])
+  useEffect(() => () => material.dispose(), [material])
+  const ref = useRef(null)
+  useFrame(({ camera }) => ref.current?.position.copy(camera.position))
+  return (
+    <mesh ref={ref} material={material} renderOrder={-10} frustumCulled={false} raycast={() => null}>
+      <sphereGeometry args={[4000, 32, 16]} />
+    </mesh>
+  )
+}
+
+function Terrain({ params, scrim, xray, bg, scan, grid = true }) {
+  const hKey = heightKey(params)
   const geometry = useMemo(() => {
     const size = TERRAIN_HALF * 2
     const seg = 256
@@ -192,15 +197,16 @@ function Terrain({ params, scrim, xray, bg, scan }) {
     }
     g.computeVertexNormals()
     return g
-  }, [params])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hKey])
   useEffect(() => () => geometry.dispose(), [geometry])
-  const ground = useFadingGroundMaterial(bg)
+  const ground = useGroundMaterial(params, bg)
   // Scan look: the solid ground is only photographed by the survey stations.
   if (scan) return <mesh geometry={geometry} material={ground} receiveShadow layers={LAYER_SOLID} />
   return (
     <group>
       <mesh geometry={geometry} material={ground} receiveShadow renderOrder={-2} visible={!xray} />
-      <mesh geometry={geometry} material={scrim} renderOrder={-1} />
+      {grid ? <mesh geometry={geometry} material={scrim} renderOrder={-1} /> : null}
     </group>
   )
 }
@@ -257,7 +263,10 @@ function useDeferredBuild(enabled, build, deps, delay = 90) {
 
 // --------------------------------------------------------------- structure
 
-function Structure({ s, stage, xray, explode, prototypesFor, materials, selected, onSelect, scan, order = 0 }) {
+// X-ray: stones that are ground clutter, not part of the architecture (stay in the dim background).
+const CLUTTER = new Set(['gravel', 'plinth', 'footing'])
+
+function Structure({ s, stage, xray, explode, prototypesFor, materials, selected, onSelect, scan, order = 0, subject = true }) {
   const center = useMemo(() => structureCenter(s.skeleton), [s.skeleton])
   const memberOffsets = useMemo(
     () =>
@@ -275,6 +284,13 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
   const prototypes = prototypesFor(s.params.lithic.irregularity, s.params.lithic.dressing)
   const showStones = stage === 'lithic' || stage === 'world'
   const scrimMode = xray || stage === 'skeleton'
+  // X-ray: architecture of the subject structures gets the X-ray exposure; clutter stays dim.
+  const split = useMemo(() => {
+    const main = []
+    const clutter = []
+    for (const st of s.lithic.stones) (CLUTTER.has(st.kind) ? clutter : main).push(st)
+    return { main: { stones: main }, clutter: { stones: clutter } }
+  }, [s.lithic])
   // Survey paint only from stations whose target lies on this structure.
   const b = s.skeleton.bounds
   const markers = scan && b ? scan.markers.filter((m) => m.c[0] >= b.min.x - 4 && m.c[0] <= b.max.x + 4 && m.c[2] >= b.min.z - 4 && m.c[2] <= b.max.z + 4 && m.c[1] <= b.max.y + 4) : []
@@ -298,10 +314,17 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
       ) : null}
       {stage === 'curves' ? <CenterLines skeleton={s.skeleton} selected={selected} /> : null}
       {stage === 'skeleton' || (scrimMode && showStones) ? (
-        <MemberTubes skeleton={s.skeleton} offsets={memberOffsets} scrim={materials.tubeScrim} />
+        <MemberTubes skeleton={s.skeleton} offsets={memberOffsets} scrim={subject ? materials.tubeScrim : materials.tubeScrimBg} />
       ) : null}
       {showStones ? (
-        <Stones lithic={s.lithic} prototypes={prototypes} offsets={stoneOffsets} scrim={scrimMode ? materials.stoneScrim : null} solidMaterial={materials.stoneSolid} selected={selected && !scan} layers={scan ? LAYER_SOLID : 0} />
+        scrimMode ? (
+          <>
+            <Stones lithic={split.main} prototypes={prototypes} offsets={stoneOffsets} scrim={subject ? materials.stoneScrim : materials.stoneScrimBg} solidMaterial={materials.stoneSolid} />
+            <Stones lithic={split.clutter} prototypes={prototypes} offsets={stoneOffsets} scrim={materials.stoneScrimBg} solidMaterial={materials.stoneSolid} />
+          </>
+        ) : (
+          <Stones lithic={s.lithic} prototypes={prototypes} offsets={stoneOffsets} scrim={null} solidMaterial={materials.stoneSolid} selected={selected && !scan} layers={scan ? LAYER_SOLID : 0} />
+        )
       ) : null}
       {cloud && scan ? <ScanPoints data={cloud} worldSize={(scan.pointSize * 1.1) / Math.sqrt(scan.density)} /> : null}
     </group>
@@ -319,6 +342,9 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
     () => ({
       tubeScrim: createScrimMaterial({ mode: 'uv', density: [1.6, 2.4], opacity: 0.5, edge: 2.2, line: 0.5 }),
       stoneScrim: createScrimMaterial({ mode: 'bary', opacity: 0.07, edge: 1.1, line: 0.22 }),
+      // Background twins: same look, fixed dim gain.
+      tubeScrimBg: createScrimMaterial({ mode: 'uv', density: [1.6, 2.4], opacity: 0.5, edge: 2.2, line: 0.5 }),
+      stoneScrimBg: createScrimMaterial({ mode: 'bary', opacity: 0.07, edge: 1.1, line: 0.22 }),
       terrainScrim: createScrimMaterial({ mode: 'uv', density: [0.1, 0.1], opacity: 0.0, edge: 0.4, line: 0.22, color: '#c9ced2', fade: [FADE_START, FADE_END] }),
       stoneSolid: createStoneMaterial(),
     }),
@@ -327,12 +353,27 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
   useEffect(() => () => Object.values(materials).forEach((m) => m.dispose()), [materials])
   // X-ray exposure: one gain for every scrim (wire-mesh) material.
   useEffect(() => {
-    for (const m of Object.values(materials)) if (m.uniforms?.uGain) m.uniforms.uGain.value = presentation.xrayExposure ?? 1
-  }, [materials, presentation.xrayExposure])
+    // X-ray exposure acts only on the main subjects (prominent structures); terrain,
+    // ground clutter and the less prominent structures keep their own (background) level.
+    materials.tubeScrim.uniforms.uGain.value = presentation.xrayExposure ?? 1
+    materials.stoneScrim.uniforms.uGain.value = presentation.xrayExposure ?? 1
+    for (const m of [materials.tubeScrimBg, materials.stoneScrimBg]) m.uniforms.uGain.value = presentation.xrayBackground ?? 0.75
+    // The terrain grid is background in X-ray; in the normal World view it keeps its plain level.
+    materials.terrainScrim.uniforms.uGain.value = scrimMode ? (presentation.xrayBackground ?? 0.75) : 1
+  }, [materials, presentation.xrayExposure, presentation.xrayBackground, scrimMode])
 
 
   const scanLook = pointCloud && !scrimMode
-  const bg = scrimMode || scanLook ? '#000000' : world ? '#2a2c30' : '#1a1b1d'
+  // X-ray main subjects: the most prominent architecture (height, plan extent, tracery / carving).
+  const prominence = useMemo(() => structureProminence(structures.filter((s) => s.curve.visibility)), [structures])
+  const subjects = useMemo(() => prominentSubjects(prominence, presentation.xraySubjects ?? 0.6), [prominence, presentation.xraySubjects])
+  // World environment (REF-032 overcast fog ↔ REF-033 dark studio), normal World view only.
+  const envOn = world && !scrimMode && !scanLook
+  const env = useMemo(() => worldEnvironment(presentation.skyTone ?? 0.85), [presentation.skyTone])
+  const bg = scrimMode || scanLook ? '#000000' : world ? env.horizon : '#1a1b1d'
+  // three converts the fog colour to the output colour space itself, so it is set as a normal
+  // (sRGB) colour; the ground fade and the sky dome use raw display values of the same hex.
+  const fogColor = useMemo(() => new THREE.Color(bg), [bg])
 
   // ---- scan look (REF-031)
   const visible = useMemo(() => structures.filter((s) => s.curve.visibility && s.skeleton.bounds), [structures])
@@ -410,12 +451,13 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
       <Exposure value={presentation.exposure} />
       <color attach="background" args={[bg]} />
       {/* Exponential depth fog (World view, normal + X-ray); density² so the slider feels even. */}
-      {world && presentation.fog > 0 ? <fogExp2 key={bg} attach="fog" args={[bg, 0.0004 + 0.02 * presentation.fog * presentation.fog]} /> : null}
-      <hemisphereLight args={['#f1ece4', '#3e3a35', 0.95]} />
-      <ambientLight intensity={0.22} />
+      {world && presentation.fog > 0 ? <fogExp2 key={bg} attach="fog" args={[fogColor, 0.0004 + 0.02 * presentation.fog * presentation.fog]} /> : null}
+      {envOn ? <SkyDome horizon={env.horizon} zenith={env.zenith} /> : null}
+      <hemisphereLight args={envOn ? [env.hemiSky, env.hemiGround, env.hemi] : ['#f1ece4', '#3e3a35', 0.95]} />
+      <ambientLight intensity={envOn ? env.ambient : 0.22} />
       <directionalLight
-        position={[90, 160, 70]}
-        intensity={2.2}
+        position={envOn ? env.keyPos : [90, 160, 70]}
+        intensity={envOn ? env.key : 2.2}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-160}
@@ -426,12 +468,12 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
         shadow-bias={-0.0004}
       />
       {/* Fill from below (REF-026 lighting from above and below). */}
-      <directionalLight position={[-60, -40, -50]} intensity={0.55} color="#cfd6dc" />
+      <directionalLight position={[-60, -40, -50]} intensity={envOn ? env.fill : 0.55} color="#cfd6dc" />
       <OrbitControls makeDefault enableDamping={false} />
       <CameraRig ref={rig} />
       <ScanLayerSetup />
 
-      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} bg={bg} scan={scanLook} /> : null}
+      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} bg={bg} scan={scanLook} grid={presentation.terrainGrid ?? true} /> : null}
       {groundCloud ? <ScanPoints data={groundCloud} worldSize={(P.pointSize ?? 1) * 0.7 / Math.sqrt(P.groundDensity ?? 10)} /> : null}
       {scanLook && stations.length ? <SurveyOverlay stations={stations} thumbSize={P.thumbSize ?? 84} contentKey={visible} /> : null}
       {!world && !scrimMode ? <gridHelper args={[200, 20, '#4a4a4a', '#2c2c2c']} position-y={0.01} /> : null}
@@ -454,6 +496,7 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
             prototypesFor={prototypesFor}
             materials={materials}
             selected={s.curveId === selectedCurveId}
+            subject={subjects.has(s.curveId)}
             onSelect={onSelect}
             scan={scanOpts}
           />

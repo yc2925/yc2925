@@ -2,9 +2,11 @@
  * Sandbox A — spatial curve editor (Step 47, feedback round 1).
  *
  * Views: TOP (ortho, +X right, −Z up; points move in X/Z at their height)
- *        FRONT (ortho elevation, +X right, +Y up; points move in X/height).
- * Mouse → 3D is always ray ∩ an explicit plane: the ground (top view) or the
- * vertical drawing plane z = depth (front view) — never a guessed depth.
+ *        FRONT (ortho elevation, +X right, +Y up; points move in X/height)
+ *        SIDE  (ortho elevation, +Z right, +Y up; points move in Z/height).
+ * Mouse → 3D is always ray ∩ an explicit plane: the ground (top view), the
+ * vertical plane z = depth (front view) or x = depth (side view) — never a
+ * guessed depth.
  *
  * DRAW mode
  *   - drag on empty space = freehand pen stroke; a lazy-string stabilizer
@@ -31,6 +33,9 @@ const SIGNAL = '#ff2020'
 const CURVE = '#d8d8d8'
 const DIM = '#6a6a6a'
 
+/** Handle rings face the camera in every view. */
+const ringRotation = (view) => (view === 'top' ? [-Math.PI / 2, 0, 0] : view === 'side' ? [0, -Math.PI / 2, 0] : [0, 0, 0])
+
 function snap(v, grid) {
   return grid ? Math.round(v / grid) * grid : v
 }
@@ -38,6 +43,7 @@ function snap(v, grid) {
 /** Screen-space distance in px between two world points for an ortho camera. */
 function pxDist(a, b, view, zoom) {
   const dx = a.x - b.x
+  if (view === 'side') return Math.hypot(a.z - b.z, a.y - b.y) * zoom
   const dv = view === 'top' ? a.z - b.z : a.y - b.y
   return Math.hypot(dx, dv) * zoom
 }
@@ -49,6 +55,11 @@ function ViewRig({ view }) {
       camera.position.set(0, 400, 0)
       camera.up.set(0, 0, -1)
       controls?.target.set(0, 0, 0)
+    } else if (view === 'side') {
+      // Looking along +X: +Z to the right, +Y up.
+      camera.position.set(-400, 25, 0)
+      camera.up.set(0, 1, 0)
+      controls?.target.set(0, 25, 0)
     } else {
       camera.position.set(0, 25, 400)
       camera.up.set(0, 1, 0)
@@ -114,13 +125,19 @@ function Interaction({ project, structures, mode, view, grid, stabilizer, setUi,
     const plane =
       view === 'top'
         ? new THREE.Plane(new THREE.Vector3(0, 1, 0), -(opts.height ?? 0))
-        : new THREE.Plane(new THREE.Vector3(0, 0, 1), -(opts.depth ?? drawDepth))
+        : view === 'side'
+          ? new THREE.Plane(new THREE.Vector3(1, 0, 0), -(opts.depth ?? drawDepth))
+          : new THREE.Plane(new THREE.Vector3(0, 0, 1), -(opts.depth ?? drawDepth))
     const hit = new THREE.Vector3()
     if (!e.ray.intersectPlane(plane, hit)) return null
     return { x: hit.x, y: Math.max(0, hit.y), z: hit.z }
   }
 
-  const snapped = (p) => ({ x: snap(p.x, grid), y: view === 'front' ? Math.max(0, snap(p.y, grid)) : p.y, z: view === 'top' ? snap(p.z, grid) : p.z })
+  const snapped = (p) => ({
+    x: view === 'side' ? p.x : snap(p.x, grid),
+    y: view === 'top' ? p.y : Math.max(0, snap(p.y, grid)),
+    z: view === 'front' ? p.z : snap(p.z, grid),
+  })
 
   const onPointerDown = (e) => {
     if (e.button !== 0 || mode === 'navigate') return
@@ -190,6 +207,10 @@ function Interaction({ project, structures, mode, view, grid, stabilizer, setUi,
         const hit = planeHit(e, { height: d.origin.y })
         if (!hit) return
         p = { x: snap(hit.x, grid), y: d.origin.y, z: snap(hit.z, grid) }
+      } else if (view === 'side') {
+        const hit = planeHit(e, { depth: d.origin.x })
+        if (!hit) return
+        p = { x: d.origin.x, y: Math.max(0, snap(hit.y, grid)), z: snap(hit.z, grid) }
       } else {
         const hit = planeHit(e, { depth: d.origin.z })
         if (!hit) return
@@ -315,8 +336,8 @@ function Interaction({ project, structures, mode, view, grid, stabilizer, setUi,
     setUi((u) => ({ ...u, selectedCurveId: best.s.curveId, selectedPoint: index }))
   }
 
-  const rotation = view === 'top' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]
-  const position = view === 'top' ? [0, 0, 0] : [0, 0, drawDepth]
+  const rotation = view === 'top' ? [-Math.PI / 2, 0, 0] : view === 'side' ? [0, Math.PI / 2, 0] : [0, 0, 0]
+  const position = view === 'top' ? [0, 0, 0] : view === 'side' ? [drawDepth, 0, 0] : [0, 0, drawDepth]
   return (
     <mesh rotation={rotation} position={position} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onDoubleClick={onDoubleClick}>
       <planeGeometry args={[8000, 8000]} />
@@ -336,6 +357,9 @@ function FieldGuides({ size, view }) {
         out.push({ key: `x${v}`, pts: [[v, 0, -half], [v, 0, half]], major })
         out.push({ key: `z${v}`, pts: [[-half, 0, v], [half, 0, v]], major })
       }
+    } else if (view === 'side') {
+      for (let v = -half; v <= half + 1e-6; v += step) out.push({ key: `z${v}`, pts: [[0, 0, v], [0, 80, v]], major: Math.abs(v) < 1e-6 })
+      for (let h = 0; h <= 80; h += 5) out.push({ key: `h${h}`, pts: [[0, h, -half], [0, h, half]], major: h === 0 })
     } else {
       for (let v = -half; v <= half + 1e-6; v += step) out.push({ key: `x${v}`, pts: [[v, 0, 0], [v, 80, 0]], major: Math.abs(v) < 1e-6 })
       for (let h = 0; h <= 80; h += 5) out.push({ key: `h${h}`, pts: [[-half, h, 0], [half, h, 0]], major: h === 0 })
@@ -343,7 +367,7 @@ function FieldGuides({ size, view }) {
     return out
   }, [half, view])
   return (
-    <group position-y={view === 'top' ? -0.01 : 0} position-z={view === 'front' ? -300 : 0}>
+    <group position-y={view === 'top' ? -0.01 : 0} position-z={view === 'front' ? -300 : 0} position-x={view === 'side' ? 300 : 0}>
       {lines.map((l) => (
         <Line key={l.key} points={l.pts} color={l.major ? '#6a6a6a' : '#2a2a2a'} lineWidth={l.major ? 1.5 : 1} />
       ))}
@@ -357,7 +381,7 @@ function CurveGraphics({ structure, selected, selectedPoint, hover, view }) {
   const poly = skeleton.sourcePolyline.length >= 2 ? skeleton.sourcePolyline : resolved
   const color = selected ? SIGNAL : CURVE
   // In top view lift graphics by height so higher points draw on top; colour encodes height.
-  const proj = (p) => (view === 'top' ? [p.x, 0.04 + p.y * 0.001, p.z] : [p.x, p.y, 0])
+  const proj = (p) => (view === 'top' ? [p.x, 0.04 + p.y * 0.001, p.z] : view === 'side' ? [0, p.y, p.z] : [p.x, p.y, 0])
   const cpGeom = useMemo(() => {
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.Float32BufferAttribute(resolved.flatMap((p) => proj(p)), 3))
@@ -392,7 +416,7 @@ function CurveGraphics({ structure, selected, selectedPoint, hover, view }) {
         const linked = linkedIdx.includes(i)
         if (!isSel && !isHover && !linked) return null
         return (
-          <mesh key={i} position={proj(p)} rotation={view === 'top' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
+          <mesh key={i} position={proj(p)} rotation={ringRotation(view)}>
             <ringGeometry args={[isHover ? 1.5 : 1.0, isHover ? 2.1 : 1.4, 24]} />
             <meshBasicMaterial color={isSel || isHover ? SIGNAL : '#bbbbbb'} side={THREE.DoubleSide} />
           </mesh>
@@ -404,13 +428,13 @@ function CurveGraphics({ structure, selected, selectedPoint, hover, view }) {
 
 function LiveOverlay({ live, view }) {
   if (!live) return null
-  const proj = (p) => (view === 'top' ? [p.x, 0.2, p.z] : [p.x, p.y, 1])
+  const proj = (p) => (view === 'top' ? [p.x, 0.2, p.z] : view === 'side' ? [-1, p.y, p.z] : [p.x, p.y, 1])
   if (live.kind === 'connect') {
     return (
       <group>
         <Line points={[proj(live.from), proj(live.to)]} color={SIGNAL} lineWidth={1.5} dashed dashSize={1} gapSize={0.6} />
         {live.target ? (
-          <mesh position={proj(live.target)} rotation={view === 'top' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
+          <mesh position={proj(live.target)} rotation={ringRotation(view)}>
             <ringGeometry args={[1.6, 2.4, 24]} />
             <meshBasicMaterial color={SIGNAL} side={THREE.DoubleSide} />
           </mesh>
@@ -424,7 +448,7 @@ function LiveOverlay({ live, view }) {
       {live.radius > 0.01 && live.cursor ? (
         <>
           <Line points={[proj(live.brush), proj(live.cursor)]} color="#8a8a8a" lineWidth={1} />
-          <mesh position={proj(live.brush)} rotation={view === 'top' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
+          <mesh position={proj(live.brush)} rotation={ringRotation(view)}>
             <ringGeometry args={[Math.max(0.01, live.radius - 0.15), live.radius, 40]} />
             <meshBasicMaterial color="#5a5a5a" side={THREE.DoubleSide} transparent opacity={0.6} />
           </mesh>
@@ -439,7 +463,8 @@ export default function CurveEditor(props) {
   const [live, setLive] = useState(null)
   const size = project.world.fieldSize
   const selected = structures.find((s) => s.curveId === ui.selectedCurveId)
-  const drawDepth = view === 'front' && selected?.resolved?.length ? selected.resolved[0].z : 0
+  // Drawing plane depth: through the selected curve's first point (z in front view, x in side view).
+  const drawDepth = selected?.resolved?.length ? (view === 'front' ? selected.resolved[0].z : view === 'side' ? selected.resolved[0].x : 0) : 0
   const mouseButtons = useMemo(
     () => ({ LEFT: mode === 'navigate' ? THREE.MOUSE.PAN : null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }),
     [mode],
@@ -453,7 +478,7 @@ export default function CurveEditor(props) {
       gl={{ antialias: true }}
     >
       <color attach="background" args={['#0a0a0a']} />
-      <MapControls makeDefault enableRotate={false} screenSpacePanning={view === 'front'} mouseButtons={mouseButtons} minZoom={0.3} maxZoom={40} />
+      <MapControls makeDefault enableRotate={false} screenSpacePanning={view !== 'top'} mouseButtons={mouseButtons} minZoom={0.3} maxZoom={40} />
       <ViewRig view={view} />
       <FieldGuides size={size} view={view} />
       {structures.map((s) => (

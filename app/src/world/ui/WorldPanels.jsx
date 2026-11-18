@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { SKELETON_PARAM_SPECS, ROLE_RULES } from '../skeleton/params.js'
 import { LITHIC_PARAM_SPECS } from '../lithic/params.js'
-import { PRESENTATION_SPECS, SCAN_SPECS, TERRAIN_PARAM_SPECS } from '../compose/worldParams.js'
+import { ENVIRONMENT_SPECS, PRESENTATION_SPECS, SCAN_SPECS, TERRAIN_PARAM_SPECS, TERRAIN_SURFACE_SPECS } from '../compose/worldParams.js'
 import { terrainFromNoiseLayer } from '../compose/terrain.js'
 import { liftToPointedArch } from '../curves/archLift.js'
 
@@ -297,6 +297,13 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
           ) : null}
         </>
       )}
+
+      {stage === 'world' ? (
+        <Section title="Environment & ground surface">
+          <ParamRows specs={ENVIRONMENT_SPECS} values={world.presentation} tier={tier} onChange={setPresentation} />
+          <ParamRows specs={TERRAIN_SURFACE_SPECS} values={world.terrain} tier={tier} onChange={(key, value) => dispatch({ type: 'setWorldParam', group: 'terrain', key, value }, { coalesce: `w-terrain-${key}` })} />
+        </Section>
+      ) : null}
 
       <Section title="Presentation">
         <ParamRows specs={PRESENTATION_SPECS} values={world.presentation} tier="advanced" onChange={setPresentation} />
