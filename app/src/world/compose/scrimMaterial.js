@@ -20,6 +20,7 @@ const vertexShader = /* glsl */ `
   varying vec3 vView;
   varying vec3 vBary;
   varying vec2 vUv;
+  varying vec2 vWorldXZ;
   void main() {
     vec4 local = vec4(position, 1.0);
     vec3 n = normal;
@@ -28,6 +29,7 @@ const vertexShader = /* glsl */ `
       n = mat3(instanceMatrix) * n;
     #endif
     vec4 world = modelMatrix * local;
+    vWorldXZ = world.xz;
     vN = normalize(mat3(modelMatrix) * n);
     vView = cameraPosition - world.xyz;
     vBary = bary;
@@ -47,6 +49,8 @@ const fragmentShader = /* glsl */ `
   uniform float uLine;
   uniform float uMode;      // 0 = barycentric facets, 1 = uv mesh
   uniform vec2 uDensity;    // mesh lines per metre (uv mode)
+  uniform vec2 uFade;       // radial fade-out (start, end) in metres from the origin
+  varying vec2 vWorldXZ;
   varying vec3 vN;
   varying vec3 vView;
   varying vec3 vBary;
@@ -68,6 +72,7 @@ const fragmentShader = /* glsl */ `
       line = mix(max(l.x, l.y), 0.4, smoothstep(0.3, 0.9, length(w)));
     }
     float a = (uOpacity * (0.16 + fresnel * uEdge) + line * uLine) * uGain;
+    a *= 1.0 - smoothstep(uFade.x, uFade.y, length(vWorldXZ));
     #ifdef USE_FOG
       // Additive scrim: fog fades the glow out (toward the black background).
       #ifdef FOG_EXP2
@@ -81,7 +86,7 @@ const fragmentShader = /* glsl */ `
   }
 `
 
-export function createScrimMaterial({ mode = 'uv', density = [2.2, 2.2], opacity = 0.35, edge = 1.6, line = 0.45, color = '#f2f4f5' } = {}) {
+export function createScrimMaterial({ mode = 'uv', density = [2.2, 2.2], opacity = 0.35, edge = 1.6, line = 0.45, color = '#f2f4f5', fade = [1e9, 2e9] } = {}) {
   return new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -95,6 +100,7 @@ export function createScrimMaterial({ mode = 'uv', density = [2.2, 2.2], opacity
       uLine: { value: line },
       uMode: { value: mode === 'bary' ? 0 : 1 },
       uDensity: { value: new THREE.Vector2(density[0], density[1]) },
+      uFade: { value: new THREE.Vector2(fade[0], fade[1]) },
     },
     transparent: true,
     depthWrite: false,

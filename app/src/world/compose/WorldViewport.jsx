@@ -132,10 +132,46 @@ function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected })
 
 // --------------------------------------------------------------- terrain
 
-function Terrain({ params, scrim, xray }) {
+// Terrain extends to TERRAIN_HALF and dissolves radially into the background
+// from FADE_START to FADE_END, so no square edge is ever visible.
+const TERRAIN_HALF = 1600
+const FADE_START = 520
+const FADE_END = 1500
+
+/** Solid ground that blends into the background colour with distance (after tone mapping). */
+function useFadingGroundMaterial(bg) {
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ color: '#26282b', roughness: 1 })
+    m.userData.bg = { value: new THREE.Color() }
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uBg = m.userData.bg
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGroundXZ = (modelMatrix * vec4(transformed, 1.0)).xz;')
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;\nuniform vec3 uBg;')
+        .replace(
+          '#include <colorspace_fragment>',
+          `#include <colorspace_fragment>
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, uBg, smoothstep(${FADE_START.toFixed(1)}, ${FADE_END.toFixed(1)}, length(vGroundXZ)));`,
+        )
+    }
+    m.customProgramCacheKey = () => 'yc2925-ground-fade-v1'
+    return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    // Raw sRGB values (no linear conversion): the mix happens after colorspace_fragment.
+    material.userData.bg.value.setStyle(bg, THREE.LinearSRGBColorSpace)
+  }, [material, bg])
+  useEffect(() => () => material.dispose(), [material])
+  return material
+}
+
+function Terrain({ params, scrim, xray, bg }) {
   const geometry = useMemo(() => {
-    const size = 1600
-    const seg = 200
+    const size = TERRAIN_HALF * 2
+    const seg = 256
     const g = new THREE.PlaneGeometry(size, size, seg, seg)
     g.rotateX(-Math.PI / 2)
     const height = createTerrainHeight(params)
@@ -151,11 +187,10 @@ function Terrain({ params, scrim, xray }) {
     return g
   }, [params])
   useEffect(() => () => geometry.dispose(), [geometry])
+  const ground = useFadingGroundMaterial(bg)
   return (
     <group>
-      <mesh geometry={geometry} receiveShadow renderOrder={-2} visible={!xray}>
-        <meshStandardMaterial color="#26282b" roughness={1} />
-      </mesh>
+      <mesh geometry={geometry} material={ground} receiveShadow renderOrder={-2} visible={!xray} />
       <mesh geometry={geometry} material={scrim} renderOrder={-1} />
     </group>
   )
@@ -242,7 +277,7 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
     () => ({
       tubeScrim: createScrimMaterial({ mode: 'uv', density: [1.6, 2.4], opacity: 0.5, edge: 2.2, line: 0.5 }),
       stoneScrim: createScrimMaterial({ mode: 'bary', opacity: 0.07, edge: 1.1, line: 0.22 }),
-      terrainScrim: createScrimMaterial({ mode: 'uv', density: [0.1, 0.1], opacity: 0.0, edge: 0.4, line: 0.22, color: '#c9ced2' }),
+      terrainScrim: createScrimMaterial({ mode: 'uv', density: [0.1, 0.1], opacity: 0.0, edge: 0.4, line: 0.22, color: '#c9ced2', fade: [FADE_START, FADE_END] }),
       stoneSolid: createStoneMaterial(),
     }),
     [],
@@ -281,7 +316,7 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
       <OrbitControls makeDefault enableDamping={false} />
       <CameraRig ref={rig} />
 
-      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} /> : null}
+      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} bg={bg} /> : null}
       {!world && !scrimMode ? <gridHelper args={[200, 20, '#4a4a4a', '#2c2c2c']} position-y={0.01} /> : null}
       {!world && !scrimMode ? (
         <mesh rotation-x={-Math.PI / 2} position-y={-0.02} receiveShadow>
