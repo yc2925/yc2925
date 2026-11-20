@@ -106,6 +106,18 @@ export function buildCurveSkeleton(curve, resolvedPoints, inputParams = {}, seed
   result.construction = g.construction
   result.style = g.style
   result.archFrame = g.archFrame
+  // Debug trace: input facts first, then the grammar's rule log and construction geometry.
+  const fmt = (v) => v.toFixed(2)
+  const pre = [
+    { rule: 'input', text: `Curve ${curve.curveType ?? 'spline'} with ${resolvedPoints.length} control points, length ${fmt(L)} m, seed ${seed}`, data: { length: L, seed } },
+    { rule: 'resample', text: `Resampled every ~0.5 m → ${points.length} stations; main member radius ${fmt(r0)} m (thickness ${fmt(P.thickness)} × role ${role.radius}), taper ${fmt(P.taper)} ${supports ? 'from the base' : 'toward the crown'}`, data: { stations: points.length, r0 } },
+    { rule: 'links', text: `Ends: base ${baseLinked ? (baseLink.incoming ? 'receives a link' : 'links out') : 'free'}${baseAtEnd ? ' (reversed so the base is the lower end)' : ''}, top ${topLinked ? (topLink.incoming ? 'receives a link' : 'links out') : 'free'}`, data: { baseLinked, topLinked } },
+  ]
+  result.trace = {
+    steps: [...pre, ...g.trace.steps].map((st, i) => ({ ...st, n: i + 1 })),
+    geom: g.trace.geom,
+    archTest: g.archTest ?? null,
+  }
   for (const m of g.members) {
     const tip = m.points[m.points.length - 1]
     if (m.kind === 'pier' && m.points[0].y <= GROUND_EPS) result.groundContacts.push({ p: m.points[0], r: m.radii[0] })

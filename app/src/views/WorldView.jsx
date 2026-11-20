@@ -35,6 +35,23 @@ export default function WorldView({ labNoise = null }) {
   const [grid, setGrid] = useState(1)
   const [curveType, setCurveType] = useState('catmullRom')
   const [xray, setXray] = useState(false)
+  // Debug layer (curve → skeleton): UI state only, never saved in the project.
+  const [debug, setDebug] = useState({ on: false, construction: true, members: true, labels: true, focus: null, stoneColor: 'kind', conflicts: true, build: null, playing: false, inspect: null })
+  // Build timelapse: advance the placement fraction while playing.
+  useEffect(() => {
+    if (!debug.playing) return undefined
+    const id = setInterval(() => {
+      setDebug((d) => {
+        const next = Math.min(1, (d.build ?? 0) + 0.012)
+        return { ...d, build: next, playing: next < 1 }
+      })
+    }, 40)
+    return () => clearInterval(id)
+  }, [debug.playing])
+  const inspectStone = useCallback((curveId, index) => {
+    setDebug((d) => ({ ...d, inspect: { curveId, index } }))
+    setUi((u) => ({ ...u, selectedCurveId: curveId, selectedPoint: null }))
+  }, [])
   const [pointCloud, setPointCloud] = useState(false)
   // Point cloud and X-ray are World-stage view modes, mutually exclusive.
   const togglePointCloud = () => {
@@ -138,6 +155,9 @@ export default function WorldView({ labNoise = null }) {
         </button>
           </>
         ) : null}
+        <button type="button" className={debug.on ? 'is-active' : undefined} onClick={() => setDebug((d) => ({ ...d, on: !d.on, focus: null }))} title="Debug: show the rules and construction geometry that turn each curve into its Gothic skeleton (rule log in the right panel)">
+          Debug
+        </button>
         <button type="button" title="Frame the selected structure — or the whole world when nothing is selected" onClick={() => (selected ? fit(selected) : fitAll())} disabled={!structures.length}>
           {selected ? 'Fit selected' : 'Fit world'}
         </button>
@@ -222,6 +242,8 @@ export default function WorldView({ labNoise = null }) {
           presentation={project.world.presentation}
           terrain={project.world.terrain}
           selectedCurveId={ui.selectedCurveId}
+          debug={debug}
+          onInspect={debug.on ? inspectStone : null}
           onSelect={(curveId) => setUi((u) => ({ ...u, selectedCurveId: curveId, selectedPoint: null }))}
         />
       </section>
@@ -235,6 +257,9 @@ export default function WorldView({ labNoise = null }) {
         dispatch={dispatch}
         onFit={fit}
         labNoise={labNoise}
+        debug={debug}
+        setDebug={setDebug}
+        structures={structures}
       />
     </div>
   )

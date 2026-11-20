@@ -141,15 +141,15 @@ class SpatialHash {
         for (let dz = -reach; dz <= reach; dz += 1) {
           const list = this.map.get(`${ix + dx},${iy + dy},${iz + dz}`)
           if (!list) continue
-          for (const o of list) if (Math.hypot(o.x - p.x, o.y - p.y, o.z - p.z) < o.r + r) return true
+          for (const o of list) if (Math.hypot(o.x - p.x, o.y - p.y, o.z - p.z) < o.r + r) return o
         }
-    return false
+    return null
   }
-  insert(p, r) {
+  insert(p, r, idx = -1) {
     const k = `${Math.floor(p.x / this.cell)},${Math.floor(p.y / this.cell)},${Math.floor(p.z / this.cell)}`
     let list = this.map.get(k)
     if (!list) this.map.set(k, (list = []))
-    list.push({ x: p.x, y: p.y, z: p.z, r })
+    list.push({ x: p.x, y: p.y, z: p.z, r, idx })
   }
 }
 
@@ -158,7 +158,25 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
   const rand = mulberry32(((seed + 101) * 2246822519) >>> 0)
   const stones = []
   const stats = { slots: 0, rejected: 0, skipped: 0, carved: 0 }
-  if (!skeleton?.members?.length || !skeleton.bounds) return { stones, stats }
+  // Debug trace (pure data; never changes placement): every slot that did NOT
+  // become a stone (skipped by density, rejected by overlap — with the stone
+  // that blocked it), and per-phase counts and timings. Placed stones carry
+  // their phase; their order in `stones` is the placement order.
+  const trace = { slots: [], phases: {} }
+  let phase = 'carved'
+  let phaseT0 = 0
+  const ph = () => (trace.phases[phase] ??= { slots: 0, placed: 0, rejected: 0, skipped: 0, ms: 0 })
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const enter = (name) => {
+    const t = now()
+    if (trace.phases[phase]) trace.phases[phase].ms += t - phaseT0
+    phase = name
+    phaseT0 = t
+    ph()
+  }
+  if (!skeleton?.members?.length || !skeleton.bounds) return { stones, stats, trace }
+  phaseT0 = now()
+  ph()
   const hash = new SpatialHash(Math.max(0.5, P.stoneSize * 1.2))
   const yTop = Math.max(1, skeleton.bounds.max.y)
   const grade = (y) => 1 + P.sizeGrading * (0.45 - 0.85 * Math.min(1, Math.max(0, y / yTop)))
@@ -173,8 +191,11 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
   function place(center, X, Y, size, opts) {
     const { proto, kind, piece, allowGround = false, check = true, insert = true, noTilt = false } = opts
     stats.slots += 1
+    ph().slots += 1
     if (!CARVED.has(kind) && kind !== 'gravel' && rand() > P.density) {
       stats.skipped += 1
+      ph().skipped += 1
+      trace.slots.push({ p: [center.x, center.y, center.z], outcome: 'skipped', phase, kind, piece })
       return false
     }
     let x = X
@@ -192,16 +213,20 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
     const c = { ...center }
     if (c.y - halfY < 0 && (allowGround || c.y < halfY)) c.y = halfY
     const inner = Math.min(s[0], s[1], s[2]) * 0.48
-    if (check && hash.overlaps(c, inner)) {
+    const hit = check ? hash.overlaps(c, inner) : null
+    if (hit) {
       stats.rejected += 1
+      ph().rejected += 1
+      trace.slots.push({ p: [c.x, c.y, c.z], outcome: 'rejected', phase, kind, piece, r: inner, blockedBy: hit.idx, blockerKind: stones[hit.idx]?.kind ?? null })
       return false
     }
     // Carved pieces reserve only their own core, so drums / voussoirs still fill up to them.
-    if (insert) hash.insert(c, inner)
+    if (insert) hash.insert(c, inner, stones.length)
+    ph().placed += 1
     // One quarry batch per structure (material), tone per group of courses.
     const col = stoneColor(rand, { stoneMix: P.stoneMix, weathering: P.weathering, y: c.y, yTop, carved: CARVED.has(kind), light: TRACERY_KINDS.has(kind), materialKey: skeleton.sourceCurveId ?? '', courseKey: piece, seed })
     if (CARVED.has(kind)) stats.carved += 1
-    stones.push({ p: [c.x, c.y, c.z], q: quatFromAxes(x, y, z), s, proto, color: col.color, paletteIndex: col.paletteIndex, piece, kind })
+    stones.push({ p: [c.x, c.y, c.z], q: quatFromAxes(x, y, z), s, proto, color: col.color, paletteIndex: col.paletteIndex, piece, kind, phase })
     return true
   }
 
@@ -246,6 +271,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
   }
 
   // ------------------------------------------------ 2. tracery bars
+  enter('tracery')
   for (const m of skeleton.members) {
     if (!TRACERY_KINDS.has(m.kind)) continue
     // Split at sharp corners (arch apex, foil cusps): each run is cut separately,
@@ -312,6 +338,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
   }
 
   // ------------------------------------------------ 3. structural members
+  enter('structural')
   const footingRuns = []
   // Piers and shafts first, so the strut / core give way where they overlap.
   const structural = skeleton.members.filter((m) => !TRACERY_KINDS.has(m.kind))
@@ -394,6 +421,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
   }
 
   // Coursed ashlar footings along ground runs: courses of varied block lengths.
+  enter('footing')
   for (const run of footingRuns) {
     if (run.points.length < 2) continue
     const cum = cumulative(run.points)
@@ -427,6 +455,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
   }
 
   // ------------------------------------------------ 4. plinths, spalls
+  enter('plinth')
   for (const gc of skeleton.groundContacts) {
     const R = Math.max(gc.r * P.formationWidth * 1.35, P.stoneSize * 0.8)
     const big = P.stoneSize * (1 + P.sizeGrading * 0.6)
@@ -441,6 +470,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
       }
   }
 
+  enter('gravel')
   const gravelSites = [...skeleton.groundContacts]
   for (const run of footingRuns) {
     const cum = cumulative(run.points)
@@ -460,5 +490,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
     }
   }
 
-  return { stones, stats: { ...stats, stones: stones.length } }
+  enter('done')
+  delete trace.phases.done
+  return { stones, stats: { ...stats, stones: stones.length }, trace }
 }

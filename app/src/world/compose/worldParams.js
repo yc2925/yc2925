@@ -62,6 +62,7 @@ export const DEFAULT_PRESENTATION = Object.freeze({
   exposure: 1.35,
   xrayExposure: 1, // X-ray glow of the main subjects: minimal light → blown-out over-exposure
   xrayBackground: 0.75, // X-ray level of everything that is not a main subject
+  xrayTerrain: 1.5, // X-ray terrain glow + grid level
   xraySubjects: 0.6, // prominence threshold for X-ray main subjects (1 = only the most prominent)
   fog: 0.25, // atmospheric depth fog in the World view (0 = clear)
   skyTone: 0.85, // 0 dark studio (REF-033) · 1 white overcast fog (REF-032)
@@ -103,5 +104,6 @@ export const PRESENTATION_SPECS = Object.freeze([
   { key: 'fog', label: 'Fog', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Depth fog in the World view, normal and X-ray: distant structures and terrain fade into the background (0 = clear, 1 = dense).' },
   { key: 'xrayExposure', label: 'X-ray subject exposure', min: 0.05, max: 8, step: 0.05, tier: 'essential', help: 'X-ray glow of the main subjects only — the most prominent architecture curves (see Subject threshold) — from near-dark (low) to burnt-out white (high). Everything else keeps the X-ray background level.' },
   { key: 'xraySubjects', label: 'X-ray subject threshold', min: 0, max: 1, step: 0.01, tier: 'essential', help: 'Which structures count as main subjects. Prominence = 0.5 height + 0.3 plan extent + 0.2 tracery / carving, relative to the most prominent structure; structures at or above the threshold are highlighted (0 = all, 1 = only the most prominent).' },
-  { key: 'xrayBackground', label: 'X-ray background level', min: 0.1, max: 1.5, step: 0.05, tier: 'essential', help: 'X-ray glow of everything that is not a main subject — the less prominent structures, terrain, gravel, plinths and footings. They stay visible, just darker than the subjects (1 = the normal X-ray look).' },
+  { key: 'xrayBackground', label: 'X-ray background level', min: 0.1, max: 1.5, step: 0.05, tier: 'essential', help: 'X-ray glow of everything that is not a main subject — the less prominent structures, gravel, plinths and footings (the terrain has its own X-ray terrain level). They stay visible, just darker than the subjects (1 = the normal X-ray look).' },
+  { key: 'xrayTerrain', label: 'X-ray terrain', min: 0, max: 4, step: 0.05, tier: 'essential', help: 'Brightness of the terrain in X-ray: a glowing surface whose slopes catch the light (fresnel relief), with a 10 m grid and a brighter 50 m grid. The Grid toggle hides only the grid lines.' },
 ])

@@ -10,6 +10,12 @@
  *   Column           → compound pier: shafts (rotational symmetry) + capital + base + vault springers
  *   Buttress         → stepped pier + pinnacle + gargoyle + flyer tracery band
  * The seed only chooses between symmetric grammar alternatives.
+ *
+ * Debug trace (out.trace, pure data, always recorded): `steps` is the ordered
+ * rule log (which rule fired, why, with its numbers); `geom` is the
+ * construction geometry behind it in world space — full circles of every arc,
+ * centres, springing / transom lines, tangency lines, foil lobe circles —
+ * tagged by rule so a debug layer can draw and filter it.
  */
 
 import { UP, add, dist, dot, norm, rotationMinimisingFrames, scale, sub, v3 } from '../curves/curve3.js'
@@ -77,6 +83,22 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
   const ornaments = []
   const construction = []
   const out = { members, ornaments, construction, motifs: 0, style: null, archFrame: null }
+  const trace = { steps: [], geom: [] }
+  out.trace = trace
+  const fmt = (v) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(3))
+  const step = (rule, text, data = {}) => trace.steps.push({ n: trace.steps.length + 1, rule, text, data })
+  const geo = (rule, kind, pts, extra = {}) => trace.geom.push({ rule, kind, points: pts, ...extra })
+  // 2D construction (arch plane / band frame) → world, via a map function.
+  const geoCircle = (rule, c, r, map, n = 48) => geo(rule, 'circle', circlePoints(c, r, n).map(map), { center: map(c), r })
+  const geoPoint = (rule, c, map, label) => geo(rule, 'point', [map(c)], label ? { label } : {})
+  const geoLine = (rule, a, b, map) => geo(rule, 'line', [map(a), map(b)])
+  const geoFoil = (foil, map) => {
+    for (const lc of foil.lobeCenters ?? []) {
+      geoCircle('foil', lc, foil.lobeRadius, map, 24)
+      geoPoint('foil', lc, map)
+    }
+    for (const cp of foil.cusps ?? []) geoPoint('cusp', cp, map)
+  }
   let seq = 0
   const r0 = radii[Math.floor(radii.length / 2)] ?? P.thickness
   const addMember = (kind, depth, pts, r, piece) => {
@@ -102,7 +124,11 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
     const rho = H / 2
     const pitch = 2 * rho * (1 + P.bandSpacing * 0.8)
     const N = Math.floor((L - rho * 0.4) / pitch)
-    if (N < 1) return
+    if (N < 1) {
+      step('band', `Band skipped: length ${fmt(L)} m holds no circle of ρ = ${fmt(rho)} m`, { L, rho })
+      return
+    }
+    step('band', `Band: ${N} circles of ρ = H/2 = ${fmt(rho)} m at pitch 2ρ(1 + 0.8·spacing) = ${fmt(pitch)} m along ${fmt(L)} m`, { N, rho, pitch, L })
     // Top rail (offset of the curve by H along its up-normal) + end posts.
     const rail = []
     for (let i = 0; i < pts.length; i += 1) {
@@ -124,7 +150,9 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       const L2 = k % 2 === 0 ? lobeA : lobeB
       const phi = Math.PI / 2 + (turn ? Math.PI / L2 : 0)
       const foil = buildFoil({ x: 0, y: 0 }, rho - barR * 1.6, L2, P.cuspDepth, phi)
+      if (k === 0 || k === N - 1) geoPoint('band', { x: 0, y: 0 }, map, `circle ${k + 1}/${N}`)
       if (foil) {
+        geoFoil(foil, map)
         record('bandFoil', foil.residuals)
         for (const arc of foil.arcs) addMember('foil', 2, arc.map(map), barR * 0.7, `${piecePrefix}c${k}`)
         out.motifs += 1
@@ -133,6 +161,7 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
     // Spandrel circles: tangent to both neighbours and to each rail (r = d²/4ρ).
     const d = pitch / 2
     const rs = spandrelRadius(rho, d)
+    step('spandrel', rs > barR * 1.4 && rs < rho ? `Spandrel circles r = d²/4ρ = ${fmt(rs)} m, tangent to both neighbours and the rail` : `Spandrel circles skipped: r = d²/4ρ = ${fmt(rs)} m is too small for the bar (${fmt(barR * 1.4)} m)`, { rs, d, rho })
     if (rs > barR * 1.4 && rs < rho) {
       const resid = Math.abs(Math.hypot(d, rho - rs) - (rho + rs))
       for (let k = 0; k < N - 1; k += 1) {
@@ -152,7 +181,10 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
     const B = points[points.length - 1]
     const chord = sub(B, A)
     const Lc = Math.hypot(chord.x, chord.y, chord.z)
-    if (Lc < 2) return null
+    if (Lc < 2) {
+      step('archTest', `Arch test failed: chord ${fmt(Lc)} m < 2 m → tracery band`, { Lc })
+      return null
+    }
     const e1 = scale(chord, 1 / Lc)
     let best = null
     let h = 0
@@ -166,13 +198,25 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       }
     }
     const a = Lc / 2
-    if (!best || h / a < 0.35) return null
+    const ratio = best ? h / a : 0
+    const e2y = best ? best.y / h : 0
+    out.archTest = { Lc, a, h, ratio, e2y }
+    if (!best || ratio < 0.35) {
+      step('archTest', `Arch test failed: rise / half-span = ${fmt(h)} / ${fmt(a)} = ${fmt(ratio)} < 0.35 → tracery band`, out.archTest)
+      return null
+    }
     const e2 = scale(best, 1 / h)
-    if (e2.y < 0.5) return null
+    if (e2.y < 0.5) {
+      step('archTest', `Arch test failed: the rise points sideways (up-component ${fmt(e2y)} < 0.5) → tracery band`, out.archTest)
+      return null
+    }
+    step('archTest', `Arch test passed: rise / half-span = ${fmt(h)} / ${fmt(a)} = ${fmt(ratio)} ≥ 0.35, rising (up ${fmt(e2y)})`, out.archTest)
     return { A, e1, e2, a, h }
   }
 
+  step('role', `Role: ${role}`, { role })
   if (role === 'rib' || role === 'tracery') {
+    if (role === 'tracery') step('archTest', 'Tracery role: always a tracery band (no arch test)')
     const F = role === 'rib' ? archFrame() : null
     if (!F) {
       out.style = 'band'
@@ -186,6 +230,15 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       const main = twoCentredArch(0, F.a, k, 0)
       const delta = r0 * 2.1
       const bar = Math.max(0.06, r0 * 0.5)
+      step('arch', `Two-centred arch fitted to the drawn rise: k = (h² − a²)/2a² = ${fmt(fit)}${k !== fit ? ` → clamped ${fmt(k)}` : ''}; centres ±c = ±${fmt(main.c)} m on the springing line, R = a + c = ${fmt(main.R)} m, apex h = √(R² − c²) = ${fmt(main.h)} m`, { a: F.a, h: F.h, k, c: main.c, R: main.R })
+      geoLine('arch', { x: -F.a * 1.15, y: 0 }, { x: F.a * 1.15, y: 0 }, W)
+      geoLine('arch', { x: 0, y: 0 }, main.apex, W)
+      geoCircle('arch', main.left.center, main.R, W, 72)
+      geoCircle('arch', main.right.center, main.R, W, 72)
+      geoPoint('arch', main.left.center, W, 'left-arc centre')
+      geoPoint('arch', main.right.center, W, 'right-arc centre')
+      geoPoint('arch', main.apex, W, `apex · k ${fmt(k)}`)
+      if (P.archivolts > 0) step('archivolt', `${P.archivolts} archivolt${P.archivolts > 1 ? 's' : ''}: same centres, R + j·${fmt(delta)} m`, { n: P.archivolts, delta })
       // Archivolts: concentric offset arcs (§2).
       for (let j = 1; j <= P.archivolts; j += 1) addMember('archivolt', 1, toW(sampleArch(offsetArch(main, j * delta), 24)), r0 * 0.55, `archivolt${j}`)
       // Keystone at the apex (radial axis = e2).
@@ -202,15 +255,22 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       const pick = rand()
       const style = P.style >= 1 ? styles[Math.round(P.style) - 1] : pick < 0.5 ? 'geometric' : pick < 0.75 ? 'y' : 'intersecting'
       out.style = style
+      step('style', P.style >= 1 ? `Style ${style} (set by the Tracery style slider)` : `Style ${style} (Auto: seed roll ${fmt(pick)} → <0.5 geometric, <0.75 Y, else intersecting)`, { style, pick, source: P.style >= 1 ? 'slider' : 'seed' })
       const n = Math.max(1, Math.round(P.subdivision))
       const lobesTop = Math.round(P.foilLobes)
       const orientUp = rand() < 0.5
-      const foilIn = (oc, L, depth, piece) => {
+      const foilIn = (oc, L, depth, piece, parents = []) => {
         addMember('oculus', depth, toW(circlePoints(oc.center, oc.radius, 44)), bar * Math.pow(0.8, depth - 1), piece)
         record(oc.kind, oc.residuals)
+        const res = Math.max(...oc.residuals)
+        step(oc.kind, `${oc.kind === 'gableFoil' ? 'Gable foil' : 'Oculus'} (depth ${depth}): r = ${fmt(oc.radius)} m, ${L}-foil, tangency error ${res.toExponential(1)}`, { r: oc.radius, lobes: L, residual: res })
+        geoPoint(oc.kind, oc.center, W, `${oc.kind === 'gableFoil' ? 'gable foil' : 'oculus'} r ${fmt(oc.radius)}`)
+        // Tangency lines: from each parent arc centre through the oculus centre.
+        for (const pc of parents) geoLine('tangency', pc, oc.center, W)
         const phi = Math.PI / 2 + (orientUp ? 0 : Math.PI / L)
         const foil = buildFoil(oc.center, oc.radius - bar * 1.5, L, P.cuspDepth, phi)
         if (foil) {
+          geoFoil(foil, W)
           record('foil', foil.residuals)
           for (const arc of foil.arcs) addMember('foil', depth + 1, toW(arc), bar * 0.7 * Math.pow(0.8, depth - 1), piece)
           out.motifs += 1
@@ -220,12 +280,19 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
         if (P.lancetFoil <= 0) return
         const yt = arch.y0 + arch.h * (0.62 - 0.3 * P.lancetFoil)
         const hc = inscribedInHead(arch, yt)
-        if (!hc || hc.radius < bar * 2.5) return
+        if (!hc || hc.radius < bar * 2.5) {
+          step('headFoil', `Lancet-head foil skipped: inscribed circle ${hc ? `r = ${fmt(hc.radius)} m` : 'not found'} < ${fmt(bar * 2.5)} m`, { r: hc?.radius ?? 0 })
+          return
+        }
         record('headFoil', hc.residuals)
+        step('headFoil', `Lancet-head roundel: circle tangent to both arcs and the transom y = ${fmt(yt)}, r = (R² − c² − y²)/2(R + y) = ${fmt(hc.radius)} m`, { r: hc.radius, yt })
+        geoLine('headFoil', { x: arch.m - arch.a, y: yt }, { x: arch.m + arch.a, y: yt }, W)
+        geoPoint('headFoil', hc.center, W)
         // Ring tangent to both arcs (plate-tracery roundel) + cusped trefoil inside.
         addMember('oculus', depth + 1, toW(circlePoints(hc.center, hc.radius, 36)), bar * 0.6, piece)
         const foil = buildFoil(hc.center, hc.radius - bar * 1.1, 3, P.cuspDepth, Math.PI / 2 + (orientUp ? Math.PI / 3 : 0))
         if (foil) {
+          geoFoil(foil, W)
           record('foil', foil.residuals)
           for (const arc of foil.arcs) addMember('foil', depth + 1, toW(arc), bar * 0.6, piece)
           out.motifs += 1
@@ -242,6 +309,11 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
           }
           const kids = subdivideArch(parent, count, kSub)
           const r = bar * Math.pow(0.78, depth - 1)
+          step('subdivide', `Subdivide (depth ${depth}): ${count} lancets of half-span ${fmt(parent.a / count)} m on the springing line, sharpness k = ${fmt(kSub)}`, { depth, count, k: kSub })
+          kids.forEach((kid) => {
+            geoPoint('subdivide', kid.left.center, W)
+            geoPoint('subdivide', kid.right.center, W)
+          })
           kids.forEach((kid, i) => addMember('subarch', depth, toW(sampleArch(kid, 16)), r, `${prefix}${i}`))
           for (let i = 0; i < kids.length - 1; i += 1) {
             dropMullion(kids[i].m + kids[i].a, r, `${prefix}m${i}`)
@@ -253,11 +325,12 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
           }
           const clash = oculi.some((o, i) => oculi.some((q, j) => j > i && Math.hypot(o.center.x - q.center.x, o.center.y - q.center.y) < o.radius + q.radius))
           const L = depth === 1 ? lobesTop : Math.max(3, lobesTop - depth + 1)
-          if (!clash) oculi.forEach((oc, i) => foilIn(oc, L, depth, `${prefix}o${i}`))
+          if (clash) step('oculus', `Oculi between lancets clash (overlap) at depth ${depth} → ${kids.length % 2 === 1 ? 'one oculus on the axis' : 'none'}`, { depth })
+          if (!clash) oculi.forEach((oc, i) => foilIn(oc, L, depth, `${prefix}o${i}`, [parent.left.center, parent.right.center, kids[i].left.center, kids[i + 1].right.center]))
           else if (kids.length % 2 === 1) {
             // Odd lancet count: one oculus on the axis above the middle lancet.
             const oc = oculusAbove(parent, kids[(kids.length - 1) / 2])
-            if (oc && oc.radius > bar * 2) foilIn(oc, L, depth, `${prefix}oc`)
+            if (oc && oc.radius > bar * 2) foilIn(oc, L, depth, `${prefix}oc`, [parent.left.center, parent.right.center])
           }
           kids.forEach((kid, i) => {
             if (depth <= P.refine) geometric(kid, depth + 1, 2, `${prefix}${i}.`)
@@ -268,6 +341,10 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       } else if (style === 'y') {
         const m = Math.max(2, n)
         const ys = inner.h * 0.38
+        step('yTracery', `Y-tracery: ${m - 1} mullion${m > 2 ? 's' : ''} fork at ${fmt(ys)} m; each branch is concentric with the opposite arc`, { m, ys })
+        geoLine('yTracery', { x: inner.m - inner.a, y: ys }, { x: inner.m + inner.a, y: ys }, W)
+        geoPoint('yTracery', inner.left.center, W, 'branch centre')
+        geoPoint('yTracery', inner.right.center, W, 'branch centre')
         for (let j = 1; j < m; j += 1) {
           const x = inner.m - inner.a + (2 * inner.a * j) / m
           addMember('mullion', 1, [W({ x, y: 0 }), W({ x, y: ys })], bar, `y${j}`)
@@ -283,6 +360,8 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
         }
       } else {
         const m = Math.max(2, n)
+        step('intersecting', `Intersecting tracery: the main arcs (R = ${fmt(inner.R)} m) repeated from each of ${m + 1} mullion feet`, { m, R: inner.R })
+        for (let j = 0; j <= m; j += 1) geoPoint('intersecting', { x: inner.m - inner.a + (2 * inner.a * j) / m, y: 0 }, W)
         intersectingArcs(inner, m, bar).forEach((run, i) => {
           addMember('subarch', 1, toW(run), bar * 0.85, `x${i}`)
           out.motifs += 1
@@ -301,10 +380,14 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
         const right = [W({ x: 0, y: gy }), W({ x: ga, y: 0 })]
         addMember('gable', 1, left, r0 * 0.5, 'gable')
         addMember('gable', 1, right, r0 * 0.5, 'gable')
+        step('gable', `Gable: apex ${fmt(gy)} m (${fmt(1.12 + 0.9 * P.gable)} × extrados rise), half-width ${fmt(ga)} m`, { gy, ga })
+        geoPoint('gable', { x: 0, y: gy }, W, 'gable apex')
         const gf = gableFoil(main, ext.R, gy, ga)
-        if (gf && gf.radius > bar * 2) foilIn(gf, lobesTop === 4 ? 3 : 4, 1, 'gableFoil')
+        if (gf && gf.radius > bar * 2) foilIn(gf, lobesTop === 4 ? 3 : 4, 1, 'gableFoil', [main.left.center, main.right.center])
+        else step('gableFoil', 'Gable foil skipped: no room between the gable lines and the extrados')
         const edge = Math.hypot(ga, gy)
         const nCrockets = Math.round((P.crockets * edge) / 1.6)
+        step('crockets', `${nCrockets * 2} crockets (${nCrockets} per edge = crockets × edge ${fmt(edge)} m / 1.6 m)`, { n: nCrockets * 2 })
         for (let i = 1; i <= nCrockets; i += 1) {
           const u = i / (nCrockets + 1)
           for (const sgn of [-1, 1]) {
@@ -318,7 +401,9 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
         if (P.crockets > 0 || P.pinnacles > 0) ornament('finial', W({ x: 0, y: gy }), F.e1, UP, r0 * 1.6)
       }
       // Grotesque corbels at both springings (mirror pair or none).
-      if (rand() < P.grotesques) {
+      const gRoll = rand()
+      step('grotesque', gRoll < P.grotesques ? `Grotesque pair: seed roll ${fmt(gRoll)} < chance ${fmt(P.grotesques)}` : `No grotesques: seed roll ${fmt(gRoll)} ≥ chance ${fmt(P.grotesques)}`, { roll: gRoll, chance: P.grotesques })
+      if (gRoll < P.grotesques) {
         const variant = Math.floor(rand() * 3)
         for (const sgn of [-1, 1]) {
           const out3 = scale(F.e1, sgn)
@@ -342,6 +427,7 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       addMember('shaft', 1, pts, rs, `shaft${k}`)
     }
     out.motifs += ns
+    step('shafts', `Compound pier: ${ns} shafts at radius ${fmt(ringR)} m, rotational symmetry 360°/${ns || 1}`, { ns, ringR })
     const tTop = norm(sub(top, points[points.length - 2]))
     const capR = ns ? ringR + rs : rc * 1.15
     ornament('capital', top, frames[frames.length - 1].side, tTop, capR)
@@ -364,6 +450,8 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       record('springer', [Math.abs(dist(arc[8], C) - Math.hypot(Rsp, 0))])
     }
     out.motifs += m
+    step('springers', m ? `${m} vault springers: circular arcs R = 0.35 × height = ${fmt(Rsp)} m, vertical tangent at the capital` : 'No vault springers', { m, R: Rsp })
+    step('pinnacle', !topLinked && m === 0 && P.pinnacles > 0 ? 'Pinnacle on the free column top' : `No pinnacle (${topLinked ? 'top is linked' : m ? 'springers carry the top' : 'pinnacles = 0'})`)
     if (!topLinked && m === 0 && P.pinnacles > 0) ornament('pinnacle', add(top, scale(UP, rc * 0.2)), v3(1, 0, 0), UP, rc * 1.6, { height: rc * 8 * P.pinnacles })
     out.style = 'compound pier'
   } else if (role === 'buttress') {
@@ -372,6 +460,7 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
     const rp = radii[0] * 1.1
     const strutTop = points.reduce((m, p) => Math.max(m, p.y), 0)
     const hp = Math.max(2, P.pierHeight * strutTop)
+    step('pier', base.y <= 0.35 && P.pierHeight > 0 ? `Buttress pier ${fmt(hp)} m with ${Math.round(P.setbacks)} setbacks` : 'No pier (base is not on the ground or pier height is 0)', { hp })
     if (base.y <= 0.35 && P.pierHeight > 0) {
       const k = Math.round(P.setbacks)
       for (let j = 0; j <= k; j += 1) {
@@ -391,6 +480,7 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
   }
 
   // Bosses at linked ends (vault rib junctions, REF-004).
+  step('boss', `Bosses: ${[baseOut, topOut].filter(Boolean).length} (one per end that links out to another curve)`)
   if (P.jointSize > 0) {
     // One boss per joint: placed by the curve that links out, not by its target.
     for (const [p, linked] of [

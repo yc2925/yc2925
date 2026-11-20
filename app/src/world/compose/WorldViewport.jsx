@@ -24,6 +24,7 @@ import { Line, OrbitControls } from '@react-three/drei'
 import { buildMemberGeometry, computePieceOffsets, createStonePrototypes } from './geometry.js'
 import { createScrimMaterial } from './scrimMaterial.js'
 import { prominentSubjects, structureProminence } from './prominence.js'
+import DebugLayer, { PHASE_COLORS, STONE_KIND_COLORS } from './DebugLayer.jsx'
 import { createGroundMaterial, createSkyMaterial, updateGroundMaterial, worldEnvironment } from './groundMaterial.js'
 import { TERRAIN_PARAM_SPECS } from './worldParams.js'
 import { createTerrainHeight } from './terrain.js'
@@ -95,8 +96,11 @@ const tmpP = new THREE.Vector3()
 const tmpS = new THREE.Vector3()
 const tmpC = new THREE.Color()
 
-function StoneBatch({ geometry, stones, offsets, material, selected, layers = 0 }) {
+function StoneBatch({ geometry, stones, offsets, material, selected, layers = 0, dbg = null }) {
   const ref = useRef(null)
+  const colorBy = dbg?.colorBy ?? null
+  // Placement order of each instance (stones are grouped by prototype, kept in build order).
+  const order = useMemo(() => (dbg?.orderOf ? stones.map((st) => dbg.orderOf.get(st) ?? 0) : null), [stones, dbg?.orderOf])
   useLayoutEffect(() => {
     const mesh = ref.current
     if (!mesh) return
@@ -107,19 +111,35 @@ function StoneBatch({ geometry, stones, offsets, material, selected, layers = 0 
       tmpS.set(st.s[0], st.s[1], st.s[2])
       tmpM.compose(tmpP, tmpQ, tmpS)
       mesh.setMatrixAt(i, tmpM)
-      tmpC.setRGB(st.color[0], st.color[1], st.color[2], THREE.SRGBColorSpace)
-      if (selected) tmpC.lerp(new THREE.Color('#ff6a5a'), 0.12)
+      // Debug: colour by stone kind or by placement phase instead of the palette.
+      if (colorBy === 'kind') tmpC.set(STONE_KIND_COLORS[st.kind] ?? '#bbbbbb')
+      else if (colorBy === 'phase') tmpC.set(PHASE_COLORS[st.phase] ?? '#bbbbbb')
+      else tmpC.setRGB(st.color[0], st.color[1], st.color[2], THREE.SRGBColorSpace)
+      if (selected && !colorBy) tmpC.lerp(new THREE.Color('#ff6a5a'), 0.12)
       mesh.setColorAt(i, tmpC)
     })
     mesh.count = stones.length
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     mesh.computeBoundingSphere()
-  }, [stones, offsets, selected])
-  return <instancedMesh ref={ref} args={[geometry, material, Math.max(1, stones.length)]} castShadow receiveShadow frustumCulled={false} layers={layers} />
+  }, [stones, offsets, selected, colorBy])
+  // Debug timelapse: only stones placed before `limit` are drawn (instances are in build order).
+  const limit = dbg?.limit ?? null
+  useLayoutEffect(() => {
+    const mesh = ref.current
+    if (!mesh) return
+    if (limit == null || !order) mesh.count = stones.length
+    else {
+      let n = 0
+      while (n < order.length && order[n] < limit) n += 1
+      mesh.count = n
+    }
+  }, [limit, order, stones, colorBy])
+  const onClick = dbg?.onInspect && order ? (e) => dbg.onInspect(order[e.instanceId]) : undefined
+  return <instancedMesh ref={ref} args={[geometry, material, Math.max(1, stones.length)]} castShadow receiveShadow frustumCulled={false} layers={layers} onClick={onClick} />
 }
 
-function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected, layers = 0 }) {
+function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected, layers = 0, dbg = null }) {
   const byProto = useMemo(() => {
     const groups = prototypes.map(() => [])
     for (const st of lithic.stones) groups[st.proto % prototypes.length].push(st)
@@ -135,6 +155,7 @@ function Stones({ lithic, prototypes, offsets, scrim, solidMaterial, selected, l
         offsets={offsets}
         material={scrim ?? solidMaterial}
         selected={selected}
+        dbg={dbg}
       />
     ) : null,
   )
@@ -266,7 +287,7 @@ function useDeferredBuild(enabled, build, deps, delay = 90) {
 // X-ray: stones that are ground clutter, not part of the architecture (stay in the dim background).
 const CLUTTER = new Set(['gravel', 'plinth', 'footing'])
 
-function Structure({ s, stage, xray, explode, prototypesFor, materials, selected, onSelect, scan, order = 0, subject = true }) {
+function Structure({ s, stage, xray, explode, prototypesFor, materials, selected, onSelect, scan, order = 0, subject = true, debug = null, onInspect = null }) {
   const center = useMemo(() => structureCenter(s.skeleton), [s.skeleton])
   const memberOffsets = useMemo(
     () =>
@@ -291,6 +312,21 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
     for (const st of s.lithic.stones) (CLUTTER.has(st.kind) ? clutter : main).push(st)
     return { main: { stones: main }, clutter: { stones: clutter } }
   }, [s.lithic])
+  // Debug (skeleton → stone): colour mode, timelapse limit, click-to-inspect.
+  const orderOf = useMemo(() => new Map(s.lithic.stones.map((st, i) => [st, i])), [s.lithic])
+  const dbgOn = !!debug?.on && !scan
+  const dbg = useMemo(
+    () =>
+      dbgOn
+        ? {
+            orderOf,
+            colorBy: debug.stoneColor && debug.stoneColor !== 'off' ? debug.stoneColor : null,
+            limit: debug.build != null && debug.build < 1 ? Math.round(debug.build * s.lithic.stones.length) : null,
+            onInspect: onInspect ? (index) => onInspect(s.curveId, index) : null,
+          }
+        : null,
+    [dbgOn, orderOf, debug?.stoneColor, debug?.build, onInspect, s.curveId, s.lithic.stones.length],
+  )
   // Survey paint only from stations whose target lies on this structure.
   const b = s.skeleton.bounds
   const markers = scan && b ? scan.markers.filter((m) => m.c[0] >= b.min.x - 4 && m.c[0] <= b.max.x + 4 && m.c[2] >= b.min.z - 4 && m.c[2] <= b.max.z + 4 && m.c[1] <= b.max.y + 4) : []
@@ -319,11 +355,11 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
       {showStones ? (
         scrimMode ? (
           <>
-            <Stones lithic={split.main} prototypes={prototypes} offsets={stoneOffsets} scrim={subject ? materials.stoneScrim : materials.stoneScrimBg} solidMaterial={materials.stoneSolid} />
-            <Stones lithic={split.clutter} prototypes={prototypes} offsets={stoneOffsets} scrim={materials.stoneScrimBg} solidMaterial={materials.stoneSolid} />
+            <Stones lithic={split.main} prototypes={prototypes} offsets={stoneOffsets} scrim={subject ? materials.stoneScrim : materials.stoneScrimBg} solidMaterial={materials.stoneSolid} dbg={dbg} />
+            <Stones lithic={split.clutter} prototypes={prototypes} offsets={stoneOffsets} scrim={materials.stoneScrimBg} solidMaterial={materials.stoneSolid} dbg={dbg} />
           </>
         ) : (
-          <Stones lithic={s.lithic} prototypes={prototypes} offsets={stoneOffsets} scrim={null} solidMaterial={materials.stoneSolid} selected={selected && !scan} layers={scan ? LAYER_SOLID : 0} />
+          <Stones lithic={s.lithic} prototypes={prototypes} offsets={stoneOffsets} scrim={null} solidMaterial={materials.stoneSolid} selected={selected && !scan} layers={scan ? LAYER_SOLID : 0} dbg={dbg} />
         )
       ) : null}
       {cloud && scan ? <ScanPoints data={cloud} worldSize={(scan.pointSize * 1.1) / Math.sqrt(scan.density)} /> : null}
@@ -331,7 +367,7 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
   )
 }
 
-const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xray, presentation, terrain, selectedCurveId, onSelect }, ref) {
+const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xray, presentation, terrain, selectedCurveId, onSelect, debug = null, onInspect = null }, ref) {
   const rig = useRef(null)
   useImperativeHandle(ref, () => ({ fit: (b) => rig.current?.fit(b) }))
   const pointCloud = stage === 'pointcloud'
@@ -346,6 +382,8 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
       tubeScrimBg: createScrimMaterial({ mode: 'uv', density: [1.6, 2.4], opacity: 0.5, edge: 2.2, line: 0.5 }),
       stoneScrimBg: createScrimMaterial({ mode: 'bary', opacity: 0.07, edge: 1.1, line: 0.22 }),
       terrainScrim: createScrimMaterial({ mode: 'uv', density: [0.1, 0.1], opacity: 0.0, edge: 0.4, line: 0.22, color: '#c9ced2', fade: [FADE_START, FADE_END] }),
+      // X-ray terrain: glowing surface (fresnel relief) + 10 m grid + 50 m major grid.
+      terrainXray: createScrimMaterial({ mode: 'uv', density: [0.1, 0.1], opacity: 0.22, edge: 0.9, line: 0.55, color: '#d6dbdf', fade: [FADE_START, FADE_END], major: [0.02, 0.02], majorLine: 0.9 }),
       stoneSolid: createStoneMaterial(),
     }),
     [],
@@ -359,8 +397,15 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
     materials.stoneScrim.uniforms.uGain.value = presentation.xrayExposure ?? 1
     for (const m of [materials.tubeScrimBg, materials.stoneScrimBg]) m.uniforms.uGain.value = presentation.xrayBackground ?? 0.75
     // The terrain grid is background in X-ray; in the normal World view it keeps its plain level.
-    materials.terrainScrim.uniforms.uGain.value = scrimMode ? (presentation.xrayBackground ?? 0.75) : 1
-  }, [materials, presentation.xrayExposure, presentation.xrayBackground, scrimMode])
+    materials.terrainScrim.uniforms.uGain.value = 1
+    // X-ray terrain has its own level; the Grid toggle removes only its grid lines.
+    const tx = materials.terrainXray.uniforms
+    // Bright only in the X-ray view; the Gothic Skeleton stage keeps a quiet ground under the members.
+    tx.uGain.value = xray ? (presentation.xrayTerrain ?? 1.5) : 0.45
+    const grid = presentation.terrainGrid ?? true
+    tx.uLine.value = grid ? 0.55 : 0
+    tx.uMajorLine.value = grid ? 0.9 : 0
+  }, [materials, presentation.xrayExposure, presentation.xrayBackground, presentation.xrayTerrain, presentation.terrainGrid, xray])
 
 
   const scanLook = pointCloud && !scrimMode
@@ -472,8 +517,9 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
       <OrbitControls makeDefault enableDamping={false} />
       <CameraRig ref={rig} />
       <ScanLayerSetup />
+      {debug?.on ? <DebugLayer structures={structures} selectedCurveId={selectedCurveId} debug={debug} /> : null}
 
-      {world || scrimMode ? <Terrain params={terrain} scrim={materials.terrainScrim} xray={scrimMode} bg={bg} scan={scanLook} grid={presentation.terrainGrid ?? true} /> : null}
+      {world || scrimMode ? <Terrain params={terrain} scrim={scrimMode ? materials.terrainXray : materials.terrainScrim} xray={scrimMode} bg={bg} scan={scanLook} grid={scrimMode || (presentation.terrainGrid ?? true)} /> : null}
       {groundCloud ? <ScanPoints data={groundCloud} worldSize={(P.pointSize ?? 1) * 0.7 / Math.sqrt(P.groundDensity ?? 10)} /> : null}
       {scanLook && stations.length ? <SurveyOverlay stations={stations} thumbSize={P.thumbSize ?? 84} contentKey={visible} /> : null}
       {!world && !scrimMode ? <gridHelper args={[200, 20, '#4a4a4a', '#2c2c2c']} position-y={0.01} /> : null}
@@ -499,6 +545,8 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
             subject={subjects.has(s.curveId)}
             onSelect={onSelect}
             scan={scanOpts}
+            debug={debug}
+            onInspect={onInspect}
           />
         ) : null,
       )}

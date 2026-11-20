@@ -1992,3 +1992,65 @@
   border-radius: 50%;
   border: 1px solid #fff;
 }
+
+/* Debug layer · curve → skeleton (Class 11) */
+.dbg-head {
+  transform: translate(-50%, -140%);
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  color: #f2f2f2;
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 2px 6px;
+}
+.dbg-tag {
+  transform: translate(6px, -50%);
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  font-size: 9px;
+  color: var(--c);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1px 4px;
+}
+.dbg-toggles { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; margin: 4px 0 8px; }
+.dbg-toggles label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+.dbg-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; margin-bottom: 8px; }
+.dbg-legend button,
+.dbg-log button {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 10.5px;
+  color: #cfcfcf;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+}
+.dbg-legend button.is-active,
+.dbg-log button.is-active { border-color: var(--c); color: #fff; }
+.dbg-swatch { width: 9px; height: 9px; background: var(--c); flex: none; align-self: center; }
+.dbg-log { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+.dbg-log li { border-bottom: 1px solid #1f1f1f; }
+.dbg-n { color: #6a6a6a; min-width: 18px; text-align: right; font-family: ui-monospace, Menlo, monospace; }
+.dbg-rule { color: var(--c); min-width: 64px; font-family: ui-monospace, Menlo, monospace; }
+.dbg-text { flex: 1; line-height: 1.35; }
+.dbg-overview { list-style: none; margin: 0; padding: 0; font-size: 10.5px; color: #cfcfcf; }
+.dbg-overview li { padding: 2px 0; border-bottom: 1px solid #1f1f1f; }
+.dbg-toggles select { margin-left: 6px; background: #111; color: #ddd; border: 1px solid #333; font-size: 11px; }
+.dbg-chip { display: flex; gap: 6px; align-items: center; font-size: 10.5px; color: #cfcfcf; }
+.dbg-chip em { color: #777; font-style: normal; margin-left: auto; }
+.dbg-table { width: 100%; border-collapse: collapse; font-size: 10.5px; font-family: ui-monospace, Menlo, monospace; margin: 4px 0 8px; }
+.dbg-table th { text-align: right; color: #777; font-weight: normal; padding: 2px 4px; }
+.dbg-table th:first-child, .dbg-table td:first-child { text-align: left; }
+.dbg-table td { text-align: right; padding: 2px 4px; color: #ddd; border-top: 1px solid #1f1f1f; }
+.dbg-table td.is-warn { color: #ff4d4d; }
+.dbg-table .dbg-total td { color: #fff; border-top: 1px solid #444; }
+.dbg-timelapse { display: flex; gap: 8px; align-items: center; margin: 8px 0; font-size: 11px; }
+.dbg-timelapse input { flex: 1; }
+.dbg-timelapse button { background: #111; color: #ddd; border: 1px solid #555; padding: 3px 8px; font-size: 10.5px; cursor: pointer; }
+.dbg-inspect dd { font-size: 10.5px; }
+.dbg-table { table-layout: fixed; font-size: 10px; }
+.dbg-table th:first-child, .dbg-table td:first-child { width: 30%; }
+.dbg-table th, .dbg-table td { padding: 2px 2px; overflow: hidden; }

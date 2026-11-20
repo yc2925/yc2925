@@ -50,6 +50,8 @@ const fragmentShader = /* glsl */ `
   uniform float uMode;      // 0 = barycentric facets, 1 = uv mesh
   uniform vec2 uDensity;    // mesh lines per metre (uv mode)
   uniform vec2 uFade;       // radial fade-out (start, end) in metres from the origin
+  uniform vec2 uMajor;      // optional major grid (lines per metre; 0 = none)
+  uniform float uMajorLine; // brightness of the major grid
   varying vec2 vWorldXZ;
   varying vec3 vN;
   varying vec3 vView;
@@ -70,6 +72,13 @@ const fragmentShader = /* glsl */ `
       vec2 l = 1.0 - smoothstep(vec2(0.0), w, d);
       // When mesh cells shrink below a pixel, blend to their average coverage (a soft glow) instead of vanishing.
       line = mix(max(l.x, l.y), 0.4, smoothstep(0.3, 0.9, length(w)));
+      if (uMajorLine > 0.0) {
+        vec2 gm = vUv * uMajor;
+        vec2 wm = fwidth(gm) * 1.6;
+        vec2 dm = abs(fract(gm - 0.5) - 0.5);
+        vec2 lm = 1.0 - smoothstep(vec2(0.0), wm, dm);
+        line += max(lm.x, lm.y) * uMajorLine * (1.0 - smoothstep(0.2, 0.8, length(wm)));
+      }
     }
     float a = (uOpacity * (0.16 + fresnel * uEdge) + line * uLine) * uGain;
     a *= 1.0 - smoothstep(uFade.x, uFade.y, length(vWorldXZ));
@@ -86,7 +95,7 @@ const fragmentShader = /* glsl */ `
   }
 `
 
-export function createScrimMaterial({ mode = 'uv', density = [2.2, 2.2], opacity = 0.35, edge = 1.6, line = 0.45, color = '#f2f4f5', fade = [1e9, 2e9] } = {}) {
+export function createScrimMaterial({ mode = 'uv', density = [2.2, 2.2], opacity = 0.35, edge = 1.6, line = 0.45, color = '#f2f4f5', fade = [1e9, 2e9], major = [0, 0], majorLine = 0 } = {}) {
   return new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -101,6 +110,8 @@ export function createScrimMaterial({ mode = 'uv', density = [2.2, 2.2], opacity
       uMode: { value: mode === 'bary' ? 0 : 1 },
       uDensity: { value: new THREE.Vector2(density[0], density[1]) },
       uFade: { value: new THREE.Vector2(fade[0], fade[1]) },
+      uMajor: { value: new THREE.Vector2(major[0], major[1]) },
+      uMajorLine: { value: majorLine },
     },
     transparent: true,
     depthWrite: false,

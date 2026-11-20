@@ -405,5 +405,44 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check([...TERRAIN_SURFACE_SPECS].every((sp) => sp.help && sp.key in DEFAULT_TERRAIN_PARAMS) && ENVIRONMENT_SPECS.every((sp) => sp.help && sp.key in DEFAULT_PRESENTATION), 'environment + surface controls have defaults and tooltips')
 }
 
+
+// ---------------------------------------------------------------- debug trace (curve → skeleton)
+{
+  const arch = buildCurveSkeleton({ curveId: 'dbg', curveType: 'catmullRom', curveRole: 'rib' }, liftToPointedArch(ARCH, 1.1), { style: 1 }, 42, {})
+  const flat = buildCurveSkeleton({ curveId: 'dbgf', curveType: 'catmullRom', curveRole: 'rib' }, ARCH.map((p) => ({ ...p, y: 2 })), {}, 42, {})
+  const col = buildCurveSkeleton({ curveId: 'dbgc', curveType: 'polyline', curveRole: 'column' }, [{ x: 0, y: 0, z: 0 }, { x: 0, y: 12, z: 0 }], {}, 3, {})
+  const rules = (s) => s.trace.steps.map((st) => st.rule)
+  check(arch.trace.steps.length > 8 && arch.trace.steps.every((st, i) => st.n === i + 1 && st.text), `debug trace: ordered rule log (${arch.trace.steps.length} steps)`)
+  check(rules(arch).includes('archTest') && arch.trace.steps.find((st) => st.rule === 'archTest').text.includes('passed') && rules(arch).includes('arch') && rules(arch).includes('subdivide') && rules(arch).includes('oculus'), 'arch curve: log records the arch test, fit, subdivision and oculi')
+  check(flat.trace.steps.find((st) => st.rule === 'archTest').text.includes('failed') && rules(flat).includes('band'), 'flat curve: log records why the arch test failed and the band')
+  check(rules(col).includes('shafts') && rules(col).includes('springers'), 'column: log records shafts and springers')
+  const finite = (s) => s.trace.geom.every((g) => g.points.length && g.points.every((p) => [p.x, p.y, p.z].every(Number.isFinite)))
+  check(finite(arch) && finite(flat) && finite(col), `construction geometry is finite (${arch.trace.geom.length} primitives on the arch)`)
+  // Arch circles really pass through the arch: the apex lies on both full circles.
+  const circles = arch.trace.geom.filter((g) => g.rule === 'arch' && g.kind === 'circle')
+  const apex = arch.trace.geom.find((g) => g.rule === 'arch' && g.label?.startsWith('apex')).points[0]
+  check(circles.length === 2 && circles.every((c) => Math.abs(Math.hypot(apex.x - c.center.x, apex.y - c.center.y, apex.z - c.center.z) - c.r) < 1e-6), 'debug: the drawn arch circles pass exactly through the apex (R = a + c)')
+  const oc = arch.trace.steps.filter((st) => st.rule === 'oculus').length
+  const tl = arch.trace.geom.filter((g) => g.rule === 'tangency').length
+  check(oc > 0 && tl >= oc * 2, `every oculus has its tangency lines (${oc} oculi, ${tl} lines)`)
+}
+
+
+// ---------------------------------------------------------------- debug trace (skeleton → stone)
+{
+  const skel = buildCurveSkeleton({ curveId: 'dbs', curveType: 'catmullRom', curveRole: 'rib' }, liftToPointedArch(ARCH, 1.1), {}, 42, {})
+  const r = buildStones(skel, { density: 0.8 }, 42)
+  const ph = Object.values(r.trace.phases)
+  const sum = (k) => ph.reduce((a, v) => a + v[k], 0)
+  check(sum('slots') === r.stats.slots && sum('rejected') === r.stats.rejected && sum('skipped') === r.stats.skipped && sum('placed') === r.stones.length, `stone trace: phase counts add up (${r.stats.slots} slots = ${r.stones.length} placed + ${r.stats.rejected} rejected + ${r.stats.skipped} skipped)`)
+  check(r.trace.slots.length === r.stats.rejected + r.stats.skipped, 'every unplaced slot is recorded with its outcome')
+  const rej = r.trace.slots.filter((t) => t.outcome === 'rejected')
+  check(rej.every((t) => r.stones[t.blockedBy] && Math.hypot(t.p[0] - r.stones[t.blockedBy].p[0], t.p[1] - r.stones[t.blockedBy].p[1], t.p[2] - r.stones[t.blockedBy].p[2]) < 2 * Math.max(...r.stones[t.blockedBy].s)), `every rejected slot names a real, nearby blocking stone (${rej.length})`)
+  const order = ['carved', 'tracery', 'structural', 'footing', 'plinth', 'gravel']
+  check(r.stones.every((st, i) => i === 0 || order.indexOf(st.phase) >= order.indexOf(r.stones[i - 1].phase)), 'stones are stored in placement order (timelapse order)')
+  const again = buildStones(skel, { density: 0.8 }, 42)
+  check(again.stones.length === r.stones.length && again.stones.every((st, i) => st.p[0] === r.stones[i].p[0] && st.kind === r.stones[i].kind), 'recording the trace does not change placement (deterministic)')
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')
 process.exit(failures ? 1 : 0)

@@ -35,6 +35,7 @@ The **Lab** menu keeps the earlier studies that led here: noise, terrain, hydrau
 - [26 — Curve-driven Gothic world](Docs/26-PIVOT-curve-driven-gothic-world/README.md): session log of the pivot to drawing curves and building the world from them.
   - [Tracery grammar and carved stone](Docs/26-PIVOT-curve-driven-gothic-world/TRACERY_GRAMMAR_AND_CARVED_STONE.md): an exact construction kernel, the shape grammar, carved prototypes and the stone palette.
   - [Point Cloud view: photogrammetry survey](Docs/26-PIVOT-curve-driven-gothic-world/WORLD_SCAN_SURVEY_LOOK.md): stones sampled into points, survey stations that report measured data, and performance budgets.
+- [27 — Debug layers](Docs/27-debug-layers/README.md): Class 11 visual debugging. Curve → skeleton: rule log, construction geometry, member types and labels. Skeleton → stone: stones coloured by kind or phase, overlap conflicts with their blockers, per-phase counts and timings, build timelapse and a stone inspector.
 
 ### Foundations: noise, terrain and simulation
 
