@@ -89,7 +89,6 @@ export const STONE_KIND_COLORS = {
   drum: '#4dd0e1',
   footing: '#9be564',
   plinth: '#57cc99',
-  gravel: '#6c757d',
   subarch: '#ffe8a3',
   mullion: '#b5e48c',
   oculus: '#90e0ef',
@@ -105,7 +104,6 @@ export const PHASE_COLORS = {
   structural: '#8fb3ff',
   footing: '#9be564',
   plinth: '#57cc99',
-  gravel: '#6c757d',
 }
 export const PHASES = Object.keys(PHASE_COLORS)
 

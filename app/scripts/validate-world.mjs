@@ -267,12 +267,11 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
     const changed = [spec.min, spec.max].filter((v) => v !== d).some((v) => JSON.stringify(buildStones(skel, { [spec.key]: v }, 42).stones) !== baseS)
     check(changed, `stone param "${spec.label}" changes the output`)
   }
-  // Every stone slider except Gravel also changes the carved tracery bars.
+  // Every stone slider also changes the carved tracery bars.
   const TR = new Set(['subarch', 'mullion', 'oculus', 'foil', 'rail', 'gable'])
   const trOf = (prm) => JSON.stringify(buildStones(skel, prm, 42).stones.filter((s) => TR.has(s.kind)))
   const trBase = trOf({})
   for (const spec of LITHIC_PARAM_SPECS) {
-    if (spec.key === 'gravel') continue
     const d = DEFAULT_LITHIC_PARAMS[spec.key]
     const changed = [spec.min, spec.max].filter((v) => v !== d).some((v) => trOf({ [spec.key]: v }) !== trBase)
     check(changed, `stone param "${spec.label}" changes the tracery bars`)
@@ -446,7 +445,7 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check(r.trace.slots.length === r.stats.rejected + r.stats.skipped, 'every unplaced slot is recorded with its outcome')
   const rej = r.trace.slots.filter((t) => t.outcome === 'rejected')
   check(rej.every((t) => r.stones[t.blockedBy] && Math.hypot(t.p[0] - r.stones[t.blockedBy].p[0], t.p[1] - r.stones[t.blockedBy].p[1], t.p[2] - r.stones[t.blockedBy].p[2]) < 2 * Math.max(...r.stones[t.blockedBy].s)), `every rejected slot names a real, nearby blocking stone (${rej.length})`)
-  const order = ['carved', 'tracery', 'structural', 'footing', 'plinth', 'gravel']
+  const order = ['carved', 'tracery', 'structural', 'footing', 'plinth']
   check(r.stones.every((st, i) => i === 0 || order.indexOf(st.phase) >= order.indexOf(r.stones[i - 1].phase)), 'stones are stored in placement order (timelapse order)')
   const again = buildStones(skel, { density: 0.8 }, 42)
   check(again.stones.length === r.stones.length && again.stones.every((st, i) => st.p[0] === r.stones[i].p[0] && st.kind === r.stones[i].kind), 'recording the trace does not change placement (deterministic)')
@@ -563,6 +562,13 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check(ids.size >= 28 && TYPOLOGIES.every((t) => built.some((s) => s.typology === t.id)), `Sample world shows every typology (${ids.size} distinct variations)`)
   const bad = curves.flatMap((c) => c.controlPoints).filter((q) => Math.abs(q.x) > p.world.fieldSize / 2 || Math.abs(q.z) > p.world.fieldSize / 2)
   check(!bad.length, 'Sample world fits inside the field')
+}
+
+// ---------------------------------------------------------------- Step 49: no pebbles
+{
+  const p = createSampleProject()
+  const stones = Object.values(p.curves).flatMap((c) => buildStones(buildCurveSkeleton(c, resolveCurvePoints(p, c), resolveStructureParams(p, c.curveId).skeleton, 7, {}), {}, 7).stones)
+  check(!stones.some((st) => st.kind === 'gravel') && !('gravel' in DEFAULT_LITHIC_PARAMS), `no loose gravel / pebbles anywhere in the sample world (${stones.length} stones)`)
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')

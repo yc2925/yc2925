@@ -4,6 +4,7 @@
  * controls relevant to the active stage are shown.
  */
 
+import { LabelWithTip } from '../../ui/Controls.jsx'
 import { useState } from 'react'
 import { FOCUS_GROUPS, PHASE_COLORS, PHASES, RULE_COLORS, STONE_KIND_COLORS, focusKeyFor, focusSets } from '../compose/DebugLayer.jsx'
 import { PROTO } from '../lithic/protos.js'
@@ -70,6 +71,9 @@ export function Outliner({ structures, ui, setUi, dispatch }) {
   )
 }
 
+/** Lab-style slider fill: the track is red up to the value (CSS var --fill, see .world-app input[type=range]). */
+export const fillStyle = (v, min, max) => ({ '--fill': `${max > min ? Math.max(0, Math.min(100, ((Number(v) - min) / (max - min)) * 100)) : 0}%` })
+
 function ParamRows({ specs, values, overrides, tier, onChange, onReset, role }) {
   return specs
     .filter((spec) => tier === 'advanced' || spec.tier === 'essential')
@@ -79,8 +83,10 @@ function ParamRows({ specs, values, overrides, tier, onChange, onReset, role }) 
       const overridden = overrides && Object.prototype.hasOwnProperty.call(overrides, spec.key)
       if (spec.options) {
         return (
-          <label key={spec.key} className="world-param" title={spec.help}>
-            <span className="world-param-label">{spec.label}</span>
+          <label key={spec.key} className="world-param">
+            <span className="world-param-label">
+              <LabelWithTip tip={spec.help}>{spec.label}</LabelWithTip>
+            </span>
             <select value={value} onChange={(e) => onChange(spec.key, e.target.value)}>
               {spec.options.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -92,10 +98,10 @@ function ParamRows({ specs, values, overrides, tier, onChange, onReset, role }) 
         )
       }
       return (
-        <label key={spec.key} className={`world-param${overridden ? ' is-override' : ''}`} title={spec.help}>
+        <label key={spec.key} className={`world-param${overridden ? ' is-override' : ''}`}>
           <span className="world-param-label">
             <span>
-              {spec.label}
+              <LabelWithTip tip={spec.help}>{spec.label}</LabelWithTip>
               {overridden && onReset ? (
                 <button
                   type="button"
@@ -115,7 +121,7 @@ function ParamRows({ specs, values, overrides, tier, onChange, onReset, role }) 
               {spec.unit ? ` ${spec.unit}` : ''}
             </span>
           </span>
-          <input type="range" min={spec.min} max={spec.max} step={spec.step} value={value} onChange={(e) => onChange(spec.key, Number(e.target.value))} />
+          <input type="range" min={spec.min} max={spec.max} step={spec.step} value={value} style={fillStyle(value, spec.min, spec.max)} onChange={(e) => onChange(spec.key, Number(e.target.value))} />
         </label>
       )
     })
@@ -123,8 +129,10 @@ function ParamRows({ specs, values, overrides, tier, onChange, onReset, role }) 
 
 function NumberField({ label, value, onChange, help, min }) {
   return (
-    <label className="world-num" title={help}>
-      <span>{label}</span>
+    <label className="world-num">
+      <span>
+        <LabelWithTip tip={help}>{label}</LabelWithTip>
+      </span>
       <input type="number" step={0.5} min={min} value={Number(value.toFixed(2))} onChange={(e) => Number.isFinite(Number(e.target.value)) && onChange(Number(e.target.value))} />
     </label>
   )
@@ -144,12 +152,12 @@ function DebugPanel({ debug, setDebug, structure, structures }) {
     <Section title="Debug · curve → skeleton">
       <div className="dbg-toggles">
         {[
-          ['construction', 'Construction'],
-          ['members', 'Member types'],
-          ['labels', 'Labels'],
-        ].map(([k, label]) => (
+          ['construction', 'Construction', 'Compass-and-straightedge construction: arc circles, centres, springing lines, tangency lines and foil lobe circles behind each rule.'],
+          ['members', 'Member types', 'Colour every skeleton member by its type: main curve, archivolt, lancet, mullion, oculus, foil, gable, rail, shaft, springer, pier.'],
+          ['labels', 'Labels', 'Name tags in the viewport: the curve, its typology and the labelled construction points.'],
+        ].map(([k, label, tip]) => (
           <label key={k}>
-            <input type="checkbox" checked={!!debug[k]} onChange={() => toggle(k)} /> {label}
+            <input type="checkbox" checked={!!debug[k]} onChange={() => toggle(k)} /> <LabelWithTip tip={tip}>{label}</LabelWithTip>
           </label>
         ))}
       </div>
@@ -230,7 +238,7 @@ function StoneDebugPanel({ debug, setDebug, structure, structures }) {
     <Section title="Debug · skeleton → stone">
       <div className="dbg-toggles">
         <label>
-          Colour stones
+          <LabelWithTip tip="Recolour every stone: Palette shows the real stone colours, By kind colours stones by role (carved, voussoir, drum, tracery bar, footing, plinth), By phase by the build step that placed them.">Colour stones</LabelWithTip>
           <select value={debug.stoneColor} onChange={(e) => set({ stoneColor: e.target.value })}>
             <option value="off">Palette</option>
             <option value="kind">By kind</option>
@@ -238,7 +246,7 @@ function StoneDebugPanel({ debug, setDebug, structure, structures }) {
           </select>
         </label>
         <label>
-          <input type="checkbox" checked={!!debug.conflicts} onChange={() => set({ conflicts: !debug.conflicts })} /> Conflicts
+          <input type="checkbox" checked={!!debug.conflicts} onChange={() => set({ conflicts: !debug.conflicts })} /> <LabelWithTip tip="Mark every stone slot that was rejected (red ✕, with a line to the blocking stone) or skipped by density (grey ✕).">Conflicts</LabelWithTip>
         </label>
       </div>
       {debug.stoneColor !== 'off' ? (
@@ -303,7 +311,7 @@ function StoneDebugPanel({ debug, setDebug, structure, structures }) {
         <button type="button" onClick={() => set(debug.playing ? { playing: false } : { playing: true, build: debug.build == null || debug.build >= 1 ? 0 : debug.build })}>
           {debug.playing ? 'Pause' : 'Play build'}
         </button>
-        <input type="range" min={0} max={1} step={0.005} value={debug.build ?? 1} onChange={(e) => set({ build: Number(e.target.value), playing: false })} aria-label="Build timelapse" title="Placement order: carved pieces → tracery → structure → footings → plinths → gravel" />
+        <input type="range" min={0} max={1} step={0.005} value={debug.build ?? 1} style={fillStyle(debug.build ?? 1, 0, 1)} onChange={(e) => set({ build: Number(e.target.value), playing: false })} aria-label="Build timelapse" title="Placement order: carved pieces → tracery → structure → footings → plinths" />
         <span>{Math.round((debug.build ?? 1) * 100)}%</span>
       </div>
       {st ? (
@@ -343,13 +351,14 @@ function Section({ title, children }) {
   )
 }
 
-export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onFit, labNoise, debug = null, setDebug = null, structures = [] }) {
+export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onFit, labNoise, debug = null, setDebug = null, structures = [], terrainTab = false }) {
   const [tier, setTier] = useState('essential')
   const [rise, setRise] = useState(1.1)
   const curve = structure?.curve
   const world = project.world
 
-  const groupFor = { curves: null, skeleton: 'skeleton', lithic: 'lithic', world: 'terrain' }[stage]
+  // World & terrain controls live in their own tab (terrainTab), not in the World stage panel.
+  const groupFor = terrainTab ? 'terrain' : { curves: null, skeleton: 'skeleton', lithic: 'lithic', world: null }[stage]
   const specsFor = { skeleton: SKELETON_PARAM_SPECS, lithic: LITHIC_PARAM_SPECS, terrain: TERRAIN_PARAM_SPECS }
   const perCurve = groupFor === 'skeleton' || groupFor === 'lithic'
   const values = perCurve && curve ? structure.params[groupFor] : groupFor ? world[groupFor] : null
@@ -365,7 +374,8 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
   const point = curve && ui.selectedPoint != null ? structure.resolved[ui.selectedPoint] : null
   const movePoint = (patch) => dispatch({ type: 'movePoint', curveId: curve.curveId, index: ui.selectedPoint, point: { ...point, ...patch } }, { coalesce: `num-${curve.curveId}-${ui.selectedPoint}` })
 
-  const title = { curves: 'Curve', skeleton: 'Gothic skeleton', lithic: 'Lithic formation', world: 'World & terrain', pointcloud: 'Point cloud' }[stage]
+  const title = terrainTab ? 'World & terrain' : debug?.on ? 'Debug' : { curves: 'Curve', skeleton: 'Gothic skeleton', lithic: 'Lithic formation', world: 'World', pointcloud: 'Point cloud' }[stage]
+  const setTerrain = (key, value) => dispatch({ type: 'setWorldParam', group: 'terrain', key, value }, { coalesce: `w-terrain-${key}` })
   return (
     <aside className="world-panel">
       <div className="world-panel-head">
@@ -376,9 +386,38 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
         </select>
       </div>
 
-      {debug?.on ? <DebugPanel debug={debug} setDebug={setDebug} structure={structure} structures={structures} /> : null}
-      {debug?.on ? <StoneDebugPanel debug={debug} setDebug={setDebug} structure={structure} structures={structures} /> : null}
-
+      {terrainTab ? (
+        <>
+          <p className="world-panel-scope">World settings shared by all structures: terrain shape, sky and light, and the ground surface.</p>
+          <Section title="Terrain">
+            <ParamRows specs={TERRAIN_PARAM_SPECS} values={world.terrain} tier={tier} onChange={setTerrain} />
+            {labNoise ? (
+              <div className="world-panel-actions">
+                <button
+                  type="button"
+                  title="Copy the active layer of LAB → Noise 2D / Noise 3D (type, shaping, octaves, persistence, lacunarity, seed; frequency becomes terrain scale) into the terrain (undoable)"
+                  onClick={() => {
+                    const next = terrainFromNoiseLayer(labNoise.layers[labNoise.activeLayer] ?? labNoise.layers[0], world.terrain)
+                    for (const [key, value] of Object.entries(next)) if (value !== world.terrain[key]) dispatch({ type: 'setWorldParam', group: 'terrain', key, value }, { coalesce: 'w-terrain-import' })
+                  }}
+                >
+                  Use Noise 2D / 3D layer {(labNoise.activeLayer ?? 0) + 1}
+                </button>
+              </div>
+            ) : null}
+          </Section>
+          <Section title="Environment & ground surface">
+            <ParamRows specs={ENVIRONMENT_SPECS} values={world.presentation} tier={tier} onChange={setPresentation} />
+            <ParamRows specs={TERRAIN_SURFACE_SPECS} values={world.terrain} tier={tier} onChange={setTerrain} />
+          </Section>
+        </>
+      ) : debug?.on ? (
+        <>
+          <DebugPanel debug={debug} setDebug={setDebug} structure={structure} structures={structures} />
+          <StoneDebugPanel debug={debug} setDebug={setDebug} structure={structure} structures={structures} />
+        </>
+      ) : (
+        <>
       {stage === 'pointcloud' ? (
         <>
           <p className="world-panel-scope">Photogrammetry survey of the built world (REF-031). Stations report measured data only: target stone, camera position and range.</p>
@@ -387,12 +426,16 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
       ) : stage === 'curves' ? (
         curve ? (
           <>
-            <label className="world-param" title="Display name in the outliner">
-              <span className="world-param-label">Name</span>
+            <label className="world-param">
+              <span className="world-param-label">
+                <LabelWithTip tip="Display name of the curve in the outliner and on the Sample labels.">Name</LabelWithTip>
+              </span>
               <input type="text" value={curve.name} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'name', value: e.target.value }, { coalesce: `name-${curve.curveId}` })} />
             </label>
-            <label className="world-param" title={Object.values(ROLE_RULES).map((r) => `${r.label}: ${r.help}`).join('\n')}>
-              <span className="world-param-label">Structural role</span>
+            <label className="world-param">
+              <span className="world-param-label">
+                <LabelWithTip tip={Object.values(ROLE_RULES).map((r) => `${r.label}: ${r.help}`).join('\n')}>Structural role</LabelWithTip>
+              </span>
               <select value={curve.curveRole} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'curveRole', value: e.target.value })}>
                 {Object.entries(ROLE_RULES).map(([id, r]) => (
                   <option key={id} value={id}>
@@ -401,8 +444,10 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
                 ))}
               </select>
             </label>
-            <label className="world-param" title="Smooth spline passes through every point; polyline joins them with straight segments">
-              <span className="world-param-label">Curve type</span>
+            <label className="world-param">
+              <span className="world-param-label">
+                <LabelWithTip tip="Smooth spline passes through every point; polyline joins them with straight segments.">Curve type</LabelWithTip>
+              </span>
               <select value={curve.curveType} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'curveType', value: e.target.value })}>
                 <option value="catmullRom">Smooth spline</option>
                 <option value="polyline">Polyline</option>
@@ -436,11 +481,11 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
             </Section>
 
             <Section title="Shape">
-              <label className="world-param" title="Rise of the pointed arch as a fraction of the span between the curve's two ends">
+              <label className="world-param">
                 <span className="world-param-label">
-                  Arch rise <span className="world-param-value">{rise.toFixed(2)}</span>
+                  <LabelWithTip tip="Rise of the pointed arch as a fraction of the span between the curve's two ends. Apply it with Lift to pointed arch.">Arch rise</LabelWithTip> <span className="world-param-value">{rise.toFixed(2)}</span>
                 </span>
-                <input type="range" min={0.4} max={1.6} step={0.01} value={rise} onChange={(e) => setRise(Number(e.target.value))} />
+                <input type="range" min={0.4} max={1.6} step={0.01} value={rise} style={fillStyle(rise, 0.4, 1.6)} onChange={(e) => setRise(Number(e.target.value))} />
               </label>
               <div className="world-panel-actions">
                 <button
@@ -455,16 +500,19 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
                 </button>
               </div>
             </Section>
-            <label className="world-param" title="Seed: chooses between symmetric grammar alternatives (tracery style in Auto, foil orientation, grotesque variant) and stone placement — same drawing, different variation">
+            <label className="world-param">
               <span className="world-param-label">
-                Random seed<span className="world-param-value">{curve.randomSeed}</span>
+                <LabelWithTip tip="Chooses between symmetric grammar alternatives (foil orientation, grotesque variant, classic tracery style) and stone placement: same drawing, different variation.">Random seed</LabelWithTip>
+                <span className="world-param-value">{curve.randomSeed}</span>
               </span>
-              <input type="range" min={0} max={9999} step={1} value={curve.randomSeed} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'randomSeed', value: Number(e.target.value) }, { coalesce: `seed-${curve.curveId}` })} />
+              <input type="range" min={0} max={9999} step={1} value={curve.randomSeed} style={fillStyle(curve.randomSeed, 0, 9999)} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'randomSeed', value: Number(e.target.value) }, { coalesce: `seed-${curve.curveId}` })} />
             </label>
           </>
         ) : (
           <p className="world-panel-scope">Draw a curve, or select one to set its role, points and shape.</p>
         )
+      ) : stage === 'world' ? (
+        <p className="world-panel-scope">World view. Terrain, environment and ground surface are in the <strong>World &amp; terrain</strong> tab (top right); presentation is below.</p>
       ) : (
         <>
           <p className="world-panel-scope">
@@ -482,41 +530,23 @@ export function ParamPanel({ stage, project, structure, ui, setUi, dispatch, onF
           </p>
           {groupFor === 'skeleton' && curve ? <p className="world-panel-scope">Showing the grammar controls for a <strong>{ROLE_RULES[curve.curveRole]?.label ?? 'Rib'}</strong>.</p> : null}
           <ParamRows specs={specsFor[groupFor]} values={values} overrides={overrides} tier={tier} onChange={onChange} onReset={curve ? onReset : null} role={groupFor === 'skeleton' ? curve?.curveRole : null} />
-          {groupFor === 'terrain' && labNoise ? (
-            <div className="world-panel-actions">
-              <button
-                type="button"
-                title="Copy the active layer of LAB → Noise 2D / Noise 3D (type, shaping, octaves, persistence, lacunarity, seed; frequency becomes terrain scale) into the terrain (undoable)"
-                onClick={() => {
-                  const next = terrainFromNoiseLayer(labNoise.layers[labNoise.activeLayer] ?? labNoise.layers[0], world.terrain)
-                  for (const [key, value] of Object.entries(next)) if (value !== world.terrain[key]) dispatch({ type: 'setWorldParam', group: 'terrain', key, value }, { coalesce: 'w-terrain-import' })
-                }}
-              >
-                Use Noise 2D / 3D layer {(labNoise.activeLayer ?? 0) + 1}
-              </button>
-            </div>
-          ) : null}
           {perCurve && curve ? (
-            <label className="world-param" title="Seed: chooses between symmetric grammar alternatives and stone placement">
+            <label className="world-param">
               <span className="world-param-label">
-                Random seed<span className="world-param-value">{curve.randomSeed}</span>
+                <LabelWithTip tip="Chooses between symmetric grammar alternatives and stone placement for this curve: same drawing, different variation.">Random seed</LabelWithTip>
+                <span className="world-param-value">{curve.randomSeed}</span>
               </span>
-              <input type="range" min={0} max={9999} step={1} value={curve.randomSeed} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'randomSeed', value: Number(e.target.value) }, { coalesce: `seed-${curve.curveId}` })} />
+              <input type="range" min={0} max={9999} step={1} value={curve.randomSeed} style={fillStyle(curve.randomSeed, 0, 9999)} onChange={(e) => dispatch({ type: 'setCurveField', curveId: curve.curveId, field: 'randomSeed', value: Number(e.target.value) }, { coalesce: `seed-${curve.curveId}` })} />
             </label>
           ) : null}
         </>
       )}
 
-      {stage === 'world' ? (
-        <Section title="Environment & ground surface">
-          <ParamRows specs={ENVIRONMENT_SPECS} values={world.presentation} tier={tier} onChange={setPresentation} />
-          <ParamRows specs={TERRAIN_SURFACE_SPECS} values={world.terrain} tier={tier} onChange={(key, value) => dispatch({ type: 'setWorldParam', group: 'terrain', key, value }, { coalesce: `w-terrain-${key}` })} />
-        </Section>
-      ) : null}
-
-      <Section title="Presentation">
-        <ParamRows specs={PRESENTATION_SPECS} values={world.presentation} tier="advanced" onChange={setPresentation} />
-      </Section>
+          <Section title="Presentation">
+            <ParamRows specs={PRESENTATION_SPECS} values={world.presentation} tier="advanced" onChange={setPresentation} />
+          </Section>
+        </>
+      )}
 
       {structure ? (
         <>

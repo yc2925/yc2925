@@ -9,7 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import CurveEditor from '../world/editor/CurveEditor.jsx'
 import WorldViewport from '../world/compose/WorldViewport.jsx'
-import { Outliner, ParamPanel } from '../world/ui/WorldPanels.jsx'
+import { Outliner, ParamPanel, fillStyle } from '../world/ui/WorldPanels.jsx'
+import { LabelWithTip } from '../ui/Controls.jsx'
 import { useWorldProject } from '../world/ui/useWorldProject.js'
 import { useStructureGeneration } from '../world/ui/useStructureGeneration.js'
 import { SAMPLE_KEY, createSampleProject } from '../world/model/sampleWorld.js'
@@ -38,6 +39,8 @@ export default function WorldView({ labNoise = null }) {
   const { project, dispatch, endGesture, undo, redo, canUndo, canRedo } = store
   const structures = useStructureGeneration(project)
   const [sampleLabels, setSampleLabels] = useState(true)
+  // Right-panel tabs: World & terrain and Debug each own the panel (mutually exclusive).
+  const [terrainTab, setTerrainTab] = useState(false)
   const [mode, setMode] = useState('draw')
   const [grid, setGrid] = useState(1)
   const [curveType, setCurveType] = useState('catmullRom')
@@ -178,7 +181,21 @@ export default function WorldView({ labNoise = null }) {
         </button>
           </>
         ) : null}
-        <button type="button" className={debug.on ? 'is-active' : undefined} onClick={() => setDebug((d) => ({ ...d, on: !d.on, focus: null }))} title="Debug: show the rules and construction geometry that turn each curve into its Gothic skeleton (rule log in the right panel)">
+        <button
+          type="button"
+          className={terrainTab ? 'is-active' : undefined}
+          onClick={() => {
+            setTerrainTab((t) => !t)
+            setDebug((d) => (d.on ? { ...d, on: false, focus: null } : d))
+          }}
+          title="World & terrain: terrain shape, sky and light, ground surface (shared by all structures) in their own panel"
+        >
+          World &amp; terrain
+        </button>
+        <button type="button" className={debug.on ? 'is-active' : undefined} onClick={() => {
+          setTerrainTab(false)
+          setDebug((d) => ({ ...d, on: !d.on, focus: null }))
+        }} title="Debug: show the rules and construction geometry that turn each curve into its Gothic skeleton (rule log in the right panel)">
           Debug
         </button>
         <button type="button" title="Frame the selected structure — or the whole world when nothing is selected" onClick={() => (selected ? fit(selected) : fitAll())} disabled={!structures.length}>
@@ -223,9 +240,9 @@ export default function WorldView({ labNoise = null }) {
           <button type="button" onClick={() => setDockWide((w) => !w)} title="Expand / shrink editor">
             {dockWide ? '◧' : '◨'}
           </button>
-          <label className={`world-stabilizer${mode === 'draw' ? '' : ' is-disabled'}`} title="Line stabilizer (Draw mode): the pen trails the cursor on a string of this length, smoothing hand jitter (0 = off)">
-            <span>Stabilizer</span>
-            <input type="range" min={0} max={1} step={0.05} value={stabilizer} disabled={mode !== 'draw'} onChange={(e) => setStabilizer(Number(e.target.value))} />
+          <label className={`world-stabilizer${mode === 'draw' ? '' : ' is-disabled'}`}>
+            <LabelWithTip tip="Line stabilizer (Draw mode): the pen trails the cursor on a string of this length, smoothing hand jitter. 0 = off.">Stabilizer</LabelWithTip>
+            <input type="range" min={0} max={1} step={0.05} value={stabilizer} style={fillStyle(stabilizer, 0, 1)} disabled={mode !== 'draw'} onChange={(e) => setStabilizer(Number(e.target.value))} />
             <span className="world-param-value">{stabilizer === 0 ? 'off' : stabilizer < 0.35 ? 'light' : stabilizer < 0.7 ? 'medium' : 'strong'}</span>
           </label>
         </div>
@@ -286,6 +303,7 @@ export default function WorldView({ labNoise = null }) {
         debug={debug}
         setDebug={setDebug}
         structures={structures}
+        terrainTab={terrainTab}
       />
     </div>
   )

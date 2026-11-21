@@ -20,7 +20,7 @@
  *       moulded rib profile;
  *     - piers → coursed ashlar with varied block lengths;
  *     - runs on the ground → coursed ashlar footings, varied block lengths.
- *  4. Plinths at ground contacts, then loose spalls (gravel).
+ *  4. Plinths at ground contacts. (No loose gravel / pebbles: removed in Step 49.)
  * Colours come only from the ten-colour palette (palette.js).
  */
 
@@ -454,7 +454,7 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
     }
   }
 
-  // ------------------------------------------------ 4. plinths, spalls
+  // ------------------------------------------------ 4. plinths
   enter('plinth')
   for (const gc of skeleton.groundContacts) {
     const R = Math.max(gc.r * P.formationWidth * 1.35, P.stoneSize * 0.8)
@@ -468,26 +468,6 @@ export function buildStones(skeleton, inputParams = {}, seed = 1) {
         const z = (j - (n - 1) / 2) * step
         place({ x: gc.p.x + x, y: h * 0.5, z: gc.p.z + z }, { x: 1, y: 0, z: 0 }, UPV, [step * vary(), h, step * vary()], { proto: protoIndex('ashlar', i * n + j), kind: 'plinth', piece: `plinth${Math.round(gc.p.x)}_${Math.round(gc.p.z)}`, allowGround: true })
       }
-  }
-
-  enter('gravel')
-  const gravelSites = [...skeleton.groundContacts]
-  for (const run of footingRuns) {
-    const cum = cumulative(run.points)
-    const total = cum[cum.length - 1]
-    for (let s = 2; s < total; s += 6) gravelSites.push({ p: pointAt(run.points, cum, s).p, r: run.radius * 0.6 })
-  }
-  for (const site of gravelSites) {
-    const count = Math.round(P.gravel * 18)
-    const R = Math.max(site.r * P.formationWidth, P.stoneSize) * 2.2
-    for (let k = 0; k < count; k += 1) {
-      const ang = rand() * Math.PI * 2
-      const rr = R * (0.6 + rand() * 0.8)
-      const sz = P.stoneSize * (0.1 + rand() * (rand() < 0.15 ? 0.5 : 0.22))
-      const yaw = rand() * Math.PI
-      const X = { x: Math.cos(yaw), y: 0, z: Math.sin(yaw) }
-      place({ x: site.p.x + Math.cos(ang) * rr, y: 0, z: site.p.z + Math.sin(ang) * rr }, X, UPV, [sz * 1.4, sz * 0.55, sz], { proto: protoIndex('rubble', k), kind: 'gravel', piece: 'gravel', allowGround: true, check: false, insert: false })
-    }
   }
 
   enter('done')
