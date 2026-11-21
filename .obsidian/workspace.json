@@ -8,33 +8,20 @@
         "type": "tabs",
         "children": [
           {
-            "id": "34d286a644cfba4e",
-            "type": "leaf",
-            "state": {
-              "type": "image",
-              "state": {
-                "file": "Images/Visual_References/9c4baf5980da49f8c4d0652c481b1288.jpg"
-              },
-              "icon": "lucide-image",
-              "title": "9c4baf5980da49f8c4d0652c481b1288"
-            }
-          },
-          {
             "id": "26a62e6ad0eb8356",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Docs/26-PIVOT-curve-driven-gothic-world/README.md",
+                "file": "Docs/28-curve-typologies/VARIATIONS.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "VARIATIONS"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -203,33 +190,37 @@
   },
   "active": "26a62e6ad0eb8356",
   "lastOpenFiles": [
-    "Images/hero/hero-xray.jpg",
-    "Images/hero/hero-world.jpg",
-    "Images/hero/hero-pointcloud.jpg",
-    "Images/hero/hero-dark.jpg",
-    "Images/hero/hero-dark.png",
-    "Images/hero/hero-pointcloud.png",
-    "Images/hero/hero-xray.png",
-    "Images/hero/hero-world.png",
-    "Images/hero",
+    "Images/hero/hero-variations.jpg",
     "app/firebase-debug.log",
-    "app/dist/assets/index-COeqg82g.js",
-    "app/dist/assets/index-Ch8JeDc9.js",
-    "app/dist/assets/index-CybqhQ6Y.js",
-    "app/dist/assets/index-B8K0E_pN.js",
-    "app/src/world/compose/groundMaterial.js",
-    "references/futuristic-gothic-world/REF-033-scaffolded-monolith-on-rubble-ground.jpg",
-    "references/futuristic-gothic-world/REF-032-fog-bound-radial-concrete-monument.jpg",
-    "app/dist/assets/index-DOieRYOm.js",
-    "app/dist/assets/index-CKbGiKrf.js",
-    "app/src/world/compose/prominence.js",
-    "Docs/26-PIVOT-curve-driven-gothic-world/Images/scan/pointcloud-stage.png",
+    "app/dist/assets/index-CwrUYt3v.js",
+    "app/dist/assets/index-CbdHTKwK.css",
+    "app/dist/assets/index-CVriYuX8.js",
+    "app/dist/assets/index-32k6p3e4.css",
+    "app/dist/assets/index-DTVGJrTo.js",
+    "Images/Visual_References/9c4baf5980da49f8c4d0652c481b1288.jpg",
+    "Docs/28-curve-typologies/VARIATIONS.md",
+    "Docs/28-curve-typologies/README.md",
+    "Docs/26-PIVOT-curve-driven-gothic-world/README.md",
+    "app/dist/assets/index-BNEpYFcE.js",
+    "app/dist/assets/index-BmClw8zR.css",
+    "app/dist/assets/index-eddSGBMo.js",
+    "app/src/world/model/sampleWorld.js",
+    "Docs/27-debug-layers/Images/xray-terrain.png",
+    "Docs/27-debug-layers/Images/stone-timelapse.png",
+    "Docs/27-debug-layers/Images/stone-inspect.png",
+    "Docs/27-debug-layers/Images/debug-rule-log.png",
+    "Docs/27-debug-layers/Images/stone-by-phase.png",
+    "Docs/27-debug-layers/Images/stone-by-kind.png",
+    "Docs/27-debug-layers/Images/debug-world.png",
+    "Docs/27-debug-layers/Images/debug-focus-oculus.png",
+    "Docs/27-debug-layers/Images/debug-overview.png",
+    "Docs/27-debug-layers/README.md",
+    "Docs/27-debug-curve-to-skeleton/README.md",
     "Docs/26-PIVOT-curve-driven-gothic-world/WORLD_SCAN_SURVEY_LOOK.md",
     "Docs/26-PIVOT-curve-driven-gothic-world/TRACERY_GRAMMAR_AND_CARVED_STONE.md",
     "Docs/README.md",
     "README.md",
     "Untitled.canvas",
-    "Docs/26-PIVOT-curve-driven-gothic-world/README.md",
     "Docs/21-workspace-construction-anatomy/README.md",
     "Docs/21-workspace-construction-anatomy/OVERLAY_CONTROLS.md",
     "Docs/22-workspace-rendering-regression/README.md",
@@ -245,10 +236,6 @@
     "Docs/25-shared-ornament-anchors/CROSS_WORKSPACE_TESTS.md",
     "Docs/25-shared-ornament-anchors/ROOTING_VALIDATION.md",
     "Docs/25-shared-ornament-anchors/ANCHOR_DATA_FLOW.md",
-    "Docs/24-parametric-motif-lab/VALIDATION.md",
-    "Docs/24-parametric-motif-lab/GEOMETRIC_PRIMITIVES.md",
-    "Docs/44-ornament-grammar-repair/VALIDATION.md",
-    "Docs/44-ornament-grammar-repair/PARAMETERS.md",
-    "Docs/44-ornament-grammar-repair/SURFACE_VALIDATION.md"
+    "Docs/24-parametric-motif-lab/VALIDATION.md"
   ]
 }
