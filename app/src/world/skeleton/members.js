@@ -100,12 +100,13 @@ export function buildCurveSkeleton(curve, resolvedPoints, inputParams = {}, seed
   const topLink = baseAtEnd ? links.start : links.end
   const baseLinked = Boolean(baseLink)
   const topLinked = Boolean(topLink)
-  const g = buildGrammar({ role: result.role, points, radii, P, rand, baseLinked, topLinked, baseOut: baseLinked && !baseLink.incoming, topOut: topLinked && !topLink.incoming })
+  const g = buildGrammar({ role: result.role, points, radii, P, rand, baseLinked, topLinked, baseOut: baseLinked && !baseLink.incoming, topOut: topLinked && !topLink.incoming , controlCount: resolvedPoints.length })
   for (const m of g.members) result.members.push({ ...m, parent: mainIds[0] })
   result.ornaments = g.ornaments
   result.construction = g.construction
   result.style = g.style
   result.archFrame = g.archFrame
+  result.typology = g.typology
   // Debug trace: input facts first, then the grammar's rule log and construction geometry.
   const fmt = (v) => v.toFixed(2)
   const pre = [
@@ -142,6 +143,7 @@ export function buildCurveSkeleton(curve, resolvedPoints, inputParams = {}, seed
     motifs: g.motifs,
     ornaments: result.ornaments.length,
     style: g.style,
+    typology: g.typology,
     maxDepth: result.members.reduce((d, m) => Math.max(d, m.depth), 0),
     maxResidual: result.construction.reduce((d, c) => Math.max(d, c.residual), 0),
     joints: result.joints.length,

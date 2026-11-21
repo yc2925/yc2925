@@ -20,6 +20,10 @@ import { createSimplex2D } from '../src/noise/simplex2d.js'
 import { DEFAULT_TERRAIN_PARAMS, TERRAIN_PARAM_SPECS, PRESENTATION_SPECS } from '../src/world/compose/worldParams.js'
 import { computePieceOffsets } from '../src/world/compose/geometry.js'
 import { buildPointedArch } from '../src/geometry/gothicGrammar/primitives/index.js'
+import { twoCentredArch, sampleArch } from '../src/world/skeleton/construct2d.js'
+import { tudorArch, ogeeArch, rampantArch, roundArch, sampleCArch, offsetCArch, archOrder, cuspedIntrados, fromTwoCentred } from '../src/world/skeleton/arches2d.js'
+import { mouchette, reverseCurve, vesica, circleInsideThree } from '../src/world/skeleton/tracery2d.js'
+import { TYPOLOGIES } from '../src/world/skeleton/typology.js'
 import { Quaternion, Vector3 } from 'three'
 import { buildGroundPoints, buildStonePoints, surfacePool, surveyStations, SCAN_RED, MAX_STONE_POINTS, MAX_GROUND_POINTS } from '../src/world/compose/scanCloud.js'
 import { DEFAULT_PRESENTATION, SCAN_SPECS } from '../src/world/compose/worldParams.js'
@@ -102,12 +106,14 @@ const ARCH = [0, 0.2, 0.4, 0.6, 0.8, 1].map((u) => ({ x: -15 + 30 * u, y: 0, z: 
 // ---------------------------------------------------------------- skeleton (Gothic shape grammar)
 const archPts = liftToPointedArch(ARCH, 1.1)
 const curve = { curveId: 'c', curveType: 'catmullRom', curveRole: 'rib' }
-const skel = buildCurveSkeleton(curve, archPts, {}, 42, {})
+// Step 47 grammar checks run the classic typology (Step 48 typologies are checked below).
+const CLASSIC = { typology: 'classic' }
+const skel = buildCurveSkeleton(curve, archPts, CLASSIC, 42, {})
 const GRAMMAR_KINDS = new Set(['main', 'archivolt', 'subarch', 'mullion', 'oculus', 'foil', 'gable', 'rail', 'shaft', 'springer', 'pier'])
 const groundCurve = [{ x: -30, y: 0, z: 10 }, { x: 0, y: 0, z: -10 }, { x: 30, y: 0, z: 10 }]
 const columnPts = [{ x: 0, y: 0, z: 0 }, { x: 0, y: 14, z: 0 }]
 const buttressPts = [{ x: -16, y: 0, z: 0 }, { x: -12, y: 8, z: 0 }, { x: -5, y: 12.5, z: 0 }, { x: 0, y: 14, z: 0 }]
-const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton({ curveId: 'v', curveType: 'catmullRom', curveRole: role }, pts, prm, seed, links)
+const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton({ curveId: 'v', curveType: 'catmullRom', curveRole: role }, pts, { ...CLASSIC, ...prm }, seed, links)
 {
   const v = validateSkeleton(skel)
   check(v.valid, `skeleton valid — finite, above ground, every tangency solved (${v.errors.slice(0, 2).join('; ') || 'ok'})`)
@@ -126,7 +132,7 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   }
   check(dev < 0.01, `main member follows the exact drawn path (max ${dev.toFixed(3)} m)`)
   check(skel.members.every((m) => GRAMMAR_KINDS.has(m.kind)), 'no branching growth: every member is a named grammar element')
-  check(JSON.stringify(buildCurveSkeleton(curve, archPts, {}, 42, {})) === JSON.stringify(skel), 'skeleton deterministic for a seed')
+  check(JSON.stringify(buildCurveSkeleton(curve, archPts, CLASSIC, 42, {})) === JSON.stringify(skel), 'skeleton deterministic for a seed')
 
   // Each tracery system produces its own construction, with exact tangencies.
   const geo = build('rib', archPts, { style: 1, refine: 1 })
@@ -172,12 +178,13 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
       const links = { start: { curveId: 'q', pointId: 'r' } }
       const fixed = { grotesques: 1, gable: 0.5, style: 1 }
       const base = JSON.stringify(build(role, testPts[role], fixed, 7, links))
-      return [spec.min, spec.max].filter((v) => v !== d).some((v) => JSON.stringify(build(role, testPts[role], { ...fixed, [spec.key]: v }, 7, links)) !== base)
+      const values = spec.options ? spec.options.map((o) => o.id) : [spec.min, spec.max]
+      return values.filter((v) => v !== (fixed[spec.key] ?? d)).some((v) => JSON.stringify(build(role, testPts[role], { ...fixed, [spec.key]: v }, 7, links)) !== base)
     })
     check(changed, `skeleton param "${spec.label}" changes the output (${spec.roles.join('/')})`)
   }
   const t0 = performance.now()
-  for (let i = 0; i < 20; i += 1) buildCurveSkeleton(curve, archPts, { thickness: 0.6 + i * 0.01, refine: 2 }, 42, {})
+  for (let i = 0; i < 20; i += 1) buildCurveSkeleton(curve, archPts, { ...CLASSIC, thickness: 0.6 + i * 0.01, refine: 2 }, 42, {})
   check((performance.now() - t0) / 20 < 16, `skeleton rebuild fast (${((performance.now() - t0) / 20).toFixed(2)} ms)`)
 }
 
@@ -408,7 +415,7 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
 
 // ---------------------------------------------------------------- debug trace (curve → skeleton)
 {
-  const arch = buildCurveSkeleton({ curveId: 'dbg', curveType: 'catmullRom', curveRole: 'rib' }, liftToPointedArch(ARCH, 1.1), { style: 1 }, 42, {})
+  const arch = buildCurveSkeleton({ curveId: 'dbg', curveType: 'catmullRom', curveRole: 'rib' }, liftToPointedArch(ARCH, 1.1), { style: 1, typology: 'classic' }, 42, {})
   const flat = buildCurveSkeleton({ curveId: 'dbgf', curveType: 'catmullRom', curveRole: 'rib' }, ARCH.map((p) => ({ ...p, y: 2 })), {}, 42, {})
   const col = buildCurveSkeleton({ curveId: 'dbgc', curveType: 'polyline', curveRole: 'column' }, [{ x: 0, y: 0, z: 0 }, { x: 0, y: 12, z: 0 }], {}, 3, {})
   const rules = (s) => s.trace.steps.map((st) => st.rule)
@@ -459,6 +466,87 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check(cStart.x === after[1].x && cStart.z === after[1].z, 'curves linked to a moved curve follow it')
   const down = applyCommand(p, { type: 'translateCurve', curveId: 'B', from, delta: { x: 0, y: -50, z: 0 } })
   check(Math.min(...resolveCurvePoints(down, down.curves.B).map((q) => q.y)) === 0 && resolveCurvePoints(down, down.curves.B)[0].y - resolveCurvePoints(down, down.curves.B)[1].y === from[0].y - from[1].y, 'translateCurve stops at the ground and keeps the curve shape')
+}
+
+// ---------------------------------------------------------------- Step 48: curve signature → typologies
+{
+  const T2 = Math.PI * 2
+  const xy = (arr) => arr.map((p) => ({ x: p.x, y: p.y, z: 0 }))
+  const circle = (c, r, plane, n = 40) => Array.from({ length: n + 1 }, (_, i) => { const t = (T2 * i) / n; return plane === 'v' ? { x: c.x + r * Math.cos(t), y: c.y + r * Math.sin(t), z: c.z } : { x: c.x + r * Math.cos(t), y: 0, z: c.z + r * Math.sin(t) } })
+  const poly = (corners, per = 8) => { const out = []; corners.forEach((a, i) => { const b = corners[(i + 1) % corners.length]; for (let j = 0; j < per; j += 1) out.push({ x: a.x + ((b.x - a.x) * j) / per, y: a.y + ((b.y - a.y) * j) / per, z: a.z + ((b.z - a.z) * j) / per }) }); out.push({ ...corners[0] }); return out }
+  const CASES = [
+    ['pointed', 'rib', xy(sampleArch(twoCentredArch(0, 6, 1, 0), 8))],
+    ['cusped', 'rib', xy(sampleArch(twoCentredArch(0, 6, 1.2, 0), 8))],
+    ['tudor', 'rib', xy(sampleCArch(tudorArch(8, 4.5), 6))],
+    ['ogee', 'rib', xy(sampleCArch(ogeeArch(5, 9), 8))],
+    ['round', 'rib', xy(sampleArch(twoCentredArch(0, 6, 0, 0), 10))],
+    ['rampant', 'rib', xy(sampleCArch(rampantArch(6, 5, 1, 9), 8))],
+    ['storeys', 'rib', xy(sampleArch(twoCentredArch(0, 10, 2, 0), 10))],
+    ['rose', 'rib', circle({ x: 0, y: 12, z: 0 }, 9, 'v', 48)],
+    ['wheel', 'rib', circle({ x: 0, y: 8, z: 0 }, 4.5, 'v', 40)],
+    ['vesica', 'rib', [...Array.from({ length: 21 }, (_, i) => { const t = -Math.PI / 2 + (Math.PI * i) / 20; return { x: 3.5 * Math.cos(t), y: 10 + 8 * Math.sin(t), z: 0 } }), ...Array.from({ length: 20 }, (_, i) => { const t = Math.PI / 2 + (Math.PI * (i + 1)) / 20; return { x: 3.5 * Math.cos(t), y: 10 + 8 * Math.sin(t), z: 0 } })]],
+    ['triangle', 'rib', poly([{ x: -7, y: 4, z: 0 }, { x: 7, y: 4, z: 0 }, { x: 0, y: 16, z: 0 }], 10)],
+    ['vault', 'rib', poly([{ x: -15, y: 0, z: -5 }, { x: 15, y: 0, z: -5 }, { x: 15, y: 0, z: 5 }, { x: -15, y: 0, z: 5 }], 10)],
+    ['chapterHouse', 'rib', circle({ x: 0, y: 0, z: 0 }, 9, 'h', 48)],
+    ['canopy', 'rib', poly([{ x: -3, y: 0, z: -3 }, { x: 3, y: 0, z: -3 }, { x: 3, y: 0, z: 3 }, { x: -3, y: 0, z: 3 }], 6)],
+    ['cloister', 'rib', poly([{ x: -20, y: 0, z: -15 }, { x: 20, y: 0, z: -15 }, { x: 20, y: 0, z: 15 }, { x: -20, y: 0, z: 15 }], 10)],
+    ['apse', 'rib', Array.from({ length: 25 }, (_, i) => { const t = (Math.PI * i) / 24; return { x: 10 * Math.cos(t), y: 0, z: 10 * Math.sin(t) } })],
+    ['arcade', 'rib', Array.from({ length: 11 }, (_, i) => ({ x: -15 + 3 * i, y: 0, z: 0 }))],
+    ['interlaced', 'rib', Array.from({ length: 21 }, (_, i) => { const t = ((100 * Math.PI) / 180) * (i / 20 - 0.5); return { x: 18 * Math.sin(t), y: 0, z: 18 * Math.cos(t) } })],
+    ['reticulated', 'rib', Array.from({ length: 41 }, (_, i) => ({ x: -20 + i, y: 0, z: 2.5 * Math.sin((i / 40) * 2 * T2) }))],
+    ['parapet', 'rib', Array.from({ length: 11 }, (_, i) => ({ x: -12 + 2.4 * i, y: 10, z: 0 }))],
+    ['band', 'rib', Array.from({ length: 6 }, (_, i) => ({ x: -5 + 2 * i, y: 0, z: 0 }))],
+    ['spire', 'rib', [{ x: 0, y: 0, z: 0 }, { x: 0, y: 15, z: 0 }, { x: 0, y: 30, z: 0 }]],
+    ['spiralStair', 'rib', Array.from({ length: 61 }, (_, i) => { const t = (3 * T2 * i) / 60; return { x: 3 * Math.cos(t), y: (12 * i) / 60, z: 3 * Math.sin(t) } })],
+    ['panel', 'tracery', [{ x: 0, y: 0, z: 0 }, { x: 0, y: 5, z: 0 }, { x: 0, y: 10, z: 0 }]],
+  ]
+  const run = (role, pts, prm = {}, seed = 7) => buildCurveSkeleton({ curveId: 'typ', curveType: 'polyline', curveRole: role }, pts, prm, seed, {})
+  const t0 = performance.now()
+  const results = CASES.map(([id, role, pts]) => ({ id, s: run(role, pts) }))
+  const ms = (performance.now() - t0) / CASES.length
+  const wrong = results.filter((r) => r.s.typology !== r.id).map((r) => `${r.id}→${r.s.typology}`)
+  check(!wrong.length, `Auto reads the curve: ${CASES.length} test curves get their typology${wrong.length ? ` (wrong: ${wrong.join(', ')})` : ''}`)
+  const invalid = results.filter((r) => !validateSkeleton(r.s).valid).map((r) => `${r.id}: ${validateSkeleton(r.s).errors[0]}`)
+  check(!invalid.length, `every typology builds a valid skeleton: finite, above ground, all tangencies exact${invalid.length ? ` (${invalid.join('; ')})` : ''}`)
+  check(results.every((r) => r.s.members.length > 3), 'every typology adds construction members beyond the drawn curve')
+  check(new Set(results.map((r) => r.s.typology)).size >= 22, `the city can hold ${new Set(results.map((r) => r.s.typology)).size} distinct typologies (≥ 22)`)
+  check(results.every((r) => r.s.trace.steps.some((st) => st.rule === 'typology')), 'the debug log records which typology rule fired and why')
+  check(results.every((r, i) => JSON.stringify(run(CASES[i][1], CASES[i][2])) === JSON.stringify(r.s)), 'typologies are deterministic')
+  check(ms < 25, `typology build fast (${ms.toFixed(1)} ms per curve)`)
+  // Forced typologies never crash and stay valid on unsuitable curves (they fall back to classic).
+  const forced = []
+  for (const t of TYPOLOGIES) for (const [, role, pts] of [CASES[0], CASES[11]]) {
+    const s = run(role, pts, { typology: t.id })
+    if (!validateSkeleton(s).valid) forced.push(t.id)
+  }
+  check(!forced.length, `forcing any of ${TYPOLOGIES.length} typologies on an arch or a plan stays valid${forced.length ? ` (${forced.join(', ')})` : ''}`)
+  const cl = run('rib', CASES[0][2], { typology: 'classic' })
+  check(cl.typology === 'classic' && ['geometric', 'y', 'intersecting'].includes(cl.style), 'Classic keeps the Step 47 grammar (seeded tracery style)')
+  // Construction kernel: exact arcs and tangencies.
+  const tu = tudorArch(8, 4.5)
+  const og = ogeeArch(5, 9)
+  const rp = rampantArch(6, 5, 1, 9)
+  const ro = roundArch(6, 4)
+  check([tu, og, rp, ro].every((a) => a && Math.max(...a.residuals) < 1e-9), 'Tudor, ogee, rampant and segmental arches: every tangency / incidence exact')
+  check(Math.abs(tu.apex.y - 4.5) < 1e-9 && Math.abs(og.apex.y - 9) < 1e-9 && Math.abs(ro.apex.y - 4) < 1e-9, 'arch families reach the measured rise exactly')
+  const o1 = offsetCArch(fromTwoCentred(twoCentredArch(0, 6, 1, 0)), 0.8)
+  check(Math.abs(o1.apex.y - twoCentredArch(0, 6.8, 6 / 6.8, 0).h) < 1e-9, 'composite offset of a two-centred arch = the Step 47 archivolt (same apex)')
+  const oo = archOrder(og, -0.5)
+  check(oo && oo.kind === 'ogee' && Math.abs(oo.h - 8.1) < 1e-9, 'ogee orders are rebuilt ogees (a − δ, h − 1.8δ), not collapsing offsets')
+  const cu = cuspedIntrados(fromTwoCentred(twoCentredArch(0, 5, 1, 0)), 3, 0.55)
+  check(cu && Math.max(...cu.residuals) < 1e-9 && cu.cusps.length === 5, 'cusped intrados: 6 lobes internally tangent to the arch, 5 cusps at exact intersections')
+  const mo = mouchette({ x: 0, y: 3 }, 0.8, { x: 0.5, y: 0 }, 0.3)
+  check(mo && Math.max(...mo.residuals) < 1e-9, 'mouchette: both flanks internally tangent to the head and through the tail')
+  const rc = reverseCurve({ x: 0, y: 0 }, { x: 3, y: 4 })
+  check(Math.max(...rc.residuals) < 1e-9, 'reverse curve: two equal arcs tangent at the midpoint')
+  const ve = vesica({ x: 0, y: 0 }, 4, 1.5)
+  check(Math.max(...ve.residuals) < 1e-9, 'vesica: R = (A² + B²)/2B passes both tips and the waist')
+  const c3 = circleInsideThree([{ c: { x: 0, y: 0 }, R: 10 }, { c: { x: 6, y: 0 }, R: 10 }, { c: { x: 3, y: 5 }, R: 10 }], { x: 3, y: 2 })
+  check(c3 && Math.max(...c3.residuals) < 1e-9, 'roundel internally tangent to three arcs (Newton) is exact')
+  const ogs = results.find((r) => r.id === 'ogee').s
+  check(['soufflet', 'mouchette'].every((t) => ogs.construction.some((c) => c.type === t)), 'ogee window holds soufflets and mouchettes (flamboyant)')
+  const rose = results.find((r) => r.id === 'rose').s
+  check(rose.construction.filter((c) => c.type === 'rose').length >= 6, 'rose window: rim oculi tangent to the rim and the radiating lancets')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')

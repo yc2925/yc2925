@@ -103,6 +103,10 @@ Important: none of REF-021–029 is Gothic. REF-024, 026 and 029 are classical/R
 - **Terrain surface (REF-033):** grey rubble and scree. Steep ground reads as darker bumped rock, flat ground collects pale dust, with scattered pebbles; all of it is world-space noise in the ground shader, with detail fading with distance. The architecture's own shaders are unchanged.
 - **Skeleton = the drawn curves themselves** (no repeated arch arrays) plus procedural branching.
 
+### Curve typologies (Step 48, REF-001, 004, 005, 007, 011, 012)
+
+The drawn curve's measurable qualities choose the typology, so different curves make different buildings. Closed upright curves become rose, wheel, vesica or spherical-triangle windows (REF-011). Closed ground plans become ribbed vaults, chapter houses, canopies (REF-007) or cloisters (REF-004). Arches with reverse bends become ogee hoods over flamboyant windows with soufflets and mouchettes (REF-005). Low arches become four-centred arches with Perpendicular panels, and arches of even curvature become round arches with plate tracery (REF-001). Tall vertical curves become octagonal spires (REF-012), and helices become spiral stairs. Classic keeps the Step 47 grammar. Detail: `Docs/28-curve-typologies/`.
+
 ### Presentation modes
 
 - *Skeleton / X-ray* (REF-021, 024, 029): luminous additive lines on black, skeleton visible through semi-transparent rock.

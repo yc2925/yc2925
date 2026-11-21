@@ -8,6 +8,8 @@
  * those for the selected curve).
  */
 
+import { TYPOLOGY_OPTIONS } from './typology.js'
+
 export const DEFAULT_SKELETON_PARAMS = Object.freeze({
   thickness: 0.6, // member radius at its base (m)
   taper: 0.25, // radius reduction from base to tip
@@ -30,11 +32,16 @@ export const DEFAULT_SKELETON_PARAMS = Object.freeze({
   pinnacles: 0.7, // pinnacle height on piers and free column tops (0 = none)
   grotesques: 0.6, // chance of grotesque / gargoyle pairs
   jointSize: 1.4, // boss size where connected curves meet (× thickness)
+  typology: 'auto', // Step 48: auto (from the curve signature) · classic · a forced typology
+  crocketStyle: 'leaf', // leaf · grotesque · rolled
+  cuspEnds: 'plain', // plain · pierced · grotesque cusp terminations
+  ballflower: 0, // ball-flower density along archivolts (0 = none)
 })
 
 const ALL = ['rib', 'column', 'buttress', 'tracery']
 
 export const SKELETON_PARAM_SPECS = Object.freeze([
+  { key: 'typology', label: 'Typology', options: TYPOLOGY_OPTIONS, tier: 'essential', roles: ALL, help: 'What the curve becomes. Auto reads the curve (closed, rise, reverse bends, symmetry, verticality, winding…) and picks a Gothic typology; Classic keeps the Step 47 grammar; any other option forces that typology.' },
   { key: 'thickness', label: 'Member thickness', min: 0.15, max: 2.5, step: 0.05, unit: 'm', tier: 'essential', roles: ALL, help: 'Radius of the structural member along each curve; tracery bars, shafts and ornaments scale with it.' },
   { key: 'taper', label: 'Taper', min: 0, max: 0.9, step: 0.01, tier: 'advanced', roles: ALL, help: 'How much the main member thins: supports from base to top, arches and bands from both springings toward the crown.' },
   { key: 'style', label: 'Tracery style', min: 0, max: 3, step: 1, tier: 'essential', roles: ['rib'], help: 'Arch tracery system: 0 Auto (seed picks), 1 Geometric (lancets + tangent oculus + foil), 2 Y-tracery (branches concentric with the opposite arc), 3 Intersecting (main-arch circles repeated from each mullion).' },
@@ -55,6 +62,9 @@ export const SKELETON_PARAM_SPECS = Object.freeze([
   { key: 'setbacks', label: 'Setbacks', min: 0, max: 3, step: 1, tier: 'advanced', roles: ['buttress'], help: 'Stepped reductions of the buttress pier as it rises.' },
   { key: 'pinnacles', label: 'Pinnacles', min: 0, max: 1, step: 0.01, tier: 'essential', roles: ['column', 'buttress', 'rib'], help: 'Height of the pinnacles crowning buttress piers and free column tops (0 = none).' },
   { key: 'grotesques', label: 'Grotesques', min: 0, max: 1, step: 0.01, tier: 'essential', roles: ['rib', 'buttress'], help: 'Chance of carved grotesques: corbel pairs at arch springings, gargoyles on buttress piers.' },
+  { key: 'crocketStyle', label: 'Crocket style', options: [{ id: 'leaf', label: 'Leaf crockets' }, { id: 'grotesque', label: 'Grotesque heads' }, { id: 'rolled', label: 'Rolled (ball) crockets' }], tier: 'advanced', roles: ['rib', 'tracery', 'buttress', 'column'], help: 'Carving along gables, spires and ogee extrados: leaf crockets, small grotesque heads, or rolled ball crockets.' },
+  { key: 'cuspEnds', label: 'Cusp ends', options: [{ id: 'plain', label: 'Plain cusps' }, { id: 'pierced', label: 'Pierced eyelets' }, { id: 'grotesque', label: 'Grotesque tips' }], tier: 'advanced', roles: ALL, help: 'How foil cusps terminate: plain points, a pierced eyelet at each cusp, or a tiny carved head.' },
+  { key: 'ballflower', label: 'Ball-flower', min: 0, max: 1, step: 0.01, tier: 'advanced', roles: ['rib', 'buttress', 'tracery'], help: 'Density of carved ball-flowers strung along archivolts and wall ribs (0 = none).' },
   { key: 'jointSize', label: 'Boss size', min: 0, max: 3, step: 0.05, tier: 'advanced', roles: ALL, help: 'Size of the carved boss where connected curves meet (× thickness, 0 = none).' },
 ])
 

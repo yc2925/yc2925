@@ -33,6 +33,9 @@ import {
   twoCentredArch,
   yBranch,
 } from './construct2d.js'
+import { curveSignature } from './signature.js'
+import { chooseTypology } from './typology.js'
+import { buildTypology, lowerFlyer } from './typologies.js'
 
 const MAX_MEMBERS = 650
 const TAU = Math.PI * 2
@@ -78,7 +81,7 @@ function stationAt(points, cum, frames, s) {
   return { p, t, n: upNormal(t, frames[i].up) }
 }
 
-export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut, topOut }) {
+export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut, topOut, controlCount = 0 }) {
   const members = []
   const ornaments = []
   const construction = []
@@ -98,7 +101,17 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       geoPoint('foil', lc, map)
     }
     for (const cp of foil.cusps ?? []) geoPoint('cusp', cp, map)
+    // Cusp terminations (Step 48): pierced eyelets or tiny grotesque heads at each cusp.
+    if (P.cuspEnds === 'pierced' || P.cuspEnds === 'grotesque') {
+      for (const cp of foil.cusps ?? []) {
+        if (cuspEnds >= 60) break
+        cuspEnds += 1
+        if (P.cuspEnds === 'pierced') addMember('oculus', 3, circlePoints(cp, foil.lobeRadius * 0.22, 12).map(map), Math.max(0.04, foil.lobeRadius * 0.06), 'cuspEye')
+        else ornament('grotesque', map(cp), norm(sub(map(cp), map(foil.center))), UP, foil.lobeRadius * 0.55, { variant: cuspEnds % 3 })
+      }
+    }
   }
+  let cuspEnds = 0
   let seq = 0
   const r0 = radii[Math.floor(radii.length / 2)] ?? P.thickness
   const addMember = (kind, depth, pts, r, piece) => {
@@ -109,7 +122,12 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
     const rad = Array.isArray(r) ? r : pp.map(() => r)
     members.push({ id: `g${seq++}`, kind, depth, points: pp, radii: rad, parent: 'main', piece })
   }
-  const ornament = (type, p, x, y, size, extra = {}) => ornaments.push({ type, p, x: norm(x), y: norm(y), size, ...extra })
+  const ornament = (type, p, x, y, size, extra = {}) => {
+    // Crocket style (Step 48): leaf crockets, grotesque heads or rolled (boss) crockets.
+    if (type === 'crocket' && P.crocketStyle === 'grotesque') return ornaments.push({ type: 'grotesque', p, x: norm(x), y: norm(y), size: size * 1.3, ...extra, variant: ornaments.length % 3 })
+    if (type === 'crocket' && P.crocketStyle === 'rolled') return ornaments.push({ type: 'boss', p, x: norm(x), y: norm(y), size: size * 0.55, ...extra, lobes: 4 })
+    return ornaments.push({ type, p, x: norm(x), y: norm(y), size, ...extra })
+  }
   const record = (type, residuals) => {
     for (const r of residuals) construction.push({ type, residual: r })
   }
@@ -215,7 +233,28 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
   }
 
   step('role', `Role: ${role}`, { role })
-  if (role === 'rib' || role === 'tracery') {
+  // ---- Step 48: curve signature → typology. Classic keeps the Step 47 grammar below unchanged.
+  const sig = curveSignature(points)
+  sig.controlPoints = controlCount
+  const typ = chooseTypology(role, sig, P)
+  out.typology = typ.id
+  out.signature = sig
+  step('typology', typ.reason, { typology: typ.id, closed: sig.closed, riseRatio: sig.riseRatio, inflections: sig.inflections, curvatureCV: sig.curvatureCV, symmetry: sig.symmetry, verticality: sig.verticality, aspect: sig.aspect })
+  let handled = false
+  if (!typ.classic && !typ.classicBand && typ.id !== 'pointed') {
+    if (typ.id === 'band') {
+      out.style = 'band'
+      band(points, P.bandHeight, 'band/', Math.max(0.06, r0 * 0.4))
+      handled = true
+    } else {
+      const ctx = { P, r0, rand, sig, points, radii, out, step, fmt, addMember, ornament, record, geo, geoCircle, geoPoint, geoLine, geoFoil, band }
+      handled = buildTypology(ctx, typ)
+      if (!handled) step('typology', `${typ.id} could not be built from this curve → classic grammar`)
+    }
+  }
+  if (handled) {
+    // Built by a Step 48 typology.
+  } else if (role === 'rib' || role === 'tracery') {
     if (role === 'tracery') step('archTest', 'Tracery role: always a tracery band (no arch test)')
     const F = role === 'rib' ? archFrame() : null
     if (!F) {
@@ -253,9 +292,10 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       }
       const styles = ['geometric', 'y', 'intersecting']
       const pick = rand()
-      const style = P.style >= 1 ? styles[Math.round(P.style) - 1] : pick < 0.5 ? 'geometric' : pick < 0.75 ? 'y' : 'intersecting'
+      const fromCurve = typ.id === 'pointed' && typ.style
+      const style = P.style >= 1 ? styles[Math.round(P.style) - 1] : fromCurve ? typ.style : pick < 0.5 ? 'geometric' : pick < 0.75 ? 'y' : 'intersecting'
       out.style = style
-      step('style', P.style >= 1 ? `Style ${style} (set by the Tracery style slider)` : `Style ${style} (Auto: seed roll ${fmt(pick)} → <0.5 geometric, <0.75 Y, else intersecting)`, { style, pick, source: P.style >= 1 ? 'slider' : 'seed' })
+      step('style', P.style >= 1 ? `Style ${style} (set by the Tracery style slider)` : fromCurve ? `Style ${style} (Auto: from the arch sharpness k)` : `Style ${style} (Auto: seed roll ${fmt(pick)} → <0.5 geometric, <0.75 Y, else intersecting)`, { style, pick, source: P.style >= 1 ? 'slider' : fromCurve ? 'curve' : 'seed' })
       const n = Math.max(1, Math.round(P.subdivision))
       const lobesTop = Math.round(P.foilLobes)
       const orientUp = rand() < 0.5
@@ -477,6 +517,7 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
     const above = points.filter((p) => p.y > hp * 0.6)
     if (above.length > 3) band(above, P.bandHeight * 0.6, 'flyer/', Math.max(0.06, r0 * 0.3))
     out.style = 'flying buttress'
+    if (typ.tiers === 2) lowerFlyer({ points, r0, addMember, step, band, P })
   }
 
   // Bosses at linked ends (vault rib junctions, REF-004).
@@ -488,6 +529,23 @@ export function buildGrammar({ role, points, radii, P, rand, topLinked, baseOut,
       [points[points.length - 1], topOut],
     ])
       if (linked) ornament('boss', p, v3(1, 0, 0), p.y > 3 ? scale(UP, -1) : UP, Math.max(r0, P.thickness) * P.jointSize, { lobes: Math.max(4, Math.round(P.foilLobes)) })
+  }
+  // Ball-flower (Step 48): small carved balls strung along the archivolts.
+  if (P.ballflower > 0) {
+    const spacing = 1.2 / P.ballflower
+    let placed = 0
+    for (const m of members) {
+      if (m.kind !== 'archivolt') continue
+      let acc = spacing / 2
+      for (let i = 1; i < m.points.length && placed < 90; i += 1) {
+        acc += dist(m.points[i - 1], m.points[i])
+        if (acc < spacing) continue
+        acc = 0
+        ornament('boss', m.points[i], norm(sub(m.points[i], m.points[i - 1])), UP, Math.max(0.12, m.radii[i] * 0.9), { lobes: 4 })
+        placed += 1
+      }
+    }
+    step('ballflower', `Ball-flower: ${placed} carved balls every ${fmt(spacing)} m along the archivolts`)
   }
   return out
 }
