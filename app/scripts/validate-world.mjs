@@ -24,6 +24,7 @@ import { twoCentredArch, sampleArch } from '../src/world/skeleton/construct2d.js
 import { tudorArch, ogeeArch, rampantArch, roundArch, sampleCArch, offsetCArch, archOrder, cuspedIntrados, fromTwoCentred } from '../src/world/skeleton/arches2d.js'
 import { mouchette, reverseCurve, vesica, circleInsideThree } from '../src/world/skeleton/tracery2d.js'
 import { TYPOLOGIES } from '../src/world/skeleton/typology.js'
+import { createSampleProject, sampleCurves } from '../src/world/model/sampleWorld.js'
 import { Quaternion, Vector3 } from 'three'
 import { buildGroundPoints, buildStonePoints, surfacePool, surveyStations, SCAN_RED, MAX_STONE_POINTS, MAX_GROUND_POINTS } from '../src/world/compose/scanCloud.js'
 import { DEFAULT_PRESENTATION, SCAN_SPECS } from '../src/world/compose/worldParams.js'
@@ -547,6 +548,21 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check(['soufflet', 'mouchette'].every((t) => ogs.construction.some((c) => c.type === t)), 'ogee window holds soufflets and mouchettes (flamboyant)')
   const rose = results.find((r) => r.id === 'rose').s
   check(rose.construction.filter((c) => c.type === 'rose').length >= 6, 'rose window: rim oculi tangent to the rim and the radiating lancets')
+}
+
+// ---------------------------------------------------------------- 5 Sample world
+{
+  const p = createSampleProject()
+  const exp = sampleCurves()
+  const curves = Object.values(p.curves)
+  const built = curves.map((c) => buildCurveSkeleton(c, resolveCurvePoints(p, c), resolveStructureParams(p, c.curveId).skeleton, 7, {}))
+  const wrong = built.map((s, i) => (s.typology === exp[i][0] ? null : `${exp[i][1]} → ${s.typology}`)).filter(Boolean)
+  check(curves.length === exp.length && !wrong.length, `Sample world: all ${curves.length} curves get their intended variation on Auto${wrong.length ? ` (wrong: ${wrong.join('; ')})` : ''}`)
+  check(built.every((s) => validateSkeleton(s).valid), 'Sample world: every structure is a valid skeleton')
+  const ids = new Set(built.map((s) => (s.typology === 'classic' ? s.style : s.typology === 'pointed' ? `pointed-${s.style}` : s.typology)))
+  check(ids.size >= 28 && TYPOLOGIES.every((t) => built.some((s) => s.typology === t.id)), `Sample world shows every typology (${ids.size} distinct variations)`)
+  const bad = curves.flatMap((c) => c.controlPoints).filter((q) => Math.abs(q.x) > p.world.fieldSize / 2 || Math.abs(q.z) > p.world.fieldSize / 2)
+  check(!bad.length, 'Sample world fits inside the field')
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')

@@ -18,6 +18,8 @@ The World tab has three views:
 - **X-ray:** a wire-mesh view that highlights the most prominent structures.
 - **Point cloud:** a photogrammetry-style survey with survey stations.
 
+The **5 Sample** tab is a separate showcase world. It has one labelled curve for every Gothic variation (arches, windows, vaults, arcades, spire, stair…), and you can edit it without touching your own world.
+
 The **Lab** menu keeps the earlier studies that led here: noise, terrain, hydraulic and vegetation simulation, voxels, shaders, growth, L-systems, Gothic grammar, ornament and agents.
 
 | X-ray | Point cloud survey | Overcast fog |
@@ -37,6 +39,7 @@ The **Lab** menu keeps the earlier studies that led here: noise, terrain, hydrau
   - [Point Cloud view: photogrammetry survey](Docs/26-PIVOT-curve-driven-gothic-world/WORLD_SCAN_SURVEY_LOOK.md): stones sampled into points, survey stations that report measured data, and performance budgets.
 - [27 — Debug layers](Docs/27-debug-layers/README.md): Class 11 visual debugging. Curve → skeleton: rule log, construction geometry, member types and labels. Skeleton → stone: stones coloured by kind or phase, overlap conflicts with their blockers, per-phase counts and timings, build timelapse and a stone inspector.
 - [28 — Curve typologies](Docs/28-curve-typologies/README.md): the curve decides the building. A curve signature (closed, rise, reverse bends, symmetry, verticality, winding) picks one of 24 Gothic typologies: ogee + flamboyant, Tudor + panel, plate, rampant, cusped, stacked elevation, rose, wheel, vesica, spherical triangle, ribbed vault, chapter house, canopy, cloister, apse, arcades, reticulated net, parapet, spire and spiral stair. Classic keeps the Step 47 grammar.
+  - [Variations table](Docs/28-curve-typologies/VARIATIONS.md): every structure, the curve qualities that select it, and how it is built. The **5 Sample** tab builds all of them side by side.
 
 ### Foundations: noise, terrain and simulation
 

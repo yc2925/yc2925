@@ -1,5 +1,7 @@
 # 28 — Curve typologies: the curve decides the building
 
+See also the **[variations table](VARIATIONS.md)** (structure → curve qualities → construction) and the **5 Sample** tab. The sample world is `app/src/world/model/sampleWorld.js`; it has its own project store and autosave key, so it never touches your world.
+
 Before this step, every curve that rose became the same kind of building: a two-centred pointed arch, with a gable, a quatrefoil and a tracery style picked at random. Every flat curve became the same tracery band. As a result the city looked like one building at different scales.
 
 Now each curve is **measured**, and those measurements choose one of **24 Gothic typologies**. The Step 47 grammar is still there. Set **Typology → Classic** to get it back exactly as it was.

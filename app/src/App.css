@@ -2054,3 +2054,21 @@
 .dbg-table { table-layout: fixed; font-size: 10px; }
 .dbg-table th:first-child, .dbg-table td:first-child { width: 30%; }
 .dbg-table th, .dbg-table td { padding: 2px 2px; overflow: hidden; }
+
+/* 5 Sample: structure variation labels */
+.sample-tag {
+  font: 500 10px/1.2 ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #f2f2f2;
+  background: rgba(10, 10, 10, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 2px 6px;
+  transform: translateY(-50%);
+}
+
+.sample-tag.is-selected {
+  border-color: #ff2020;
+  color: #fff;
+}

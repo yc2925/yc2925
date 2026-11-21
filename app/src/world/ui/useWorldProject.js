@@ -10,35 +10,39 @@ import { createHistory, dispatch as dispatchHistory, redo, seal, undo } from '..
 
 export const AUTOSAVE_KEY = 'yc2925.world.v1'
 
-function loadInitial() {
+function loadInitial(storageKey, initial) {
   try {
-    const raw = window.localStorage.getItem(AUTOSAVE_KEY)
+    const raw = window.localStorage.getItem(storageKey)
     if (raw) return deserializeProject(raw)
   } catch {
-    /* storage blocked or corrupt → start empty */
+    /* storage blocked or corrupt → start from the initial project */
   }
-  return createEmptyProject()
+  return initial()
 }
 
-export function useWorldProject() {
-  const [history, setHistory] = useState(() => createHistory(loadInitial()))
+/**
+ * One project store. The main world uses AUTOSAVE_KEY; the Sample tab uses its
+ * own key and starts from the procedural sample, so editing one never touches the other.
+ */
+export function useWorldProject({ storageKey = AUTOSAVE_KEY, initial = createEmptyProject } = {}) {
+  const [history, setHistory] = useState(() => createHistory(loadInitial(storageKey, initial)))
 
   const dispatch = useCallback((cmd, opts) => setHistory((h) => dispatchHistory(h, cmd, opts)), [])
   const endGesture = useCallback(() => setHistory((h) => seal(h)), [])
   const doUndo = useCallback(() => setHistory((h) => undo(h)), [])
   const doRedo = useCallback(() => setHistory((h) => redo(h)), [])
-  const reset = useCallback(() => setHistory(createHistory(createEmptyProject())), [])
+  const reset = useCallback(() => setHistory(createHistory(initial())), [initial])
 
   useEffect(() => {
     const id = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(AUTOSAVE_KEY, serializeProject(history.present))
+        window.localStorage.setItem(storageKey, serializeProject(history.present))
       } catch {
         /* ignore quota / privacy errors */
       }
     }, 400)
     return () => window.clearTimeout(id)
-  }, [history.present])
+  }, [history.present, storageKey])
 
   return useMemo(
     () => ({

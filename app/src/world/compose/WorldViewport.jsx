@@ -20,7 +20,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Line, OrbitControls } from '@react-three/drei'
+import { Html, Line, OrbitControls } from '@react-three/drei'
 import { buildMemberGeometry, computePieceOffsets, createStonePrototypes } from './geometry.js'
 import { createScrimMaterial } from './scrimMaterial.js'
 import { prominentSubjects, structureProminence } from './prominence.js'
@@ -367,7 +367,7 @@ function Structure({ s, stage, xray, explode, prototypesFor, materials, selected
   )
 }
 
-const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xray, presentation, terrain, selectedCurveId, onSelect, debug = null, onInspect = null }, ref) {
+const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xray, presentation, terrain, selectedCurveId, onSelect, debug = null, onInspect = null, labels = null }, ref) {
   const rig = useRef(null)
   useImperativeHandle(ref, () => ({ fit: (b) => rig.current?.fit(b) }))
   const pointCloud = stage === 'pointcloud'
@@ -518,6 +518,11 @@ const WorldViewport = forwardRef(function WorldViewport({ structures, stage, xra
       <CameraRig ref={rig} />
       <ScanLayerSetup />
       {debug?.on ? <DebugLayer structures={structures} selectedCurveId={selectedCurveId} debug={debug} /> : null}
+      {labels?.map((l) => (
+        <Html key={l.id} position={l.p} center distanceFactor={90} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+          <div className={`sample-tag${l.id === selectedCurveId ? ' is-selected' : ''}`}>{l.text}</div>
+        </Html>
+      ))}
 
       {world || scrimMode ? <Terrain params={terrain} scrim={scrimMode ? materials.terrainXray : materials.terrainScrim} xray={scrimMode} bg={bg} scan={scanLook} grid={scrimMode || (presentation.terrainGrid ?? true)} /> : null}
       {groundCloud ? <ScanPoints data={groundCloud} worldSize={(P.pointSize ?? 1) * 0.7 / Math.sqrt(P.groundDensity ?? 10)} /> : null}

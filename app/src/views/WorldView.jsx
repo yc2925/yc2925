@@ -12,12 +12,14 @@ import WorldViewport from '../world/compose/WorldViewport.jsx'
 import { Outliner, ParamPanel } from '../world/ui/WorldPanels.jsx'
 import { useWorldProject } from '../world/ui/useWorldProject.js'
 import { useStructureGeneration } from '../world/ui/useStructureGeneration.js'
+import { SAMPLE_KEY, createSampleProject } from '../world/model/sampleWorld.js'
 
 const STAGES = [
   { id: 'curves', label: 'Curves' },
   { id: 'skeleton', label: 'Gothic Skeleton' },
   { id: 'lithic', label: 'Lithic Formation' },
   { id: 'world', label: 'World' },
+  { id: 'sample', label: 'Sample' },
 ]
 
 const MODES = [
@@ -27,10 +29,15 @@ const MODES = [
 ]
 
 export default function WorldView({ labNoise = null }) {
-  const store = useWorldProject()
+  const [stage, setStage] = useState('curves')
+  // 5 Sample: its own project (own undo + autosave), built from the procedural sample.
+  const mainStore = useWorldProject()
+  const sampleStore = useWorldProject({ storageKey: SAMPLE_KEY, initial: createSampleProject })
+  const inSample = stage === 'sample'
+  const store = inSample ? sampleStore : mainStore
   const { project, dispatch, endGesture, undo, redo, canUndo, canRedo } = store
   const structures = useStructureGeneration(project)
-  const [stage, setStage] = useState('curves')
+  const [sampleLabels, setSampleLabels] = useState(true)
   const [mode, setMode] = useState('draw')
   const [grid, setGrid] = useState(1)
   const [curveType, setCurveType] = useState('catmullRom')
@@ -62,9 +69,9 @@ export default function WorldView({ labNoise = null }) {
     setPointCloud(false)
     setXray((x) => !x)
   }
-  const inWorld = stage === 'world'
-  // Effective stage for the viewport / panel: the point cloud renders as its own view.
-  const viewStage = inWorld && pointCloud ? 'pointcloud' : stage
+  const inWorld = stage === 'world' || inSample
+  // Effective stage for the viewport / panel: the sample renders as a World; the point cloud as its own view.
+  const viewStage = inWorld && pointCloud ? 'pointcloud' : inSample ? 'world' : stage
   const viewXray = inWorld && xray
   const [view, setView] = useState('top')
   const [stabilizer, setStabilizer] = useState(0.45)
@@ -137,6 +144,22 @@ export default function WorldView({ labNoise = null }) {
           </button>
         ))}
         <span className="world-stages-spacer" />
+        {inSample ? (
+          <>
+            <button type="button" className={sampleLabels ? 'is-active' : undefined} onClick={() => setSampleLabels((v) => !v)} title="Show the name of every structure variation">
+              Labels
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Reset the sample world? Your edits to the sample are lost (your own world is not affected).')) store.reset()
+              }}
+              title="Rebuild the sample world from its procedural preset (your own world is not affected)"
+            >
+              Reset sample
+            </button>
+          </>
+        ) : null}
         {inWorld ? (
           <>
         <button
@@ -247,6 +270,7 @@ export default function WorldView({ labNoise = null }) {
           debug={debug}
           onInspect={debug.on ? inspectStone : null}
           onSelect={(curveId) => setUi((u) => ({ ...u, selectedCurveId: curveId, selectedPoint: null }))}
+          labels={inSample && sampleLabels ? structures.filter((s) => s.skeleton.bounds).map((s) => ({ id: s.curveId, text: s.curve.name, p: [(s.skeleton.bounds.min.x + s.skeleton.bounds.max.x) / 2, s.skeleton.bounds.max.y + 1.5, (s.skeleton.bounds.min.z + s.skeleton.bounds.max.z) / 2] })) : null}
         />
       </section>
 
