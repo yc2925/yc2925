@@ -19,7 +19,12 @@
  *   - drag a point to move it (Shift-drag in top view = change height);
  *   - click a curve to select it; double-click a curve to insert a point;
  *   - Delete / Backspace removes the selected point (or curve).
- * PAN mode: left-drag pans. Right-drag pans and wheel zooms in every mode.
+ * MOVE mode
+ *   - drag a curve (its line or any of its points) to translate the whole
+ *     curve in the view's plane: X/Z (top), X/height (front), Z/height (side);
+ *     Shift-drag in top view moves it up/down. The offset snaps to the grid.
+ *     Its own linked ends detach; curves linked to it follow.
+ * Right-drag pans in every direction (screen-space) and wheel zooms, in every mode.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -140,12 +145,47 @@ function Interaction({ project, structures, mode, view, grid, stabilizer, setUi,
   })
 
   const onPointerDown = (e) => {
-    if (e.button !== 0 || mode === 'navigate') return
+    if (e.button !== 0) return
     e.stopPropagation()
     const hit = planeHit(e)
     if (!hit) return
     const handle = pick(hit)
     e.target.setPointerCapture?.(e.pointerId)
+
+    if (mode === 'move') {
+      // Grab the curve under the cursor: a control point first, then the curve line.
+      let curveId = handle?.curveId ?? null
+      if (!curveId) {
+        let bestD = 8
+        for (const s of structures) {
+          if (!s.curve.visibility) continue
+          const poly = s.skeleton.sourcePolyline.length >= 2 ? s.skeleton.sourcePolyline : s.resolved
+          for (const q of poly) {
+            const d = pxDist(q, hit, view, zoom())
+            if (d < bestD) {
+              bestD = d
+              curveId = s.curveId
+            }
+          }
+        }
+      }
+      setUi((u) => ({ ...u, selectedCurveId: curveId, selectedPoint: null }))
+      const s = curveId ? structures.find((t) => t.curveId === curveId) : null
+      if (s && !s.curve.locked) {
+        // The drag plane passes through the grab point, so the curve stays under the cursor.
+        drag.current = {
+          kind: 'translate',
+          curveId,
+          from: s.resolved.map((p) => ({ x: p.x, y: p.y, z: p.z })),
+          start: hit,
+          depth: view === 'side' ? hit.x : hit.z,
+          startY: e.clientY,
+          shift: (e.shiftKey || e.nativeEvent?.shiftKey || shiftHeld.current) && view === 'top',
+          key: `translate-${curveId}-${e.timeStamp}`,
+        }
+      }
+      return
+    }
 
     if (mode === 'draw') {
       if (handle) {
@@ -191,11 +231,29 @@ function Interaction({ project, structures, mode, view, grid, stabilizer, setUi,
   const onPointerMove = (e) => {
     const d = drag.current
     if (!d) {
-      if (mode === 'draw' || mode === 'edit') {
+      if (mode === 'draw' || mode === 'edit' || mode === 'move') {
         const hit = planeHit(e)
         const h = hit ? pick(hit) : null
         setUi((u) => (u.hover?.pointId === h?.pointId && u.hover?.curveId === h?.curveId ? u : { ...u, hover: h ? { curveId: h.curveId, pointId: h.pointId } : null }))
       }
+      return
+    }
+    if (d.kind === 'translate') {
+      let delta
+      if (d.shift) {
+        delta = { x: 0, y: snap((d.startY - e.clientY) / zoom(), grid), z: 0 }
+      } else {
+        // Unclamped plane hit (planeHit clamps y ≥ 0; the reducer keeps the curve above ground).
+        const normal = view === 'top' ? new THREE.Vector3(0, 1, 0) : view === 'side' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1)
+        const raw = e.ray.intersectPlane(new THREE.Plane(normal, view === 'top' ? 0 : -d.depth), new THREE.Vector3())
+        if (!raw) return
+        delta = {
+          x: view === 'side' ? 0 : snap(raw.x - d.start.x, grid),
+          y: view === 'top' ? 0 : snap(raw.y - d.start.y, grid),
+          z: view === 'front' ? 0 : snap(raw.z - d.start.z, grid),
+        }
+      }
+      dispatch({ type: 'translateCurve', curveId: d.curveId, from: d.from, delta }, { coalesce: d.key })
       return
     }
     if (d.kind === 'move') {
@@ -252,7 +310,7 @@ function Interaction({ project, structures, mode, view, grid, stabilizer, setUi,
     e.target.releasePointerCapture?.(e.pointerId)
     setLive(null)
     if (!d) return
-    if (d.kind === 'move') {
+    if (d.kind === 'move' || d.kind === 'translate') {
       endGesture()
       return
     }
@@ -465,10 +523,8 @@ export default function CurveEditor(props) {
   const selected = structures.find((s) => s.curveId === ui.selectedCurveId)
   // Drawing plane depth: through the selected curve's first point (z in front view, x in side view).
   const drawDepth = selected?.resolved?.length ? (view === 'front' ? selected.resolved[0].z : view === 'side' ? selected.resolved[0].x : 0) : 0
-  const mouseButtons = useMemo(
-    () => ({ LEFT: mode === 'navigate' ? THREE.MOUSE.PAN : null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }),
-    [mode],
-  )
+  // Left button belongs to the tools; right-drag pans, wheel / middle zooms.
+  const mouseButtons = useMemo(() => ({ LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }), [])
   return (
     <Canvas
       className={`world-editor-canvas is-${mode}`}
@@ -478,7 +534,7 @@ export default function CurveEditor(props) {
       gl={{ antialias: true }}
     >
       <color attach="background" args={['#0a0a0a']} />
-      <MapControls makeDefault enableRotate={false} screenSpacePanning={view !== 'top'} mouseButtons={mouseButtons} minZoom={0.3} maxZoom={40} />
+      <MapControls makeDefault enableRotate={false} screenSpacePanning mouseButtons={mouseButtons} minZoom={0.3} maxZoom={40} />
       <ViewRig view={view} />
       <FieldGuides size={size} view={view} />
       {structures.map((s) => (

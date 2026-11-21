@@ -1662,8 +1662,8 @@
   cursor: crosshair;
 }
 
-.world-editor-canvas.is-navigate {
-  cursor: grab;
+.world-editor-canvas.is-move {
+  cursor: move;
 }
 
 .world-dock-hint {

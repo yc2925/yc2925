@@ -23,7 +23,7 @@ const STAGES = [
 const MODES = [
   { id: 'draw', label: 'Draw', key: 'D' },
   { id: 'edit', label: 'Edit', key: 'V' },
-  { id: 'navigate', label: 'Pan', key: 'H' },
+  { id: 'move', label: 'Move', key: 'M' },
 ]
 
 export default function WorldView({ labNoise = null }) {
@@ -100,7 +100,7 @@ export default function WorldView({ labNoise = null }) {
       if (e.key === 'd' || e.key === 'D') setMode('draw')
       if (e.key === 'v' || e.key === 'V') setMode('edit')
       if (e.key === 'f' || e.key === 'F') setView((v) => (v === 'top' ? 'front' : v === 'front' ? 'side' : 'top'))
-      if (e.key === 'h' || e.key === 'H') setMode('navigate')
+      if (e.key === 'm' || e.key === 'M') setMode('move')
       if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selectedCurveId) {
         e.preventDefault()
         if (ui.selectedPoint != null) {
@@ -227,7 +227,9 @@ export default function WorldView({ labNoise = null }) {
                 ? view === 'top'
                   ? 'Drag point · ⇧drag = height · dbl-click curve = add point · Del'
                   : 'Drag point in X / height · dbl-click curve = add point'
-                : 'Drag to pan · wheel to zoom'}
+                : view === 'top'
+                  ? 'Drag a curve to move it · ⇧drag = height · right-drag pans'
+                  : 'Drag a curve to move it · right-drag pans'}
           </p>
         </div>
         <Outliner structures={structures} ui={ui} setUi={setUi} dispatch={dispatch} />

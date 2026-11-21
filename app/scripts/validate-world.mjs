@@ -444,5 +444,22 @@ const build = (role, pts, prm = {}, seed = 7, links = {}) => buildCurveSkeleton(
   check(again.stones.length === r.stones.length && again.stones.every((st, i) => st.p[0] === r.stones[i].p[0] && st.kind === r.stones[i].kind), 'recording the trace does not change placement (deterministic)')
 }
 
+// ---------------------------------------------------------------- Move mode: translate a whole curve
+{
+  let p = createEmptyProject()
+  p = applyCommand(p, { type: 'addCurve', curveId: 'A', points: [{ x: 0, y: 0, z: 0 }, { x: 10, y: 5, z: 0 }] })
+  p = applyCommand(p, { type: 'addCurve', curveId: 'B', points: [{ x: 10, y: 5, z: 0 }, { x: 20, y: 0, z: 10 }], links: { start: null, end: null } })
+  const bPts = p.curves.B.controlPoints
+  p = applyCommand(p, { type: 'addCurve', curveId: 'C', points: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 5 }], links: { start: { curveId: 'B', pointId: bPts[1].id }, end: null } })
+  const from = resolveCurvePoints(p, p.curves.B)
+  const moved = applyCommand(p, { type: 'translateCurve', curveId: 'B', from, delta: { x: 7, y: 2, z: -3 } })
+  const after = resolveCurvePoints(moved, moved.curves.B)
+  check(after.every((q, i) => q.x === from[i].x + 7 && q.y === from[i].y + 2 && q.z === from[i].z - 3), 'translateCurve moves every point by the same offset (rigid)')
+  const cStart = resolveCurvePoints(moved, moved.curves.C)[0]
+  check(cStart.x === after[1].x && cStart.z === after[1].z, 'curves linked to a moved curve follow it')
+  const down = applyCommand(p, { type: 'translateCurve', curveId: 'B', from, delta: { x: 0, y: -50, z: 0 } })
+  check(Math.min(...resolveCurvePoints(down, down.curves.B).map((q) => q.y)) === 0 && resolveCurvePoints(down, down.curves.B)[0].y - resolveCurvePoints(down, down.curves.B)[1].y === from[0].y - from[1].y, 'translateCurve stops at the ground and keeps the curve shape')
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll world checks passed')
 process.exit(failures ? 1 : 0)

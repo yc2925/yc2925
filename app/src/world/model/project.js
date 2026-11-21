@@ -214,6 +214,22 @@ export function applyCommand(project, cmd) {
         ),
       }))
     }
+    case 'translateCurve': {
+      // Rigid move of a whole curve: every point = its drag-start position + delta.
+      // The curve's own linked ends detach (it moves free of what it was attached to);
+      // curves linked TO this curve follow, because they resolve through it.
+      const from = cmd.from
+      const minY = Math.min(...from.map((p) => p.y))
+      const dy = Math.max(-minY, cmd.delta.y)
+      return withCurve(project, cmd.curveId, (c) => ({
+        ...c,
+        links: { start: null, end: null },
+        controlPoints: c.controlPoints.map((p, i) => {
+          const o = from[i] ?? p
+          return { ...p, x: round(o.x + cmd.delta.x), y: round(Math.max(0, o.y + dy)), z: round(o.z + cmd.delta.z) }
+        }),
+      }))
+    }
     case 'deletePoint': {
       const curve = project.curves[cmd.curveId]
       if (!curve || curve.locked) return project
