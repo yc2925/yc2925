@@ -2,29 +2,65 @@
 
 **Live build: [pwb-yc2925-project-64c07.web.app](https://pwb-yc2925-project-64c07.web.app)**
 
-![Lithic Code — World view: curve-driven Gothic structures in carved stone on a dark rubble terrain under overcast fog](Images/hero/hero-dark.jpg)
+![Lithic Code: the 5 Sample world. On the left, the curve sandbox with every drawn curve; in the middle, the Gothic structures those curves generated in carved stone: rose, wheel and spherical-triangle windows, canopy, openwork spire, chapter house, ribbed vaults, cloister walk, spiral stair and panel screen](Images/hero/hero-variations.jpg)
 
-Lithic Code is a procedural world builder for Gothic architecture, made with React, Three.js and Vite. You draw curves, and each curve is built up through four stages:
+Lithic Code is a procedural world builder for Gothic architecture, made with React, Three.js and Vite. You draw curves, and **each curve's shape decides what it becomes**. Every curve goes through four stages:
 
-1. **Curves:** you draw the curve in a top, front or side editor.
-2. **Gothic skeleton:** the curve becomes structure through compass-and-straightedge rules: pointed arches, tangent foils and oculi, archivolts, gables, compound piers and flying buttresses.
-3. **Lithic formation:** the skeleton is built in carved limestone and sandstone, including voussoirs, keystones, bosses, pinnacles and grotesques.
+1. **Curves:** you draw the curve in the curve sandbox (Top, Front or Side view). Modes:
+   - **Draw:** sketch freehand with a stabilizer.
+   - **Edit:** move single points.
+   - **Move:** drag whole curves.
+
+   Right-drag pans the board.
+2. **Gothic skeleton:** the curve is measured and turned into structure with compass-and-straightedge rules.
+   - The measured qualities are its signature: closed or open, rise, reverse bends, symmetry, verticality, winding, corners and roundness.
+   - The signature picks one of **24 Gothic typologies**: pointed, cusped, Tudor, ogee/flamboyant, round/plate, rampant and stacked arches; rose, wheel, vesica and spherical-triangle windows; ribbed vaults, chapter house, canopy, cloister and apse; arcades, net tracery, parapet and panel screen; spire and spiral stair.
+   - Every arc and tangency is solved exactly.
+3. **Lithic formation:** the skeleton is built in carved limestone and sandstone, including voussoirs, drums, keystones, bosses, pinnacles, crockets and grotesques.
 4. **World:** the structures stand in a procedural terrain under fog and atmosphere.
 
 Every form comes from explicit mathematical and geometric rules and is controlled by parameters. Nothing is hand-modelled or AI-generated.
 
-The World tab has three views:
-- **Solid:** the default carved-stone view.
-- **X-ray:** a wire-mesh view that highlights the most prominent structures.
-- **Point cloud:** a photogrammetry-style survey with survey stations.
+In the World tab:
+- There are three views:
+  - **Solid:** the default carved-stone view.
+  - **X-ray:** a wire-mesh view that highlights the most prominent structures.
+  - **Point cloud:** a photogrammetry-style survey with survey stations.
+- **World & terrain** and **Debug** are separate panels in the top-right row:
+  - World & terrain has the terrain, sky and ground controls.
+  - Debug shows the rule log, construction geometry and stone conflicts.
 
-The **5 Sample** tab is a separate showcase world. It has one labelled curve for every Gothic variation (arches, windows, vaults, arcades, spire, stair…), and you can edit it without touching your own world.
+The **5 Sample** tab is a separate showcase world, shown in the image above. It has one labelled curve for every Gothic variation, and you can edit it without touching your own world.
 
 The **Lab** menu keeps the earlier studies that led here: noise, terrain, hydraulic and vegetation simulation, voxels, shaders, growth, L-systems, Gothic grammar, ornament and agents.
 
 | X-ray | Point cloud survey | Overcast fog |
 |---|---|---|
 | ![X-ray view](Images/hero/hero-xray.jpg) | ![Point cloud view](Images/hero/hero-pointcloud.jpg) | ![Pale overcast World view](Images/hero/hero-world.jpg) |
+
+### Latest progress (November 2026)
+
+- **Curve typologies:** a curve signature chooses among 24 typologies, each built from exact arcs and tangencies. Classic keeps the original grammar ([28](Docs/28-curve-typologies/README.md), [variations table](Docs/28-curve-typologies/VARIATIONS.md)).
+- **5 Sample tab:** all 30 sample curves and their structures side by side, with labels, a reset, and their own undo and autosave.
+- **Debug layers:**
+  - Curve → skeleton: rule log and construction geometry.
+  - Skeleton → stone: stones coloured by kind or phase, overlap conflicts, timelapse and a stone inspector ([27](Docs/27-debug-layers/README.md)).
+- **Curve sandbox:**
+  - An editable Side view.
+  - A Move mode that drags whole curves.
+  - Right-drag panning in every direction.
+- **Lithic formation:**
+  - The loose pebbles are removed.
+  - The sliders are ordered by measured visual impact: formation width, stone size, carving scale, density and wall thickness come first.
+- **World look:**
+  - An overcast fog sky.
+  - A rubble and dust ground with a dark palette option.
+  - A terrain grid toggle.
+  - An X-ray terrain glow.
+  - A point-cloud survey view.
+- **Interface:**
+  - The World pages share the Lab's style: thin filled sliders, IBM Plex type and a #C21807 accent.
+  - Every parameter shows a description on hover.
 
 **Run it locally:** `cd app && npm install && npm run dev`. To run the world checks: `npm run validate:world`.
 
